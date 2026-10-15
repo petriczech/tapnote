@@ -1,0 +1,83 @@
+import 'fake-indexeddb/auto';
+import { TestBed } from '@angular/core/testing';
+import { Note } from '../model/note';
+import { DexieNotesRepository } from './dexie-notes-repository';
+import { NotesRepository } from './notes-repository';
+
+function createNote(id: string, overrides: Partial<Note> = {}): Note {
+  return {
+    id,
+    title: `Poznámka ${id}`,
+    content: '',
+    tags: [],
+    pinned: false,
+    archived: false,
+    isTemplate: false,
+    createdAt: '2026-10-15T10:00:00.000Z',
+    updatedAt: '2026-10-15T10:00:00.000Z',
+    ...overrides,
+  };
+}
+
+describe('DexieNotesRepository', () => {
+  let repository: NotesRepository;
+
+  beforeEach(async () => {
+    TestBed.configureTestingModule({
+      providers: [{ provide: NotesRepository, useClass: DexieNotesRepository }],
+    });
+    repository = TestBed.inject(NotesRepository);
+    await repository.replaceAll([]);
+  });
+
+  it('stores and loads a note', async () => {
+    const note = createNote('1', { tags: ['a', 'b'], pinned: true, color: '#ff0' });
+
+    await repository.put(note);
+
+    expect(await repository.get('1')).toEqual(note);
+  });
+
+  it('returns undefined for an unknown id', async () => {
+    expect(await repository.get('missing')).toBeUndefined();
+  });
+
+  it('overwrites a note with the same id', async () => {
+    await repository.put(createNote('1'));
+    await repository.put(createNote('1', { content: 'nový obsah' }));
+
+    const all = await repository.getAll();
+    expect(all).toHaveLength(1);
+    expect(all[0].content).toBe('nový obsah');
+  });
+
+  it('stores multiple notes at once', async () => {
+    await repository.bulkPut([createNote('1'), createNote('2')]);
+
+    expect((await repository.getAll()).map((note) => note.id).sort()).toEqual(['1', '2']);
+  });
+
+  it('deletes a note', async () => {
+    await repository.bulkPut([createNote('1'), createNote('2')]);
+
+    await repository.delete('1');
+
+    expect((await repository.getAll()).map((note) => note.id)).toEqual(['2']);
+  });
+
+  it('replaces all notes', async () => {
+    await repository.bulkPut([createNote('1'), createNote('2')]);
+
+    await repository.replaceAll([createNote('3')]);
+
+    expect((await repository.getAll()).map((note) => note.id)).toEqual(['3']);
+  });
+
+  it('keeps existing notes when replaceAll fails', async () => {
+    await repository.put(createNote('1'));
+
+    await expect(repository.replaceAll([createNote('2'), createNote('2')])).rejects.toThrow();
+
+    expect((await repository.getAll()).map((note) => note.id)).toEqual(['1']);
+  });
+});
