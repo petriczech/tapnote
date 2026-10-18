@@ -86,4 +86,82 @@ describe('NoteEditor', () => {
 
     expect(navigate).not.toHaveBeenCalled();
   });
+
+  function buttonOf(root: HTMLElement, text: string): HTMLButtonElement {
+    return [...root.querySelectorAll('button')].find((button) => button.textContent?.trim() === text) as HTMLButtonElement;
+  }
+
+  function type(textarea: HTMLTextAreaElement, value: string): void {
+    textarea.value = value;
+    textarea.setSelectionRange(value.length, value.length);
+    textarea.dispatchEvent(new Event('input'));
+  }
+
+  it('continues a checklist on Enter', async () => {
+    const fixture = TestBed.createComponent(NoteEditor);
+    await fixture.whenStable();
+    const textarea = textareaOf(fixture.nativeElement);
+    type(textarea, '- [ ] mléko');
+
+    const enter = new KeyboardEvent('keydown', { key: 'Enter', cancelable: true });
+    textarea.dispatchEvent(enter);
+
+    expect(enter.defaultPrevented).toBe(true);
+    expect(textarea.value).toBe('- [ ] mléko\n- [ ] ');
+    expect(fixture.debugElement.injector.get(NoteDraft).content()).toBe('- [ ] mléko\n- [ ] ');
+  });
+
+  it('keeps the default Enter outside a checklist', async () => {
+    const fixture = TestBed.createComponent(NoteEditor);
+    await fixture.whenStable();
+    const textarea = textareaOf(fixture.nativeElement);
+    type(textarea, 'text');
+
+    const enter = new KeyboardEvent('keydown', { key: 'Enter', cancelable: true });
+    textarea.dispatchEvent(enter);
+
+    expect(enter.defaultPrevented).toBe(false);
+  });
+
+  it('turns the current line into an item', async () => {
+    const fixture = TestBed.createComponent(NoteEditor);
+    await fixture.whenStable();
+    const textarea = textareaOf(fixture.nativeElement);
+    type(textarea, 'mléko');
+
+    buttonOf(fixture.nativeElement, 'Checklist').click();
+
+    expect(textarea.value).toBe('- [ ] mléko');
+    expect(textarea.selectionStart).toBe(11);
+  });
+
+  it('toggles an item in the view and moves focus between modes', async () => {
+    const fixture = TestBed.createComponent(NoteEditor);
+    await fixture.whenStable();
+    const root: HTMLElement = fixture.nativeElement;
+    type(textareaOf(root), '- [ ] a\n- [ ] b');
+
+    buttonOf(root, 'Hotovo').click();
+    await fixture.whenStable();
+    expect(textareaOf(root)).toBeNull();
+    expect(document.activeElement).toBe(buttonOf(root, 'Upravit'));
+
+    root.querySelector<HTMLInputElement>('input[type=checkbox]')?.click();
+    await fixture.whenStable();
+    expect(fixture.debugElement.injector.get(NoteDraft).content()).toBe('- [ ] b\n- [x] a');
+
+    buttonOf(root, 'Upravit').click();
+    await fixture.whenStable();
+    expect(document.activeElement).toBe(textareaOf(root));
+  });
+
+  it('opens a note with a checklist in the view', async () => {
+    await repository.put({ ...createNote('1', '2026-10-15T10:00:00.000Z'), content: '- [ ] mléko' });
+    const harness = await RouterTestingHarness.create();
+
+    await harness.navigateByUrl('/note/1', NoteEditor);
+
+    await vi.waitFor(() => expect(buttonOf(harness.routeNativeElement!, 'Upravit')).toBeTruthy());
+    expect(textareaOf(harness.routeNativeElement!)).toBeNull();
+  });
 });
