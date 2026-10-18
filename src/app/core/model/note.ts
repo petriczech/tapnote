@@ -23,6 +23,26 @@ export interface NotesExport {
   notes: Note[];
 }
 
+export function createNote(id: string, now: string): Note {
+  return {
+    id,
+    title: '',
+    content: '',
+    tags: [],
+    pinned: false,
+    archived: false,
+    isTemplate: false,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+// Název z prvního neprázdného řádku
+export function deriveTitle(content: string): string {
+  const firstLine = content.split('\n').find((line) => line.trim() !== '') ?? '';
+  return firstLine.replace(/^\s*#{1,6}(\s+|$)/, '').trim();
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

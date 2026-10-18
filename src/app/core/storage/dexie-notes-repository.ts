@@ -25,6 +25,14 @@ export class DexieNotesRepository extends NotesRepository {
     return this.db.notes.toArray();
   }
 
+  getLatest(): Promise<Note | undefined> {
+    return this.db.notes
+      .orderBy('updatedAt')
+      .reverse()
+      .filter((note) => !note.deletedAt && !note.archived && !note.isTemplate)
+      .first();
+  }
+
   async put(note: Note): Promise<void> {
     await this.db.notes.put(note);
   }

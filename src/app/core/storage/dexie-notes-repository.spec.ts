@@ -51,6 +51,22 @@ describe('DexieNotesRepository', () => {
     expect(all[0].content).toBe('nový obsah');
   });
 
+  it('returns the latest active note', async () => {
+    await repository.bulkPut([
+      createNote('old', { updatedAt: '2026-10-15T10:00:00.000Z' }),
+      createNote('latest', { updatedAt: '2026-10-15T11:00:00.000Z' }),
+      createNote('deleted', { updatedAt: '2026-10-15T12:00:00.000Z', deletedAt: '2026-10-15T12:00:00.000Z' }),
+      createNote('archived', { updatedAt: '2026-10-15T13:00:00.000Z', archived: true }),
+      createNote('template', { updatedAt: '2026-10-15T14:00:00.000Z', isTemplate: true }),
+    ]);
+
+    expect((await repository.getLatest())?.id).toBe('latest');
+  });
+
+  it('returns undefined as latest for an empty database', async () => {
+    expect(await repository.getLatest()).toBeUndefined();
+  });
+
   it('stores multiple notes at once', async () => {
     await repository.bulkPut([createNote('1'), createNote('2')]);
 

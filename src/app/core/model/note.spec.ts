@@ -1,4 +1,4 @@
-import { isNote, isNotesExport, Note } from './note';
+import { createNote, deriveTitle, isNote, isNotesExport, Note } from './note';
 
 const note: Note = {
   id: '1',
@@ -51,5 +51,29 @@ describe('isNotesExport', () => {
 
   it('rejects an invalid note', () => {
     expect(isNotesExport({ ...exported, notes: [{ ...note, id: 1 }] })).toBe(false);
+  });
+});
+
+describe('createNote', () => {
+  it('creates an empty valid note', () => {
+    const created = createNote('1', '2026-10-15T10:00:00.000Z');
+
+    expect(isNote(created)).toBe(true);
+    expect(created.content).toBe('');
+    expect(created.createdAt).toBe(created.updatedAt);
+  });
+});
+
+describe('deriveTitle', () => {
+  it.each([
+    ['Nákup\nmléko', 'Nákup'],
+    ['\n\n  Druhý řádek  \n', 'Druhý řádek'],
+    ['## Nadpis', 'Nadpis'],
+    ['#nakup', '#nakup'],
+    ['#\nNákup', ''],
+    ['', ''],
+    ['   \n  ', ''],
+  ])('derives %j as %j', (content, title) => {
+    expect(deriveTitle(content)).toBe(title);
   });
 });
