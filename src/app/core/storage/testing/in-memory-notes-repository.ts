@@ -32,11 +32,30 @@ export class InMemoryNotesRepository extends NotesRepository {
     notes.forEach((note) => this.notes.set(note.id, note));
   }
 
+  async update(id: string, changes: Partial<Omit<Note, 'id'>>): Promise<void> {
+    const note = this.notes.get(id);
+    if (note) {
+      const updated: Note = { ...note, ...changes };
+      for (const [key, value] of Object.entries(changes)) {
+        if (value === undefined) {
+          Reflect.deleteProperty(updated, key);
+        }
+      }
+      this.notes.set(id, updated);
+    }
+  }
+
   async delete(id: string): Promise<void> {
     if (this.failDelete) {
       throw new Error('delete failed');
     }
     this.notes.delete(id);
+  }
+
+  async purgeTrash(before: string): Promise<number> {
+    const expired = [...this.notes.values()].filter((note) => note.deletedAt !== undefined && note.deletedAt < before);
+    expired.forEach((note) => this.notes.delete(note.id));
+    return expired.length;
   }
 
   async replaceAll(notes: Note[]): Promise<void> {

@@ -41,8 +41,16 @@ export class DexieNotesRepository extends NotesRepository {
     await this.db.notes.bulkPut(notes);
   }
 
+  async update(id: string, changes: Partial<Omit<Note, 'id'>>): Promise<void> {
+    await this.db.notes.update(id, changes);
+  }
+
   delete(id: string): Promise<void> {
     return this.db.notes.delete(id);
+  }
+
+  purgeTrash(before: string): Promise<number> {
+    return this.db.notes.where('deletedAt').below(before).delete();
   }
 
   replaceAll(notes: Note[]): Promise<void> {

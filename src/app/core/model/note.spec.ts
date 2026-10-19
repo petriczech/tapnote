@@ -1,4 +1,4 @@
-import { createNote, deriveTitle, isNote, isNotesExport, Note } from './note';
+import { createNote, deriveTitle, extractTags, isNote, isNotesExport, Note } from './note';
 
 const note: Note = {
   id: '1',
@@ -75,5 +75,18 @@ describe('deriveTitle', () => {
     ['   \n  ', ''],
   ])('derives %j as %j', (content, title) => {
     expect(deriveTitle(content)).toBe(title);
+  });
+});
+
+describe('extractTags', () => {
+  it.each([
+    ['#nakup mléko #Domov', ['nakup', 'domov']],
+    ['text\n#úkol a #úkol', ['úkol']],
+    ['# Nadpis', []],
+    ['email@domena.cz a a#b', []],
+    ['#tag-1 #tag_2', ['tag-1', 'tag_2']],
+    ['', []],
+  ])('extracts tags from %j', (content, tags) => {
+    expect(extractTags(content)).toEqual(tags);
   });
 });

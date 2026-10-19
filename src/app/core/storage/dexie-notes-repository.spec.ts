@@ -67,6 +67,28 @@ describe('DexieNotesRepository', () => {
     expect(await repository.getLatest()).toBeUndefined();
   });
 
+  it('updates only the given fields', async () => {
+    await repository.put(createNote('1', { content: 'obsah', deletedAt: '2026-10-15T11:00:00.000Z' }));
+
+    await repository.update('1', { pinned: true, deletedAt: undefined });
+
+    const note = await repository.get('1');
+    expect(note).toMatchObject({ content: 'obsah', pinned: true });
+    expect(note && 'deletedAt' in note).toBe(false);
+  });
+
+  it('purges notes deleted before a date', async () => {
+    await repository.bulkPut([
+      createNote('expired', { deletedAt: '2026-09-01T10:00:00.000Z' }),
+      createNote('recent', { deletedAt: '2026-10-14T10:00:00.000Z' }),
+      createNote('active'),
+    ]);
+
+    expect(await repository.purgeTrash('2026-10-01T00:00:00.000Z')).toBe(1);
+
+    expect((await repository.getAll()).map((note) => note.id).sort()).toEqual(['active', 'recent']);
+  });
+
   it('stores multiple notes at once', async () => {
     await repository.bulkPut([createNote('1'), createNote('2')]);
 

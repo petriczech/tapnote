@@ -11,14 +11,14 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { continueList, hasChecklist, TextEdit, toggleItem, toggleItemPrefix } from '../../core/model/checklist';
 import { NoteDraft } from './note-draft';
 import { NoteView } from './note-view';
 
 @Component({
   selector: 'tn-note-editor',
-  imports: [NoteView],
+  imports: [NoteView, RouterLink],
   providers: [NoteDraft],
   host: {
     '(document:visibilitychange)': 'onVisibilityChange()',
@@ -26,6 +26,7 @@ import { NoteView } from './note-view';
   },
   template: `
     <div class="toolbar">
+      <a class="list-link" routerLink="/notes">Seznam</a>
       @if (mode() === 'edit') {
         <button type="button" (pointerdown)="$event.preventDefault()" (click)="toggleChecklistLine()">
           Checklist
@@ -66,6 +67,16 @@ import { NoteView } from './note-view';
       gap: 0.5rem;
       justify-content: flex-end;
       padding: 0.25rem 0.5rem;
+    }
+
+    .list-link {
+      display: flex;
+      align-items: center;
+      margin-right: auto;
+      min-height: 2.75rem;
+      padding: 0 0.75rem;
+      color: #1a56b8;
+      text-decoration: none;
     }
 
     .toolbar button {

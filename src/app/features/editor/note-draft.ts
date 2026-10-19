@@ -1,9 +1,44 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { createNote, deriveTitle, Note } from '../../core/model/note';
+import { createNote, deriveTitle, extractTags, Note } from '../../core/model/note';
 import { NotesRepository } from '../../core/storage/notes-repository';
 
 export const RESUME_WINDOW_MS = 5 * 60 * 1000;
 export const SAVE_DEBOUNCE_MS = 300;
+// Ukazatel poslední editace obsahu
+export const LAST_EDIT_KEY = 'tapnote.lastEdit';
+
+interface LastEdit {
+  id: string;
+  editedAt: string;
+}
+
+function readLastEdit(): LastEdit | undefined {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(LAST_EDIT_KEY) ?? 'null');
+    return typeof value === 'object' &&
+      value !== null &&
+      'id' in value &&
+      typeof value.id === 'string' &&
+      'editedAt' in value &&
+      typeof value.editedAt === 'string'
+      ? { id: value.id, editedAt: value.editedAt }
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeLastEdit(lastEdit: LastEdit | undefined): void {
+  try {
+    if (lastEdit) {
+      localStorage.setItem(LAST_EDIT_KEY, JSON.stringify(lastEdit));
+    } else {
+      localStorage.removeItem(LAST_EDIT_KEY);
+    }
+  } catch {
+    // Bez úložiště se jen nepokračuje
+  }
+}
 
 @Injectable()
 export class NoteDraft {
@@ -64,8 +99,13 @@ export class NoteDraft {
   }
 
   private async findResumable(): Promise<Note | undefined> {
-    const latest = await this.repository.getLatest();
-    return latest && Date.now() - Date.parse(latest.updatedAt) < RESUME_WINDOW_MS ? latest : undefined;
+    const lastEdit = readLastEdit();
+    const age = lastEdit ? Date.now() - Date.parse(lastEdit.editedAt) : NaN;
+    if (!lastEdit || !(age >= 0 && age < RESUME_WINDOW_MS)) {
+      return undefined;
+    }
+    const note = await this.repository.get(lastEdit.id);
+    return note && !note.deletedAt && !note.archived && !note.isTemplate ? note : undefined;
   }
 
   private async save(): Promise<void> {
@@ -84,6 +124,9 @@ export class NoteDraft {
     if (content.trim() === '' && (!this.note || this.createdHere)) {
       if (this.note) {
         await this.repository.delete(this.note.id);
+        if (readLastEdit()?.id === this.note.id) {
+          writeLastEdit(undefined);
+        }
         this.note = undefined;
         this.createdHere = false;
       }
@@ -94,9 +137,11 @@ export class NoteDraft {
       ...(this.note ?? createNote(crypto.randomUUID(), now)),
       content,
       title: deriveTitle(content),
+      tags: extractTags(content),
       updatedAt: now,
     };
     await this.repository.put(note);
+    writeLastEdit({ id: note.id, editedAt: now });
     this.createdHere ||= !this.note;
     this.note = note;
   }

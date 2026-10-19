@@ -43,6 +43,12 @@ export function deriveTitle(content: string): string {
   return firstLine.replace(/^\s*#{1,6}(\s+|$)/, '').trim();
 }
 
+// Hashtagy z textu, malými písmeny a bez duplicit
+export function extractTags(content: string): string[] {
+  const tags = [...content.matchAll(/(?:^|\s)#([\p{L}\p{N}_-]+)/gu)].map((match) => match[1].toLowerCase());
+  return [...new Set(tags)];
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
