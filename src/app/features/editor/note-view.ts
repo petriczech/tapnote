@@ -58,9 +58,9 @@ import { parseSegments } from '../../core/model/checklist';
   styles: `
     :host {
       display: block;
-      padding: 1rem;
-      font-size: 1.125rem;
-      line-height: 1.5;
+      padding: 8px 20px;
+      font-size: 1.0625rem;
+      line-height: 1.55;
     }
 
     .text {
@@ -77,28 +77,32 @@ import { parseSegments } from '../../core/model/checklist';
 
     label {
       display: flex;
-      gap: 0.5rem;
+      gap: 12px;
       align-items: center;
-      min-height: 2.75rem;
+      min-height: 48px;
     }
 
     input {
-      width: 1.25rem;
-      height: 1.25rem;
+      flex: none;
+      width: 22px;
+      height: 22px;
+      margin: 0;
+      accent-color: var(--primary);
     }
 
     .done label {
-      color: #555;
+      color: var(--on-surface-variant);
       text-decoration: line-through;
     }
 
     .done-toggle {
-      min-height: 2.75rem;
+      min-height: 48px;
       padding: 0;
       border: none;
       background: none;
       font: inherit;
-      color: #555;
+      font-weight: 600;
+      color: var(--primary);
     }
   `,
 })

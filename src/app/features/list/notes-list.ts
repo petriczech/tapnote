@@ -24,10 +24,25 @@ export const URL_DEBOUNCE_MS = 300;
 
 type NoteAction = 'pin' | 'archive' | 'unarchive' | 'trash' | 'restore' | 'delete';
 
-const VIEWS: { view: NotesView; label: string; empty: string }[] = [
-  { view: 'notes', label: 'Poznámky', empty: 'Zatím žádné poznámky' },
-  { view: 'archive', label: 'Archiv', empty: 'Archiv je prázdný' },
-  { view: 'trash', label: 'Koš', empty: 'Koš je prázdný' },
+const VIEWS: { view: NotesView; label: string; empty: string; icon: string }[] = [
+  {
+    view: 'notes',
+    label: 'Poznámky',
+    empty: 'Zatím žádné poznámky',
+    icon: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z',
+  },
+  {
+    view: 'archive',
+    label: 'Archiv',
+    empty: 'Archiv je prázdný',
+    icon: 'm20.54 5.23-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5 6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z',
+  },
+  {
+    view: 'trash',
+    label: 'Koš',
+    empty: 'Koš je prázdný',
+    icon: 'M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z',
+  },
 ];
 
 @Component({
@@ -35,12 +50,22 @@ const VIEWS: { view: NotesView; label: string; empty: string }[] = [
   imports: [RouterLink],
   template: `
     <header class="header">
-      <h1 #heading tabindex="-1">{{ current().label }}</h1>
-      <div role="search">
+      <h1 #heading tabindex="-1">
+        @if (current().view === 'notes') {
+          Tapnote<span class="visually-hidden"> – {{ current().label }}</span>
+        } @else {
+          {{ current().label }}
+        }
+      </h1>
+      <div role="search" class="search">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"
+          />
+        </svg>
         <input
           #field
           type="search"
-          class="search"
           aria-label="Hledat"
           placeholder="Hledat"
           [value]="query()"
@@ -48,18 +73,8 @@ const VIEWS: { view: NotesView; label: string; empty: string }[] = [
           (keydown.escape)="onQuery('')"
         />
       </div>
-      <nav class="pills" aria-label="Pohledy">
-        @for (item of views; track item.view) {
-          <a
-            routerLink="/notes"
-            [queryParams]="{ view: item.view === 'notes' ? null : item.view, q: queryParam() }"
-            [attr.aria-current]="item.view === current().view ? 'page' : null"
-            >{{ item.label }}</a
-          >
-        }
-      </nav>
       @if (tags().length > 0) {
-        <nav class="pills" aria-label="Tagy">
+        <nav class="chips" aria-label="Tagy">
           @for (name of tags(); track name) {
             <a
               routerLink="/notes"
@@ -82,156 +97,291 @@ const VIEWS: { view: NotesView; label: string; empty: string }[] = [
       <p class="error" role="alert">Akci se nepodařilo dokončit.</p>
     }
 
-    @if (loadFailed()) {
-      <p class="empty" role="alert">Poznámky se nepodařilo načíst.</p>
-    } @else if (items().length === 0) {
-      <p class="empty">{{ queryParam() ? 'Nic nenalezeno pro „' + query().trim() + '“' : tag() ? 'Žádné poznámky s tagem #' + tag() : current().empty }}</p>
+    @if (loadFailed() || items().length === 0) {
+      <div class="empty-state">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="current().icon" /></svg>
+        @if (loadFailed()) {
+          <p class="empty" role="alert">Poznámky se nepodařilo načíst.</p>
+        } @else {
+          <p class="empty">{{ queryParam() ? 'Nic nenalezeno pro „' + query().trim() + '“' : tag() ? 'Žádné poznámky s tagem #' + tag() : current().empty }}</p>
+        }
+      </div>
     } @else {
-      <ul class="notes">
-        @for (item of items(); track item.note.id) {
-          <li [attr.data-id]="item.note.id">
-            @if (current().view === 'trash') {
-              <div class="body">
-                <span class="title">{{ item.title }}</span>
-                @if (item.snippet) {
-                  <span class="snippet">{{ item.snippet }}</span>
+      @for (group of groups(); track group.label) {
+        @if (group.label) {
+          <h2 class="label">{{ group.label }}</h2>
+        }
+        <ul class="notes">
+          @for (item of group.items; track item.note.id) {
+            <li [attr.data-id]="item.note.id" [class.pinned]="item.note.pinned && current().view !== 'trash'">
+              @if (current().view === 'trash') {
+                <div class="body">
+                  <span class="title">{{ item.title }}</span>
+                  @if (item.snippet) {
+                    <span class="snippet">{{ item.snippet }}</span>
+                  }
+                </div>
+              } @else {
+                <a class="body" [routerLink]="['/note', item.note.id]" (click)="flushQuery()">
+                  <span class="title">
+                    @if (item.note.pinned) {
+                      <span class="visually-hidden">Připnuto: </span>
+                      <svg class="icon pin" viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                          d="M16 9V4h1a1 1 0 0 0 0-2H7a1 1 0 0 0 0 2h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3z"
+                        />
+                      </svg>
+                    }
+                    {{ item.title }}
+                  </span>
+                  @if (item.snippet) {
+                    <span class="snippet">{{ item.snippet }}</span>
+                  }
+                  @if (item.note.tags.length > 0) {
+                    <span class="note-tags">
+                      @for (name of item.note.tags; track name) {
+                        <span>#{{ name }}</span>
+                      }
+                    </span>
+                  }
+                </a>
+              }
+              <button
+                type="button"
+                class="icon-btn actions"
+                [attr.popovertarget]="'menu-' + item.note.id"
+                [attr.aria-label]="'Akce pro ' + item.title"
+              >
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"
+                  />
+                </svg>
+              </button>
+              <div #menu class="menu" popover [id]="'menu-' + item.note.id" (toggle)="onMenuToggle($event)">
+                @if (current().view === 'trash') {
+                  <button type="button" (click)="run(item.note, 'restore', menu)">Obnovit</button>
+                  <button type="button" (click)="run(item.note, 'delete', menu)">Smazat trvale</button>
+                } @else {
+                  <button type="button" (click)="run(item.note, 'pin', menu)">
+                    {{ item.note.pinned ? 'Odepnout' : 'Připnout' }}
+                  </button>
+                  @if (item.note.archived) {
+                    <button type="button" (click)="run(item.note, 'unarchive', menu)">Vrátit z archivu</button>
+                  } @else {
+                    <button type="button" (click)="run(item.note, 'archive', menu)">Archivovat</button>
+                  }
+                  <button type="button" (click)="run(item.note, 'trash', menu)">Smazat</button>
                 }
               </div>
-            } @else {
-              <a class="body" [routerLink]="['/note', item.note.id]" (click)="flushQuery()">
-                <span class="title">
-                  @if (item.note.pinned) {
-                    <span class="visually-hidden">Připnuto: </span><span aria-hidden="true">📌 </span>
-                  }
-                  {{ item.title }}
-                </span>
-                @if (item.snippet) {
-                  <span class="snippet">{{ item.snippet }}</span>
-                }
-                @if (item.note.tags.length > 0) {
-                  <span class="note-tags">
-                    @for (name of item.note.tags; track name) {
-                      <span>#{{ name }}</span>
-                    }
-                  </span>
-                }
-              </a>
-            }
-            <button
-              type="button"
-              class="actions"
-              [attr.popovertarget]="'menu-' + item.note.id"
-              [attr.aria-label]="'Akce pro ' + item.title"
-            >
-              ⋮
-            </button>
-            <div #menu class="menu" popover [id]="'menu-' + item.note.id" (toggle)="onMenuToggle($event)">
-              @if (current().view === 'trash') {
-                <button type="button" (click)="run(item.note, 'restore', menu)">Obnovit</button>
-                <button type="button" (click)="run(item.note, 'delete', menu)">Smazat trvale</button>
-              } @else {
-                <button type="button" (click)="run(item.note, 'pin', menu)">
-                  {{ item.note.pinned ? 'Odepnout' : 'Připnout' }}
-                </button>
-                @if (item.note.archived) {
-                  <button type="button" (click)="run(item.note, 'unarchive', menu)">Vrátit z archivu</button>
-                } @else {
-                  <button type="button" (click)="run(item.note, 'archive', menu)">Archivovat</button>
-                }
-                <button type="button" (click)="run(item.note, 'trash', menu)">Smazat</button>
-              }
-            </div>
-          </li>
-        }
-      </ul>
+            </li>
+          }
+        </ul>
+      }
     }
 
-    <a class="fab" routerLink="/new" aria-label="Nová poznámka" (click)="flushQuery()">+</a>
+    <a class="fab" routerLink="/new" aria-label="Nová poznámka" (click)="flushQuery()">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" /></svg>
+      Nová
+    </a>
+
+    <nav class="bottom-nav" aria-label="Pohledy">
+      @for (item of views; track item.view) {
+        <a
+          routerLink="/notes"
+          [queryParams]="{ view: item.view === 'notes' ? null : item.view, q: queryParam() }"
+          [attr.aria-current]="item.view === current().view ? 'page' : null"
+        >
+          <span class="pill">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="item.icon" /></svg>
+          </span>
+          {{ item.label }}
+        </a>
+      }
+    </nav>
   `,
   styles: `
     :host {
       display: block;
-      padding: 0 1rem 6rem;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: calc(10rem + env(safe-area-inset-bottom));
     }
 
     h1 {
-      margin: 1rem 0 0.5rem;
-      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      min-height: 56px;
+      margin: 0;
+      padding: 0 16px;
+      font-size: 1.375rem;
+      font-weight: 500;
+    }
+
+    h1:focus:not(:focus-visible) {
+      outline: none;
     }
 
     .search {
-      box-sizing: border-box;
-      width: 100%;
-      min-height: 2.75rem;
-      margin-bottom: 0.5rem;
-      padding: 0 0.875rem;
-      border: 1px solid #767676;
-      border-radius: 1.375rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 52px;
+      margin: 0 16px 12px;
+      padding: 0 16px;
+      border-radius: var(--radius-l);
+      background: var(--surface-high);
+      color: var(--on-surface-variant);
+    }
+
+    .search:focus-within {
+      outline: 2px solid var(--primary);
+    }
+
+    .search input {
+      flex: 1;
+      min-width: 0;
+      min-height: 44px;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: var(--on-surface);
       font: inherit;
     }
 
-    .pills {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-bottom: 0.5rem;
+    .search input:focus {
+      outline: none;
     }
 
-    .pills a {
+    .search input::placeholder {
+      color: var(--on-surface-variant);
+    }
+
+    .chips {
       display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 0 16px 8px;
+      scrollbar-width: none;
+    }
+
+    .chips a {
+      display: inline-flex;
+      flex: none;
       align-items: center;
-      min-height: 2.75rem;
-      padding: 0 0.875rem;
-      border-radius: 1.375rem;
-      color: #1a56b8;
+      min-height: 32px;
+      margin: 6px 0;
+      padding: 0 12px;
+      border: 1px solid var(--outline);
+      border-radius: var(--radius-s);
+      color: var(--on-surface-variant);
+      font-size: 0.875rem;
       text-decoration: none;
     }
 
-    .pills a[aria-current] {
-      background: #e8f0fe;
+    .chips a[aria-current] {
+      border-color: transparent;
+      background: var(--primary-container);
+      color: var(--on-primary-container);
       font-weight: 600;
     }
 
     .hint,
-    .empty {
-      color: #555;
+    .error {
+      margin: 0 16px 12px;
+    }
+
+    .hint {
+      color: var(--on-surface-variant);
     }
 
     .error {
-      color: #b00020;
+      color: var(--error);
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      margin-top: 96px;
+      padding: 0 16px;
+      text-align: center;
+    }
+
+    .empty-state .icon {
+      width: 72px;
+      height: 72px;
+      color: var(--primary);
+      opacity: 0.6;
+    }
+
+    .empty {
+      margin: 0;
+      font-size: 1.125rem;
+      font-weight: 600;
+    }
+
+    .label {
+      margin: 12px 20px 8px;
+      color: var(--on-surface-variant);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
     }
 
     .notes {
       margin: 0;
-      padding: 0;
+      padding: 0 16px;
       list-style: none;
     }
 
     li {
       display: flex;
       align-items: flex-start;
-      border-bottom: 1px solid #ddd;
+      gap: 4px;
+      margin-bottom: 8px;
+      padding-right: 4px;
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--radius-m);
+      background: var(--surface);
+    }
+
+    li.pinned {
+      border-color: transparent;
+      background: var(--surface-low);
     }
 
     .body {
       display: flex;
       flex: 1;
       flex-direction: column;
-      gap: 0.25rem;
+      gap: 4px;
       min-width: 0;
-      padding: 0.75rem 0;
+      padding: 12px 0 12px 16px;
+      border-radius: var(--radius-m);
       color: inherit;
       text-decoration: none;
     }
 
     .title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
       font-weight: 600;
+    }
+
+    .title .pin {
+      width: 18px;
+      height: 18px;
+      color: var(--pin);
     }
 
     .snippet {
       display: -webkit-box;
       overflow: hidden;
-      color: #555;
+      color: var(--on-surface-variant);
+      font-size: 0.9375rem;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
     }
@@ -239,61 +389,98 @@ const VIEWS: { view: NotesView; label: string; empty: string }[] = [
     .note-tags {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.5rem;
-      color: #1a56b8;
-      font-size: 0.875rem;
+      gap: 8px;
+      margin-top: 4px;
+      color: var(--primary);
+      font-size: 0.8125rem;
+      font-weight: 500;
     }
 
     .actions {
-      min-width: 2.75rem;
-      min-height: 2.75rem;
-      border: none;
-      background: none;
-      font-size: 1.25rem;
+      width: 44px;
+      height: 44px;
+      margin-top: 4px;
     }
 
     .menu {
-      padding: 0.5rem;
-      border: 1px solid #ccc;
-      border-radius: 0.75rem;
-      box-shadow: 0 4px 16px rgb(0 0 0 / 20%);
+      padding: 8px 0;
+      border: 0;
+      border-radius: var(--radius-s);
+      background: var(--surface-high);
+      color: var(--on-surface);
+      box-shadow: 0 4px 16px rgb(0 0 0 / 25%);
     }
 
     .menu button {
       display: block;
       width: 100%;
       min-width: 12rem;
-      min-height: 2.75rem;
-      padding: 0 1rem;
+      min-height: 48px;
+      padding: 0 16px;
       border: none;
       background: none;
+      color: inherit;
       font: inherit;
       text-align: left;
     }
 
     .fab {
       position: fixed;
-      right: 1rem;
-      bottom: 1rem;
-      display: flex;
+      right: 16px;
+      bottom: calc(96px + env(safe-area-inset-bottom));
+      display: inline-flex;
       align-items: center;
-      justify-content: center;
-      width: 3.5rem;
-      height: 3.5rem;
-      border-radius: 50%;
-      background: #1a56b8;
-      color: #fff;
-      font-size: 2rem;
+      gap: 12px;
+      height: 56px;
+      padding: 0 20px 0 16px;
+      border-radius: var(--radius-m);
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      font-weight: 600;
+      text-decoration: none;
+      box-shadow: 0 3px 8px rgb(0 0 0 / 25%);
+    }
+
+    .bottom-nav {
+      position: fixed;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      display: flex;
+      justify-content: space-around;
+      box-sizing: border-box;
+      height: calc(80px + env(safe-area-inset-bottom));
+      padding: 12px 0 env(safe-area-inset-bottom);
+      background: var(--surface-low);
+    }
+
+    .bottom-nav a {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      width: 80px;
+      color: var(--on-surface-variant);
+      font-size: 0.75rem;
       text-decoration: none;
     }
 
-    .visually-hidden {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip-path: inset(50%);
-      white-space: nowrap;
+    .pill {
+      display: flex;
+      justify-content: center;
+      width: 64px;
+      padding: 4px 0;
+      border-radius: 16px;
+    }
+
+    .bottom-nav a[aria-current] {
+      color: var(--on-surface);
+      font-weight: 600;
+    }
+
+    .bottom-nav a[aria-current] .pill {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
     }
   `,
 })
@@ -339,6 +526,18 @@ export class NotesList implements OnInit {
       title: note.title || 'Bez názvu',
       snippet: snippet(note.content),
     }));
+  });
+  // Připnuté zvlášť, jen v poznámkách bez hledání (výsledky drží pořadí podle relevance)
+  protected readonly groups = computed(() => {
+    const items = this.items();
+    const pinned = items.filter((item) => item.note.pinned);
+    if (this.current().view !== 'notes' || this.queryParam() || pinned.length === 0) {
+      return [{ label: '', items }];
+    }
+    return [
+      { label: 'Připnuté', items: pinned },
+      { label: 'Ostatní', items: items.filter((item) => !item.note.pinned) },
+    ].filter((group) => group.items.length > 0);
   });
   protected readonly found = computed(() => {
     if (!this.queryParam() || this.loadFailed()) {

@@ -50,7 +50,7 @@ describe('NotesList', () => {
   it('lists active notes from the newest with a fallback title and snippet', async () => {
     await render();
 
-    expect(root.querySelector('h1')?.textContent).toBe('Poznámky');
+    expect(root.querySelector('h1')?.textContent?.replace(/\s+/g, ' ').trim()).toBe('Tapnote – Poznámky');
     expect(titles()).toEqual(['Poznámka new', 'Bez názvu', 'Poznámka old']);
     expect(root.querySelector('li[data-id="old"] .snippet')?.textContent).toBe('mléko');
     expect(root.querySelector('li[data-id="new"] a.body')?.getAttribute('href')).toBe('/note/new');
@@ -75,11 +75,11 @@ describe('NotesList', () => {
   it.each([
     ['archive', 'Archiv', ['Poznámka archived']],
     ['trash', 'Koš', ['Poznámka trashed']],
-    ['unknown', 'Poznámky', ['Poznámka new', 'Bez názvu', 'Poznámka old']],
+    ['unknown', 'Tapnote – Poznámky', ['Poznámka new', 'Bez názvu', 'Poznámka old']],
   ])('shows the %s view', async (view, heading, expected) => {
     await render({ view });
 
-    expect(root.querySelector('h1')?.textContent).toBe(heading);
+    expect(root.querySelector('h1')?.textContent?.replace(/\s+/g, ' ').trim()).toBe(heading);
     expect(titles()).toEqual(expected);
   });
 
@@ -95,7 +95,8 @@ describe('NotesList', () => {
 
     menuButton('old', 'Připnout').click();
 
-    await vi.waitFor(() => expect(titles()[0]).toBe('Připnuto: 📌 Poznámka old'));
+    await vi.waitFor(() => expect(titles()[0]).toBe('Připnuto: Poznámka old'));
+    expect([...root.querySelectorAll('h2')].map((label) => label.textContent)).toEqual(['Připnuté', 'Ostatní']);
     expect(repository.notes.get('old')?.pinned).toBe(true);
     await vi.waitFor(() => expect(document.activeElement).toBe(actionsOf('old')));
   });
@@ -214,6 +215,17 @@ describe('NotesList', () => {
       expect(status()).toBe('Nalezena 1 poznámka');
       await type('poznámka');
       expect(status()).toBe('Nalezeny 2 poznámky');
+    });
+
+    it('keeps relevance order without pinned sections', async () => {
+      await render();
+      menuButton('old', 'Připnout').click();
+      await vi.waitFor(() => expect(root.querySelectorAll('h2').length).toBe(2));
+
+      await type('poznámka');
+
+      expect(root.querySelectorAll('h2').length).toBe(0);
+      expect(root.querySelectorAll('ul.notes').length).toBe(1);
     });
 
     it('starts from the q parameter', async () => {

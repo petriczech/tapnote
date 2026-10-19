@@ -1,5 +1,86 @@
-/* You can add global styles to this file, and also import other style files */
+/* Barvy a tvary jako proměnné, světlý i tmavý režim */
+:root {
+  color-scheme: light dark;
+  --primary: #1a56b8;
+  --on-primary: #ffffff;
+  --primary-container: #dce5ff;
+  --on-primary-container: #001a42;
+  --surface: #fbf9ff;
+  --surface-low: #f3f3fa;
+  --surface-high: #e8e9f2;
+  --on-surface: #1a1b20;
+  --on-surface-variant: #44474f;
+  --outline: #74777f;
+  --outline-variant: #c4c6d0;
+  --pin: #8a5a00;
+  --error: #b00020;
+  --radius-s: 8px;
+  --radius-m: 16px;
+  --radius-l: 28px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #adc6ff;
+    --on-primary: #002e69;
+    --primary-container: #1d4392;
+    --on-primary-container: #dce5ff;
+    --surface: #121318;
+    --surface-low: #1a1b21;
+    --surface-high: #292a2f;
+    --on-surface: #e3e2e9;
+    --on-surface-variant: #c4c6d0;
+    --outline: #8e9099;
+    --outline-variant: #44474f;
+    --pin: #f5bd5c;
+    --error: #ffb4ab;
+  }
+}
+
 body {
   margin: 0;
-  font-family: system-ui, sans-serif;
+  background: var(--surface);
+  color: var(--on-surface);
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+.icon {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--on-surface-variant);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.icon-btn.on {
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

@@ -47,6 +47,8 @@ export class NoteDraft {
   readonly content = signal('');
   readonly loading = signal(false);
   readonly saveFailed = signal(false);
+  // Obsah je uložený (bez čekajících změn)
+  readonly saved = signal(true);
 
   private note: Note | undefined;
   private createdHere = false;
@@ -82,6 +84,7 @@ export class NoteDraft {
   update(content: string): void {
     this.touched = true;
     this.content.set(content);
+    this.saved.set(false);
     clearTimeout(this.timer);
     this.timer = setTimeout(() => void this.flush(), SAVE_DEBOUNCE_MS);
   }
@@ -115,6 +118,8 @@ export class NoteDraft {
         await this.persist(content);
       }
       this.saveFailed.set(false);
+      // Psaní během zápisu nechá stav neuložený
+      this.saved.set(this.content() === content);
     } catch {
       this.saveFailed.set(true);
     }

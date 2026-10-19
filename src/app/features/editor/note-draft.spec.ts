@@ -214,6 +214,33 @@ describe('NoteDraft', () => {
     expect(localStorage.getItem(LAST_EDIT_KEY)).toBeNull();
   });
 
+  it('is saved only after the content is written', async () => {
+    expect(draft.saved()).toBe(true);
+    draft.update('a');
+    expect(draft.saved()).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
+    expect(draft.saved()).toBe(true);
+
+    repository.failPut = true;
+    draft.update('ab');
+    await draft.flush();
+    expect(draft.saved()).toBe(false);
+  });
+
+  it('stays unsaved when typing during a write', async () => {
+    const put = repository.put.bind(repository);
+    vi.spyOn(repository, 'put').mockImplementationOnce((note) => {
+      draft.update('ab');
+      return put(note);
+    });
+    draft.update('a');
+    await draft.flush();
+
+    expect(repository.notes.values().next().value?.content).toBe('a');
+    expect(draft.saved()).toBe(false);
+  });
+
   it('reports a failed save and recovers', async () => {
     repository.failPut = true;
     draft.update('a');
