@@ -9,6 +9,13 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <meta name="theme-color" content="#fbf9ff" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#121318" media="(prefers-color-scheme: dark)" />
+    <script>
+      // Vzhled před prvním vykreslením (klíč a hodnoty jako core/theme/theme.ts)
+      try {
+        var theme = localStorage.getItem('tapnote.theme');
+        if (theme === 'paper' || theme === 'graphite') document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <tn-root></tn-root>

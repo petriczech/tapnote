@@ -44,7 +44,8 @@ import { VIEWS } from './views';
       box-sizing: border-box;
       height: calc(80px + env(safe-area-inset-bottom));
       padding: 12px 0 env(safe-area-inset-bottom);
-      background: var(--surface-low);
+      border-top: 1px solid var(--nav-border);
+      background: var(--nav-bg);
     }
 
     a {

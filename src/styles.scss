@@ -1,4 +1,4 @@
-/* Barvy a tvary jako proměnné, světlý i tmavý režim */
+/* Barvy a tvary jako proměnné; vzhled podle data-theme na <html>, světlý i tmavý režim podle systému */
 :root {
   color-scheme: light dark;
   --primary: #1a56b8;
@@ -17,6 +17,32 @@
   --radius-s: 8px;
   --radius-m: 16px;
   --radius-l: 28px;
+
+  // Písmo a tvary, které se mezi vzhledy liší
+  --font: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --title-font: var(--font);
+  --editor-font: var(--font);
+  --title-size: 1.375rem;
+  --title-weight: 500;
+  --title-spacing: normal;
+  --search-bg: var(--surface-high);
+  --search-border: transparent;
+  --search-radius: var(--radius-l);
+  --chip-radius: var(--radius-s);
+  --card-bg: var(--surface);
+  --card-border: var(--outline-variant);
+  --card-radius: var(--radius-m);
+  --card-shadow: none;
+  --card-gap: 8px;
+  --card-pinned-bg: var(--surface-low);
+  --card-pinned-border: transparent;
+  --fab-bg: var(--primary-container);
+  --fab-text: var(--on-primary-container);
+  --fab-radius: var(--radius-m);
+  --nav-bg: var(--surface-low);
+  --nav-border: transparent;
+  --editor-bg: transparent;
+  --editor-lines: none;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -37,11 +63,124 @@
   }
 }
 
+// Papír: krémový papír, patkové písmo, linkovaný editor
+:root[data-theme='paper'] {
+  --primary: #b4441c;
+  --on-primary: #ffffff;
+  --primary-container: #f2d9c8;
+  --on-primary-container: #5a1d06;
+  --surface: #f7f1e3;
+  --surface-low: #efe6d2;
+  --surface-high: #fffaf0;
+  --on-surface: #2b2420;
+  --on-surface-variant: #5f5348;
+  --outline: #857563;
+  --outline-variant: #ddd0b7;
+  --pin: #b4441c;
+  --error: #ba1a1a;
+
+  --title-font: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  --editor-font: var(--title-font);
+  --title-size: 1.625rem;
+  --title-weight: 700;
+  --title-spacing: -0.01em;
+  --search-bg: var(--surface-high);
+  --search-border: var(--outline-variant);
+  --search-radius: 10px;
+  --chip-radius: 999px;
+  --card-bg: var(--surface-high);
+  --card-radius: 6px;
+  --card-shadow: 0 1px 0 var(--outline-variant), 0 2px 6px rgb(90 60 20 / 8%);
+  --card-pinned-bg: var(--surface-high);
+  --card-pinned-border: var(--outline-variant);
+  --fab-bg: var(--primary);
+  --fab-text: var(--on-primary);
+  --fab-radius: 999px;
+  --nav-border: var(--outline-variant);
+  --editor-bg: var(--surface-high);
+  --editor-lines: repeating-linear-gradient(
+    to bottom,
+    transparent 0 calc(1.55em - 1px),
+    var(--outline-variant) calc(1.55em - 1px) 1.55em
+  );
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme='paper'] {
+    --primary: #f08a5d;
+    --on-primary: #2b1004;
+    --primary-container: #5a2a14;
+    --on-primary-container: #ffdccb;
+    --surface: #1d1a16;
+    --surface-low: #221e19;
+    --surface-high: #2a251f;
+    --on-surface: #ece3d3;
+    --on-surface-variant: #c4b7a3;
+    --outline: #9a8c78;
+    --outline-variant: #3d362c;
+    --pin: #f08a5d;
+    --error: #ffb4ab;
+    --card-shadow: none;
+  }
+}
+
+// Grafit: černobílý, řádky místo karet, neproporcionální editor
+:root[data-theme='graphite'] {
+  --primary: #0d7a5f;
+  --on-primary: #ffffff;
+  --primary-container: #111111;
+  --on-primary-container: #ffffff;
+  --surface: #ffffff;
+  --surface-low: #f7f7f7;
+  --surface-high: #f0f0f0;
+  --on-surface: #111111;
+  --on-surface-variant: #555555;
+  --outline: #767676;
+  --outline-variant: #e3e3e3;
+  --pin: #111111;
+  --error: #b00020;
+
+  --font: Inter, system-ui, 'Segoe UI', Roboto, sans-serif;
+  --editor-font: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  --title-size: 1.875rem;
+  --title-weight: 800;
+  --title-spacing: -0.03em;
+  --search-radius: 8px;
+  --chip-radius: 4px;
+  --card-bg: transparent;
+  --card-border: transparent;
+  --card-divider: var(--outline-variant);
+  --card-radius: 0;
+  --card-gap: 0;
+  --card-pinned-bg: transparent;
+  --fab-radius: 8px;
+  --nav-bg: var(--surface);
+  --nav-border: var(--outline-variant);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme='graphite'] {
+    --primary: #3ddc97;
+    --on-primary: #04261a;
+    --primary-container: #f2f2f2;
+    --on-primary-container: #0b0b0b;
+    --surface: #0b0b0b;
+    --surface-low: #141414;
+    --surface-high: #1c1c1c;
+    --on-surface: #f2f2f2;
+    --on-surface-variant: #a8a8a8;
+    --outline: #8a8a8a;
+    --outline-variant: #2a2a2a;
+    --pin: #f2f2f2;
+    --error: #ffb4ab;
+  }
+}
+
 body {
   margin: 0;
   background: var(--surface);
   color: var(--on-surface);
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font);
 }
 
 .icon {

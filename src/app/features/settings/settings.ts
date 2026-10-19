@@ -8,6 +8,7 @@ import {
   writeLastBackup,
 } from '../../core/backup/notes-backup';
 import { NotesRepository } from '../../core/storage/notes-repository';
+import { applyTheme, readTheme, ThemeId, THEMES } from '../../core/theme/theme';
 import { BottomNav } from '../list/bottom-nav';
 
 export const MAX_IMPORT_BYTES = 50 * 1024 * 1024;
@@ -18,6 +19,18 @@ const REVOKE_DELAY_MS = 60_000;
   imports: [BottomNav],
   template: `
     <h1>Nastavení</h1>
+
+    <section>
+      <fieldset>
+        <legend><h2>Vzhled</h2></legend>
+        @for (item of themes; track item.id) {
+          <label>
+            <input type="radio" name="theme" [value]="item.id" [checked]="theme() === item.id" (change)="setTheme(item.id)" />
+            {{ item.label }}
+          </label>
+        }
+      </fieldset>
+    </section>
 
     <section aria-labelledby="backup-heading">
       <h2 id="backup-heading">Záloha</h2>
@@ -65,8 +78,10 @@ const REVOKE_DELAY_MS = 60_000;
       min-height: 56px;
       margin: 0;
       padding: 0 16px;
-      font-size: 1.375rem;
-      font-weight: 500;
+      font-family: var(--title-font);
+      font-size: var(--title-size);
+      font-weight: var(--title-weight);
+      letter-spacing: var(--title-spacing);
     }
 
     section {
@@ -132,6 +147,10 @@ const REVOKE_DELAY_MS = 60_000;
       color: var(--on-surface-variant);
     }
 
+    legend h2 {
+      color: var(--on-surface);
+    }
+
     fieldset label {
       display: flex;
       align-items: center;
@@ -172,6 +191,8 @@ export class Settings {
   private readonly repository = inject(NotesRepository);
 
   protected readonly canShare = typeof navigator.canShare === 'function';
+  protected readonly themes = THEMES;
+  protected readonly theme = signal(readTheme());
   private readonly lastBackup = signal(readLastBackup());
   protected readonly lastBackupText = computed(() => {
     const iso = this.lastBackup();
@@ -181,6 +202,11 @@ export class Settings {
   protected readonly busy = signal(false);
   protected readonly status = signal('');
   protected readonly failed = signal(false);
+
+  protected setTheme(theme: ThemeId): void {
+    applyTheme(theme);
+    this.theme.set(theme);
+  }
 
   protected async exportNotes(target: 'download' | 'share'): Promise<void> {
     await this.run(async () => {

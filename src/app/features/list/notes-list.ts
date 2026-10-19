@@ -189,8 +189,10 @@ type NoteAction = 'pin' | 'archive' | 'unarchive' | 'trash' | 'restore' | 'delet
       min-height: 56px;
       margin: 0;
       padding: 0 16px;
-      font-size: 1.375rem;
-      font-weight: 500;
+      font-family: var(--title-font);
+      font-size: var(--title-size);
+      font-weight: var(--title-weight);
+      letter-spacing: var(--title-spacing);
     }
 
     h1:focus:not(:focus-visible) {
@@ -204,8 +206,9 @@ type NoteAction = 'pin' | 'archive' | 'unarchive' | 'trash' | 'restore' | 'delet
       min-height: 52px;
       margin: 0 16px 12px;
       padding: 0 16px;
-      border-radius: var(--radius-l);
-      background: var(--surface-high);
+      border: 1px solid var(--search-border);
+      border-radius: var(--search-radius);
+      background: var(--search-bg);
       color: var(--on-surface-variant);
     }
 
@@ -248,7 +251,7 @@ type NoteAction = 'pin' | 'archive' | 'unarchive' | 'trash' | 'restore' | 'delet
       margin: 6px 0;
       padding: 0 12px;
       border: 1px solid var(--outline);
-      border-radius: var(--radius-s);
+      border-radius: var(--chip-radius);
       color: var(--on-surface-variant);
       font-size: 0.875rem;
       text-decoration: none;
@@ -271,6 +274,11 @@ type NoteAction = 'pin' | 'archive' | 'unarchive' | 'trash' | 'restore' | 'delet
       border-radius: var(--radius-m);
       background: var(--primary-container);
       color: var(--on-primary-container);
+    }
+
+    /* Prstenec fokusu v barvě textu banneru, primary na primary-container nemá kontrast */
+    .backup a:focus-visible {
+      outline-color: currentColor;
     }
 
     .backup a {
@@ -337,16 +345,19 @@ type NoteAction = 'pin' | 'archive' | 'unarchive' | 'trash' | 'restore' | 'delet
       display: flex;
       align-items: flex-start;
       gap: 4px;
-      margin-bottom: 8px;
+      margin-bottom: var(--card-gap);
       padding-right: 4px;
-      border: 1px solid var(--outline-variant);
-      border-radius: var(--radius-m);
-      background: var(--surface);
+      border: 1px solid var(--card-border);
+      border-bottom-color: var(--card-divider, var(--card-border));
+      border-radius: var(--card-radius);
+      background: var(--card-bg);
+      box-shadow: var(--card-shadow);
     }
 
     li.pinned {
-      border-color: transparent;
-      background: var(--surface-low);
+      border-color: var(--card-pinned-border);
+      border-bottom-color: var(--card-divider, var(--card-pinned-border));
+      background: var(--card-pinned-bg);
     }
 
     .body {
@@ -365,6 +376,7 @@ type NoteAction = 'pin' | 'archive' | 'unarchive' | 'trash' | 'restore' | 'delet
       display: flex;
       align-items: center;
       gap: 6px;
+      font-family: var(--title-font);
       font-weight: 600;
     }
 
@@ -430,9 +442,9 @@ type NoteAction = 'pin' | 'archive' | 'unarchive' | 'trash' | 'restore' | 'delet
       gap: 12px;
       height: 56px;
       padding: 0 20px 0 16px;
-      border-radius: var(--radius-m);
-      background: var(--primary-container);
-      color: var(--on-primary-container);
+      border-radius: var(--fab-radius);
+      background: var(--fab-bg);
+      color: var(--fab-text);
       font-weight: 600;
       text-decoration: none;
       box-shadow: 0 3px 8px rgb(0 0 0 / 25%);

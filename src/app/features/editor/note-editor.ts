@@ -85,6 +85,7 @@ import { NoteView } from './note-view';
       box-sizing: border-box;
       height: 100dvh;
       padding-bottom: env(safe-area-inset-bottom);
+      background: var(--editor-bg);
     }
 
     .toolbar {
@@ -122,9 +123,10 @@ import { NoteView } from './note-view';
       padding: 8px 20px;
       border: none;
       resize: none;
-      background: none;
+      background: var(--editor-lines) 0 8px / 100% auto local;
       color: inherit;
       font: inherit;
+      font-family: var(--editor-font);
       font-size: 1.0625rem;
       line-height: 1.55;
     }

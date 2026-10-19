@@ -4,6 +4,7 @@ import { createExport, LAST_BACKUP_KEY } from '../../core/backup/notes-backup';
 import { createNote, Note } from '../../core/model/note';
 import { NotesRepository } from '../../core/storage/notes-repository';
 import { InMemoryNotesRepository } from '../../core/storage/testing/in-memory-notes-repository';
+import { THEME_KEY } from '../../core/theme/theme';
 import { MAX_IMPORT_BYTES, Settings } from './settings';
 
 function note(id: string, updatedAt: string, content = id): Note {
@@ -61,6 +62,22 @@ describe('Settings', () => {
     const current = root.querySelector('nav[aria-label="Pohledy"] [aria-current="page"]');
     expect(current?.textContent?.trim()).toBe('Nastavení');
     expect(current?.getAttribute('href')).toBe('/settings');
+  });
+
+  it('switches the theme', async () => {
+    await render();
+    expect(radio('blue').checked).toBe(true);
+
+    radio('graphite').click();
+    await fixture.whenStable();
+
+    expect(document.documentElement.dataset['theme']).toBe('graphite');
+    expect(localStorage.getItem(THEME_KEY)).toBe('graphite');
+    expect(radio('graphite').checked).toBe(true);
+
+    radio('blue').click();
+    expect(document.documentElement.hasAttribute('data-theme')).toBe(false);
+    localStorage.removeItem(THEME_KEY);
   });
 
   it('downloads all notes and remembers the backup', async () => {

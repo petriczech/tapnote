@@ -59,6 +59,7 @@ import { parseSegments } from '../../core/model/checklist';
     :host {
       display: block;
       padding: 8px 20px;
+      font-family: var(--editor-font);
       font-size: 1.0625rem;
       line-height: 1.55;
     }
