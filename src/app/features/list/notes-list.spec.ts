@@ -197,6 +197,24 @@ describe('NotesList', () => {
     expect(root.querySelector('.error')).toBeNull();
   });
 
+  describe('templates', () => {
+    const picker = () => [...root.querySelectorAll('button')].find((button) => button.textContent?.trim() === 'Ze šablony');
+
+    it('saves a note as a template and offers it for a new note', async () => {
+      await render();
+      expect(picker()).toBeUndefined();
+
+      menuButton('old', 'Uložit jako šablonu').click();
+
+      await vi.waitFor(() => expect(titles()).toEqual(['Poznámka new', 'Bez názvu']));
+      expect(repository.notes.get('old')?.isTemplate).toBe(true);
+      expect(picker()).toBeDefined();
+      const link = root.querySelector('#templates-menu a');
+      expect(link?.textContent?.trim()).toBe('Poznámka old');
+      expect(link?.getAttribute('href')).toBe('/new?template=old');
+    });
+  });
+
   describe('backup reminder', () => {
     const daysAgo = (days: number) => new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
     const reminder = () => root.querySelector('.backup')?.textContent?.replace(/\s+/g, ' ').trim();

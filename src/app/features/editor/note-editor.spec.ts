@@ -34,6 +34,24 @@ describe('NoteEditor', () => {
     expect(document.activeElement).toBe(textareaOf(fixture.nativeElement));
   });
 
+  it('starts from a template with the cursor at its marker and saves nothing untouched', async () => {
+    await repository.put({ ...createNote('tpl', '2026-10-15T10:00:00.000Z'), content: 'Porada\nÚčastníci: {{cursor}}\nZávěry:', isTemplate: true });
+    const fixture = TestBed.createComponent(NoteEditor);
+    fixture.componentRef.setInput('template', 'tpl');
+    await fixture.whenStable();
+    const textarea = textareaOf(fixture.nativeElement);
+
+    await vi.waitFor(() => expect(textarea.value).toBe('Porada\nÚčastníci: \nZávěry:'));
+    await vi.waitFor(() => expect(textarea.selectionStart).toBe('Porada\nÚčastníci: '.length));
+    expect(document.activeElement).toBe(textarea);
+    expect(fixture.nativeElement.textContent).not.toContain('Uloženo');
+
+    const draft = fixture.debugElement.injector.get(NoteDraft);
+    fixture.destroy();
+    await draft.flush();
+    expect(repository.notes.size).toBe(1);
+  });
+
   it('saves typed text when destroyed', async () => {
     const fixture = TestBed.createComponent(NoteEditor);
     await fixture.whenStable();

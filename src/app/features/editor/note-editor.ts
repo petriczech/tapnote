@@ -156,6 +156,8 @@ import { NoteView } from './note-view';
 export class NoteEditor implements OnInit {
   readonly id = input<string>();
   readonly resume = input(false, { transform: booleanAttribute });
+  // Id šablony pro novou poznámku (/new?template=…)
+  readonly template = input<string>();
 
   protected readonly draft = inject(NoteDraft);
   private readonly router = inject(Router);
@@ -172,6 +174,21 @@ export class NoteEditor implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
+    const template = this.template();
+    if (this.id() === undefined && template !== undefined) {
+      const cursor = await this.draft.openTemplate(template);
+      if (cursor !== undefined) {
+        afterNextRender(
+          () => {
+            const textarea = this.textarea()?.nativeElement;
+            textarea?.focus();
+            textarea?.setSelectionRange(cursor, cursor);
+          },
+          { injector: this.injector },
+        );
+      }
+      return;
+    }
     const opened = await this.draft.open(this.id(), this.resume());
     if (!opened && !this.destroyRef.destroyed) {
       await this.router.navigate(['/new'], { replaceUrl: true });

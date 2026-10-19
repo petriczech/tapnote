@@ -16,7 +16,7 @@ import { Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { daysWithoutBackup, readLastBackup } from '../../core/backup/notes-backup';
 import { Note } from '../../core/model/note';
-import { collectTags, isNotesView, queryNotes, snippet } from '../../core/model/note-query';
+import { collectTags, isNotesView, queryNotes, snippet, templatesOf } from '../../core/model/note-query';
 import { NoteActions } from '../../core/notes/note-actions';
 import { createNoteSearch } from '../../core/search/note-search';
 import { NotesRepository } from '../../core/storage/notes-repository';
@@ -25,10 +25,11 @@ import { VIEWS } from './views';
 
 export const URL_DEBOUNCE_MS = 300;
 
-type NoteAction = 'pin' | 'archive' | 'unarchive' | 'trash' | 'restore' | 'delete';
+type NoteAction = 'pin' | 'archive' | 'unarchive' | 'template' | 'trash' | 'restore' | 'delete';
 
 @Component({
   selector: 'tn-notes-list',
+  host: { '[class.with-templates]': 'templates().length > 0' },
   imports: [RouterLink, BottomNav],
   template: `
     <header class="header">
@@ -160,6 +161,7 @@ type NoteAction = 'pin' | 'archive' | 'unarchive' | 'trash' | 'restore' | 'delet
                   } @else {
                     <button type="button" (click)="run(item.note, 'archive', menu)">Archivovat</button>
                   }
+                  <button type="button" (click)="run(item.note, 'template', menu)">Uložit jako šablonu</button>
                   <button type="button" (click)="run(item.note, 'trash', menu)">Smazat</button>
                 }
               </div>
@@ -167,6 +169,24 @@ type NoteAction = 'pin' | 'archive' | 'unarchive' | 'trash' | 'restore' | 'delet
           }
         </ul>
       }
+    }
+
+    @if (templates().length > 0) {
+      <button type="button" class="icon-btn from-template" popovertarget="templates-menu" title="Ze šablony">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M4 6H2v14a2 2 0 0 0 2 2h14v-2H4V6zm16-4H8a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm-1 9h-4v4h-2v-4H9V9h4V5h2v4h4v2z"
+          />
+        </svg>
+        <span class="visually-hidden">Ze šablony</span>
+      </button>
+      <div id="templates-menu" class="menu" popover (toggle)="onMenuToggle($event)">
+        @for (template of templates(); track template.id) {
+          <a routerLink="/new" [queryParams]="{ template: template.id }" (click)="flushQuery()">{{
+            template.title || 'Bez názvu'
+          }}</a>
+        }
+      </div>
     }
 
     <a class="fab" routerLink="/new" aria-label="Nová poznámka" (click)="flushQuery()">
@@ -181,6 +201,10 @@ type NoteAction = 'pin' | 'archive' | 'unarchive' | 'trash' | 'restore' | 'delet
       display: block;
       padding-top: env(safe-area-inset-top);
       padding-bottom: calc(10rem + env(safe-area-inset-bottom));
+    }
+
+    :host(.with-templates) {
+      padding-bottom: calc(14rem + env(safe-area-inset-bottom));
     }
 
     h1 {
@@ -420,8 +444,11 @@ type NoteAction = 'pin' | 'archive' | 'unarchive' | 'trash' | 'restore' | 'delet
       box-shadow: 0 4px 16px rgb(0 0 0 / 25%);
     }
 
-    .menu button {
-      display: block;
+    .menu button,
+    .menu a {
+      display: flex;
+      align-items: center;
+      box-sizing: border-box;
       width: 100%;
       min-width: 12rem;
       min-height: 48px;
@@ -431,6 +458,16 @@ type NoteAction = 'pin' | 'archive' | 'unarchive' | 'trash' | 'restore' | 'delet
       color: inherit;
       font: inherit;
       text-align: left;
+      text-decoration: none;
+    }
+
+    .from-template {
+      position: fixed;
+      right: 20px;
+      bottom: calc(96px + 56px + 12px + env(safe-area-inset-bottom));
+      background: var(--surface-high);
+      color: var(--on-surface);
+      box-shadow: 0 3px 8px rgb(0 0 0 / 25%);
     }
 
     .fab {
@@ -487,6 +524,7 @@ export class NotesList implements OnInit {
     this.current().view === 'notes' ? daysWithoutBackup(readLastBackup(), this.notes(), new Date()) : undefined,
   );
   protected readonly tags = computed(() => collectTags(this.notes(), this.current().view));
+  protected readonly templates = computed(() => templatesOf(this.notes()));
   private readonly search = computed(() => createNoteSearch(this.notes()));
   protected readonly items = computed(() => {
     const notes = queryNotes(this.notes(), this.current().view, this.tag());
@@ -551,7 +589,7 @@ export class NotesList implements OnInit {
   // Fokus na první akci otevřené nabídky
   protected onMenuToggle(event: Event): void {
     if ('newState' in event && event.newState === 'open') {
-      (event.target as HTMLElement).querySelector('button')?.focus();
+      (event.target as HTMLElement).querySelector<HTMLElement>('button, a')?.focus();
     }
   }
 
@@ -578,6 +616,8 @@ export class NotesList implements OnInit {
       case 'archive':
       case 'unarchive':
         return this.actions.setArchived(note, action === 'archive');
+      case 'template':
+        return this.actions.setTemplate(note, true);
       case 'trash':
         return this.actions.trash(note);
       case 'restore':

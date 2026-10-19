@@ -1,4 +1,5 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { afterNextRender, Component, computed, ElementRef, inject, Injector, OnInit, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import {
   createExport,
   exportFileName,
@@ -7,6 +8,9 @@ import {
   readLastBackup,
   writeLastBackup,
 } from '../../core/backup/notes-backup';
+import { Note } from '../../core/model/note';
+import { templatesOf } from '../../core/model/note-query';
+import { NoteActions } from '../../core/notes/note-actions';
 import { NotesRepository } from '../../core/storage/notes-repository';
 import { applyTheme, readTheme, ThemeId, THEMES } from '../../core/theme/theme';
 import { BottomNav } from '../list/bottom-nav';
@@ -16,7 +20,7 @@ const REVOKE_DELAY_MS = 60_000;
 
 @Component({
   selector: 'tn-settings',
-  imports: [BottomNav],
+  imports: [BottomNav, RouterLink],
   template: `
     <h1>Nastavení</h1>
 
@@ -32,9 +36,43 @@ const REVOKE_DELAY_MS = 60_000;
       </fieldset>
     </section>
 
+    <section aria-labelledby="templates-heading">
+      <h2 id="templates-heading" tabindex="-1">Šablony</h2>
+      @if (templates().length === 0) {
+        <p class="info">Šablona se vytvoří z poznámky v seznamu přes nabídku ⋮ → Uložit jako šablonu.</p>
+      } @else {
+        <ul class="templates">
+          @for (template of templates(); track template.id) {
+            <li>
+              <a class="template-title" [routerLink]="['/note', template.id]">{{ template.title || 'Bez názvu' }}</a>
+              <span class="template-actions">
+                <button
+                  type="button"
+                  class="text-btn"
+                  [attr.aria-label]="'Vrátit mezi poznámky: ' + (template.title || 'Bez názvu')"
+                  (click)="restoreTemplate(template)"
+                >
+                  Vrátit mezi poznámky
+                </button>
+                <button
+                  type="button"
+                  class="text-btn"
+                  [attr.aria-label]="'Smazat: ' + (template.title || 'Bez názvu')"
+                  (click)="deleteTemplate(template)"
+                >
+                  Smazat
+                </button>
+              </span>
+            </li>
+          }
+        </ul>
+      }
+      <p class="info">{{ variablesHint }}</p>
+    </section>
+
     <section aria-labelledby="backup-heading">
       <h2 id="backup-heading">Záloha</h2>
-      <p class="info">Poslední záloha: {{ lastBackupText() }}</p>
+      <p class="info last-backup">Poslední záloha: {{ lastBackupText() }}</p>
       <div class="actions">
         <button type="button" class="filled" [attr.aria-disabled]="busy()" (click)="exportNotes('download')">Stáhnout zálohu</button>
         @if (canShare) {
@@ -86,6 +124,10 @@ const REVOKE_DELAY_MS = 60_000;
 
     section {
       margin: 8px 16px 24px;
+    }
+
+    h2:focus:not(:focus-visible) {
+      outline: none;
     }
 
     h2 {
@@ -178,6 +220,47 @@ const REVOKE_DELAY_MS = 60_000;
       outline-offset: 2px;
     }
 
+    .templates {
+      margin: 0 0 8px;
+      padding: 0;
+      list-style: none;
+    }
+
+    .templates li {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px 8px;
+      padding: 4px 0;
+      border-bottom: 1px solid var(--outline-variant);
+    }
+
+    .template-title {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      color: var(--on-surface);
+      font-weight: 600;
+    }
+
+    .template-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .text-btn {
+      min-height: 44px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: var(--radius-l);
+      background: none;
+      color: var(--primary);
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
     .status {
       margin: 0 16px;
     }
@@ -187,8 +270,54 @@ const REVOKE_DELAY_MS = 60_000;
     }
   `,
 })
-export class Settings {
+export class Settings implements OnInit {
   private readonly repository = inject(NotesRepository);
+  private readonly actions = inject(NoteActions);
+  private readonly host: HTMLElement = inject(ElementRef).nativeElement;
+  private readonly injector = inject(Injector);
+
+  protected readonly templates = signal<Note[]>([]);
+  // Mimo šablonu komponenty, kde by se {{ }} vyhodnotilo
+  protected readonly variablesHint = 'V textu šablony lze použít {{date}}, {{time}} a {{weekday}}; {{cursor}} označí místo kurzoru.';
+
+  ngOnInit(): Promise<void> {
+    return this.loadTemplates();
+  }
+
+  protected async restoreTemplate(template: Note): Promise<void> {
+    const index = this.templates().indexOf(template);
+    await this.run(async () => {
+      await this.actions.setTemplate(template, false);
+      return 'Šablona je zpět mezi poznámkami.';
+    }, 'Akci se nepodařilo dokončit.');
+    this.keepFocus(index);
+  }
+
+  protected async deleteTemplate(template: Note): Promise<void> {
+    const index = this.templates().indexOf(template);
+    await this.run(async () => {
+      if (!confirm(`Smazat šablonu „${template.title || 'Bez názvu'}“ trvale?`)) {
+        return '';
+      }
+      await this.actions.deletePermanently(template);
+      return 'Šablona je smazaná.';
+    }, 'Akci se nepodařilo dokončit.');
+    this.keepFocus(index);
+  }
+
+  // Když řádek s fokusem zmizel, fokus na šablonu na stejné pozici, jinak na nadpis sekce
+  private keepFocus(index: number): void {
+    afterNextRender(
+      () => {
+        if (this.host.contains(document.activeElement)) {
+          return;
+        }
+        const links = this.host.querySelectorAll<HTMLElement>('.template-title');
+        (links[Math.min(index, links.length - 1)] ?? this.host.querySelector<HTMLElement>('#templates-heading'))?.focus();
+      },
+      { injector: this.injector },
+    );
+  }
 
   protected readonly canShare = typeof navigator.canShare === 'function';
   protected readonly themes = THEMES;
@@ -285,6 +414,15 @@ export class Settings {
       this.status.set(failure);
     } finally {
       this.busy.set(false);
+      await this.loadTemplates();
+    }
+  }
+
+  private async loadTemplates(): Promise<void> {
+    try {
+      this.templates.set(templatesOf(await this.repository.getAll()));
+    } catch {
+      // Seznam šablon zůstane, chyba akce se hlásí ve stavu
     }
   }
 

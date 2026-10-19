@@ -64,6 +64,54 @@ describe('Settings', () => {
     expect(current?.getAttribute('href')).toBe('/settings');
   });
 
+  describe('templates', () => {
+    beforeEach(async () => {
+      await repository.put({ ...note('tpl', '2026-10-15T10:00:00.000Z'), title: 'Porada', isTemplate: true });
+    });
+
+    const rowButton = (label: string) => root.querySelector<HTMLButtonElement>(`.templates button[aria-label="${label}"]`) as HTMLButtonElement;
+
+    it('lists templates with a link to edit them', async () => {
+      await render();
+      await vi.waitFor(() => expect(root.querySelector('.template-title')?.textContent?.trim()).toBe('Porada'));
+
+      expect(root.querySelector('.template-title')?.getAttribute('href')).toBe('/note/tpl');
+      expect(root.querySelectorAll('.templates li').length).toBe(1);
+    });
+
+    it('turns a template back into a note', async () => {
+      await render();
+      await vi.waitFor(() => expect(rowButton('Vrátit mezi poznámky: Porada')).not.toBeNull());
+
+      rowButton('Vrátit mezi poznámky: Porada').click();
+
+      await vi.waitFor(() => expect(status()).toBe('Šablona je zpět mezi poznámkami.'));
+      expect(repository.notes.get('tpl')?.isTemplate).toBe(false);
+      await vi.waitFor(() => expect(root.querySelector('.templates')).toBeNull());
+      await vi.waitFor(() => expect(document.activeElement).toBe(root.querySelector('#templates-heading')));
+    });
+
+    it('deletes a template after confirmation and focuses the next one', async () => {
+      await repository.put({ ...note('tpl2', '2026-10-15T10:00:00.000Z'), title: 'Deník', isTemplate: true });
+      vi.spyOn(window, 'confirm').mockReturnValue(true);
+      await render();
+      await vi.waitFor(() => expect(rowButton('Smazat: Deník')).not.toBeNull());
+
+      rowButton('Smazat: Deník').click();
+
+      await vi.waitFor(() => expect(status()).toBe('Šablona je smazaná.'));
+      expect(repository.notes.has('tpl2')).toBe(false);
+      await vi.waitFor(() => expect(document.activeElement?.textContent?.trim()).toBe('Porada'));
+    });
+  });
+
+  it('explains how to create a template when there is none', async () => {
+    await render();
+
+    expect(root.textContent).toContain('Uložit jako šablonu');
+    expect(root.textContent).toContain('{{date}}');
+  });
+
   it('switches the theme', async () => {
     await render();
     expect(radio('blue').checked).toBe(true);
@@ -87,7 +135,7 @@ describe('Settings', () => {
     URL.revokeObjectURL = revokeUrl;
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
     await render();
-    expect(root.querySelector('.info')?.textContent).toContain('zatím žádná');
+    expect(root.querySelector('.last-backup')?.textContent).toContain('zatím žádná');
 
     const timeout = vi.spyOn(window, 'setTimeout');
     button('Stáhnout zálohu').click();
@@ -107,7 +155,7 @@ describe('Settings', () => {
     expect(exported.schemaVersion).toBe(1);
     expect(exported.notes.map((item: Note) => item.id).sort()).toEqual(['a', 'b']);
     expect(localStorage.getItem(LAST_BACKUP_KEY)).not.toBeNull();
-    expect(root.querySelector('.info')?.textContent).not.toContain('zatím žádná');
+    expect(root.querySelector('.last-backup')?.textContent).not.toContain('zatím žádná');
   });
 
   it('merges newer and new notes by default', async () => {

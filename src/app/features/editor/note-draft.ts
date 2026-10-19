@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { createNote, deriveTitle, extractTags, Note } from '../../core/model/note';
+import { expandTemplate } from '../../core/model/template';
 import { NotesRepository } from '../../core/storage/notes-repository';
 
 export const RESUME_WINDOW_MS = 5 * 60 * 1000;
@@ -51,6 +52,8 @@ export class NoteDraft {
   readonly saved = signal(true);
 
   private note: Note | undefined;
+  // Obsah ze šablony, který se bez úpravy neukládá
+  private prefill = '';
   private createdHere = false;
   private touched = false;
   private timer: ReturnType<typeof setTimeout> | undefined;
@@ -79,6 +82,19 @@ export class NoteDraft {
       }
     }
     return true;
+  }
+
+  // Nová poznámka z obsahu šablony; vrací pozici kurzoru, undefined = šablona není nebo už se píše
+  async openTemplate(id: string): Promise<number | undefined> {
+    const template = await this.repository.get(id).catch(() => undefined);
+    if (!template?.isTemplate || template.deletedAt || this.touched || this.note) {
+      return undefined;
+    }
+    const expanded = expandTemplate(template.content, new Date());
+    this.prefill = expanded.content;
+    this.content.set(expanded.content);
+    this.saved.set(false);
+    return expanded.cursor;
   }
 
   update(content: string): void {
@@ -114,12 +130,12 @@ export class NoteDraft {
   private async save(): Promise<void> {
     const content = this.content();
     try {
-      if (this.note?.content !== content) {
+      if ((this.note?.content ?? this.prefill) !== content) {
         await this.persist(content);
       }
       this.saveFailed.set(false);
-      // Psaní během zápisu nechá stav neuložený
-      this.saved.set(this.content() === content);
+      // Psaní během zápisu i neupravená šablona nechají stav neuložený
+      this.saved.set(this.content() === content && (this.note !== undefined || content.trim() === ''));
     } catch {
       this.saveFailed.set(true);
     }
@@ -149,5 +165,6 @@ export class NoteDraft {
     writeLastEdit({ id: note.id, editedAt: now });
     this.createdHere ||= !this.note;
     this.note = note;
+    this.prefill = '';
   }
 }

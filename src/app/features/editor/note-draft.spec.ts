@@ -241,6 +241,47 @@ describe('NoteDraft', () => {
     expect(draft.saved()).toBe(false);
   });
 
+  describe('from a template', () => {
+    beforeEach(async () => {
+      await repository.put({ ...existingNote('tpl', '# Porada {{date}}\n{{cursor}}', ago(1000)), isTemplate: true });
+    });
+
+    it('fills in the template without saving it', async () => {
+      const cursor = await draft.openTemplate('tpl');
+      await draft.flush();
+
+      expect(draft.content()).toBe('# Porada 15. 10. 2026\n');
+      expect(cursor).toBe(draft.content().length);
+      expect(draft.saved()).toBe(false);
+      expect(repository.notes.size).toBe(1);
+    });
+
+    it('creates a normal note after an edit', async () => {
+      await draft.openTemplate('tpl');
+      draft.update(draft.content() + 'Jana');
+      await draft.flush();
+
+      const created = [...repository.notes.values()].find((note) => note.id !== 'tpl');
+      expect(created).toMatchObject({ content: '# Porada 15. 10. 2026\nJana', title: 'Porada 15. 10. 2026', isTemplate: false });
+      expect(repository.notes.get('tpl')?.content).toBe('# Porada {{date}}\n{{cursor}}');
+    });
+
+    it('ignores a missing id or a normal note', async () => {
+      await repository.put(existingNote('plain', 'text', ago(1000)));
+
+      expect(await draft.openTemplate('missing')).toBeUndefined();
+      expect(await draft.openTemplate('plain')).toBeUndefined();
+      expect(draft.content()).toBe('');
+    });
+
+    it('keeps text typed before the template loads', async () => {
+      draft.update('rychle');
+
+      expect(await draft.openTemplate('tpl')).toBeUndefined();
+      expect(draft.content()).toBe('rychle');
+    });
+  });
+
   it('reports a failed save and recovers', async () => {
     repository.failPut = true;
     draft.update('a');

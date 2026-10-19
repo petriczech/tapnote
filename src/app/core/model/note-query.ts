@@ -29,6 +29,13 @@ export function queryNotes(notes: Note[], view: NotesView, tag?: string): Note[]
     );
 }
 
+// Šablony mimo koš podle názvu
+export function templatesOf(notes: Note[]): Note[] {
+  return notes
+    .filter((note) => note.isTemplate && note.deletedAt === undefined)
+    .sort((a, b) => a.title.localeCompare(b.title, 'cs'));
+}
+
 export function collectTags(notes: Note[], view: NotesView): string[] {
   const tags = notes.filter((note) => inView(note, view)).flatMap((note) => note.tags);
   return [...new Set(tags)].sort((a, b) => a.localeCompare(b, 'cs'));

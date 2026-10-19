@@ -1,5 +1,5 @@
 import { createNote, Note } from './note';
-import { collectTags, isNotesView, queryNotes, snippet } from './note-query';
+import { collectTags, isNotesView, queryNotes, snippet, templatesOf } from './note-query';
 
 function note(id: string, overrides: Partial<Note> = {}): Note {
   return { ...createNote(id, '2026-10-15T10:00:00.000Z'), ...overrides };
@@ -32,6 +32,19 @@ describe('queryNotes', () => {
 
   it('filters by tag', () => {
     expect(ids(queryNotes(notes, 'notes', 'a'))).toEqual(['pinned', 'old']);
+  });
+});
+
+describe('templatesOf', () => {
+  it('lists templates outside the trash by title', () => {
+    const templates = [
+      note('b', { isTemplate: true, title: 'Porada' }),
+      note('a', { isTemplate: true, title: 'Deník' }),
+      note('gone', { isTemplate: true, title: 'Staré', deletedAt: '2026-10-12T10:00:00.000Z' }),
+      note('plain', { title: 'Ahoj' }),
+    ];
+
+    expect(ids(templatesOf(templates))).toEqual(['a', 'b']);
   });
 });
 

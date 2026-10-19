@@ -33,6 +33,15 @@ describe('NoteActions', () => {
     expect(stored()?.pinned).toBe(false);
   });
 
+  it('turns a note into a template and back', async () => {
+    await actions.setArchived(stored()!, true);
+    await actions.setTemplate(stored()!, true);
+    expect(stored()).toMatchObject({ isTemplate: true, archived: false, updatedAt: NOW.toISOString() });
+
+    await actions.setTemplate(stored()!, false);
+    expect(stored()?.isTemplate).toBe(false);
+  });
+
   it('archives and unarchives', async () => {
     await actions.setArchived(stored()!, true);
     expect(stored()?.archived).toBe(true);

@@ -16,6 +16,11 @@ export class NoteActions {
     return this.change(note, { archived });
   }
 
+  // Šablona ani poznámka z ní vrácená nezůstává v archivu
+  setTemplate(note: Note, isTemplate: boolean): Promise<void> {
+    return this.change(note, { isTemplate, archived: false });
+  }
+
   trash(note: Note): Promise<void> {
     return this.change(note, { deletedAt: new Date().toISOString() });
   }
