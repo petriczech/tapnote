@@ -20,6 +20,7 @@
     "@angular/router": "^22.2.0",
     "@angular/service-worker": "^22.2.0",
     "dexie": "^4.4.6",
+    "minisearch": "^7.2.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },

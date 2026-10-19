@@ -1,9 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Location } from '@angular/common';
+import { provideRouter, Router } from '@angular/router';
 import { createNote, Note } from '../../core/model/note';
 import { NotesRepository } from '../../core/storage/notes-repository';
 import { InMemoryNotesRepository } from '../../core/storage/testing/in-memory-notes-repository';
-import { NotesList } from './notes-list';
+import { NotesList, URL_DEBOUNCE_MS } from './notes-list';
 
 function note(id: string, overrides: Partial<Note> = {}): Note {
   return { ...createNote(id, '2026-10-15T10:00:00.000Z'), title: `Poznámka ${id}`, ...overrides };
@@ -14,7 +15,7 @@ describe('NotesList', () => {
   let fixture: ComponentFixture<NotesList>;
   let root: HTMLElement;
 
-  async function render(inputs: { view?: string; tag?: string } = {}): Promise<void> {
+  async function render(inputs: { view?: string; tag?: string; q?: string } = {}): Promise<void> {
     fixture = TestBed.createComponent(NotesList);
     root = fixture.nativeElement;
     Object.entries(inputs).forEach(([name, value]) => fixture.componentRef.setInput(name, value));
@@ -192,6 +193,130 @@ describe('NotesList', () => {
     await fixture.whenStable();
 
     expect(root.querySelector('.error')).toBeNull();
+  });
+
+  describe('search', () => {
+    const field = () => root.querySelector<HTMLInputElement>('input[type="search"]') as HTMLInputElement;
+    const status = () => root.querySelector('[aria-live="polite"]')?.textContent?.trim();
+
+    async function type(value: string): Promise<void> {
+      field().value = value;
+      field().dispatchEvent(new Event('input'));
+      await fixture.whenStable();
+    }
+
+    it('filters while typing and announces the count', async () => {
+      await render();
+
+      await type('mleko');
+
+      expect(titles()).toEqual(['Poznámka old']);
+      expect(status()).toBe('Nalezena 1 poznámka');
+      await type('poznámka');
+      expect(status()).toBe('Nalezeny 2 poznámky');
+    });
+
+    it('starts from the q parameter', async () => {
+      await render({ q: 'mléko' });
+
+      expect(field().value).toBe('mléko');
+      expect(titles()).toEqual(['Poznámka old']);
+    });
+
+    it('writes the query to the URL after a pause', async () => {
+      await render();
+      const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+      vi.useFakeTimers();
+
+      try {
+        field().value = 'ml';
+        field().dispatchEvent(new Event('input'));
+        field().value = 'mléko';
+        field().dispatchEvent(new Event('input'));
+        vi.advanceTimersByTime(URL_DEBOUNCE_MS - 1);
+        expect(navigate).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(1);
+      } finally {
+        vi.useRealTimers();
+      }
+
+      expect(navigate).toHaveBeenCalledTimes(1);
+      expect(navigate.mock.calls[0][1]).toMatchObject({
+        queryParams: { q: 'mléko' },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    });
+
+    it('saves a pending query to history when a note opens', async () => {
+      await render();
+      const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+      const replaceState = vi.spyOn(TestBed.inject(Location), 'replaceState');
+      vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+      vi.useFakeTimers();
+
+      try {
+        field().value = 'mléko';
+        field().dispatchEvent(new Event('input'));
+        root.querySelector<HTMLElement>('li[data-id="new"] a.body')?.click();
+        vi.advanceTimersByTime(URL_DEBOUNCE_MS);
+      } finally {
+        vi.useRealTimers();
+      }
+
+      expect(replaceState).toHaveBeenCalledWith('/?q=ml%C3%A9ko');
+      expect(navigate).not.toHaveBeenCalled();
+    });
+
+    it('clears the query with Escape', async () => {
+      await render();
+      await type('mleko');
+
+      field().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      await fixture.whenStable();
+
+      expect(field().value).toBe('');
+      expect(titles()).toEqual(['Poznámka new', 'Bez názvu', 'Poznámka old']);
+      expect(status()).toBe('');
+    });
+
+    it('searches only the current view and tag', async () => {
+      await render({ view: 'trash' });
+      await type('poznámka');
+      expect(titles()).toEqual(['Poznámka trashed']);
+
+      fixture.componentRef.setInput('view', undefined);
+      fixture.componentRef.setInput('tag', 'práce');
+      await fixture.whenStable();
+      expect(titles()).toEqual(['Poznámka new']);
+    });
+
+    it('filters by a #tag in the query', async () => {
+      await render();
+
+      await type('#domov');
+
+      expect(titles()).toEqual(['Poznámka old']);
+    });
+
+    it('shows an empty state for no match', async () => {
+      await render();
+
+      await type(' xyz ');
+
+      expect(root.querySelector('.empty')?.textContent?.trim()).toBe('Nic nenalezeno pro „xyz“');
+      expect(status()).toBe('Nalezeno 0 poznámek');
+    });
+
+    it('keeps the query in view and tag links', async () => {
+      await render();
+
+      await type('mléko');
+
+      const archive = [...root.querySelectorAll('nav[aria-label="Pohledy"] a')].find((link) => link.textContent?.trim() === 'Archiv');
+      expect(archive?.getAttribute('href')).toBe('/notes?view=archive&q=ml%C3%A9ko');
+      expect(root.querySelector('nav[aria-label="Tagy"] a')?.getAttribute('href')).toBe('/notes?tag=domov&q=ml%C3%A9ko');
+    });
   });
 
   it('reports a failed load', async () => {

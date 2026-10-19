@@ -2,6 +2,7 @@ import {
   afterNextRender,
   Component,
   computed,
+  DestroyRef,
   ElementRef,
   inject,
   Injector,
@@ -11,11 +12,15 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Location } from '@angular/common';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Note } from '../../core/model/note';
 import { collectTags, isNotesView, NotesView, queryNotes, snippet } from '../../core/model/note-query';
 import { NoteActions } from '../../core/notes/note-actions';
+import { createNoteSearch } from '../../core/search/note-search';
 import { NotesRepository } from '../../core/storage/notes-repository';
+
+export const URL_DEBOUNCE_MS = 300;
 
 type NoteAction = 'pin' | 'archive' | 'unarchive' | 'trash' | 'restore' | 'delete';
 
@@ -31,11 +36,23 @@ const VIEWS: { view: NotesView; label: string; empty: string }[] = [
   template: `
     <header class="header">
       <h1 #heading tabindex="-1">{{ current().label }}</h1>
+      <div role="search">
+        <input
+          #field
+          type="search"
+          class="search"
+          aria-label="Hledat"
+          placeholder="Hledat"
+          [value]="query()"
+          (input)="onQuery(field.value)"
+          (keydown.escape)="onQuery('')"
+        />
+      </div>
       <nav class="pills" aria-label="Pohledy">
         @for (item of views; track item.view) {
           <a
             routerLink="/notes"
-            [queryParams]="{ view: item.view === 'notes' ? null : item.view }"
+            [queryParams]="{ view: item.view === 'notes' ? null : item.view, q: queryParam() }"
             [attr.aria-current]="item.view === current().view ? 'page' : null"
             >{{ item.label }}</a
           >
@@ -46,7 +63,7 @@ const VIEWS: { view: NotesView; label: string; empty: string }[] = [
           @for (name of tags(); track name) {
             <a
               routerLink="/notes"
-              [queryParams]="{ view: viewParam(), tag: name === tag() ? null : name }"
+              [queryParams]="{ view: viewParam(), tag: name === tag() ? null : name, q: queryParam() }"
               [attr.aria-current]="name === tag() ? 'true' : null"
               >#{{ name }}</a
             >
@@ -54,6 +71,8 @@ const VIEWS: { view: NotesView; label: string; empty: string }[] = [
         </nav>
       }
     </header>
+
+    <p class="visually-hidden" aria-live="polite">{{ found() }}</p>
 
     @if (current().view === 'trash') {
       <p class="hint">Poznámky v koši se po 30 dnech smažou.</p>
@@ -66,7 +85,7 @@ const VIEWS: { view: NotesView; label: string; empty: string }[] = [
     @if (loadFailed()) {
       <p class="empty" role="alert">Poznámky se nepodařilo načíst.</p>
     } @else if (items().length === 0) {
-      <p class="empty">{{ tag() ? 'Žádné poznámky s tagem #' + tag() : current().empty }}</p>
+      <p class="empty">{{ queryParam() ? 'Nic nenalezeno pro „' + query().trim() + '“' : tag() ? 'Žádné poznámky s tagem #' + tag() : current().empty }}</p>
     } @else {
       <ul class="notes">
         @for (item of items(); track item.note.id) {
@@ -79,7 +98,7 @@ const VIEWS: { view: NotesView; label: string; empty: string }[] = [
                 }
               </div>
             } @else {
-              <a class="body" [routerLink]="['/note', item.note.id]">
+              <a class="body" [routerLink]="['/note', item.note.id]" (click)="flushQuery()">
                 <span class="title">
                   @if (item.note.pinned) {
                     <span class="visually-hidden">Připnuto: </span><span aria-hidden="true">📌 </span>
@@ -127,7 +146,7 @@ const VIEWS: { view: NotesView; label: string; empty: string }[] = [
       </ul>
     }
 
-    <a class="fab" routerLink="/new" aria-label="Nová poznámka">+</a>
+    <a class="fab" routerLink="/new" aria-label="Nová poznámka" (click)="flushQuery()">+</a>
   `,
   styles: `
     :host {
@@ -138,6 +157,17 @@ const VIEWS: { view: NotesView; label: string; empty: string }[] = [
     h1 {
       margin: 1rem 0 0.5rem;
       font-size: 1.5rem;
+    }
+
+    .search {
+      box-sizing: border-box;
+      width: 100%;
+      min-height: 2.75rem;
+      margin-bottom: 0.5rem;
+      padding: 0 0.875rem;
+      border: 1px solid #767676;
+      border-radius: 1.375rem;
+      font: inherit;
     }
 
     .pills {
@@ -270,16 +300,23 @@ const VIEWS: { view: NotesView; label: string; empty: string }[] = [
 export class NotesList implements OnInit {
   readonly view = input<string>();
   readonly tag = input<string>();
+  readonly q = input<string>();
 
   private readonly repository = inject(NotesRepository);
   private readonly actions = inject(NoteActions);
   private readonly host: HTMLElement = inject(ElementRef).nativeElement;
   private readonly injector = inject(Injector);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly location = inject(Location);
+  private urlTimer?: ReturnType<typeof setTimeout>;
   private readonly heading = viewChild.required<ElementRef<HTMLElement>>('heading');
 
   protected readonly views = VIEWS;
   protected readonly notes = signal<Note[]>([]);
   protected readonly loadFailed = signal(false);
+  // Text pole hledání, do URL se zapisuje se zpožděním
+  protected readonly query = signal('');
 
   protected readonly current = computed(() => {
     const view = this.view();
@@ -291,17 +328,55 @@ export class NotesList implements OnInit {
     computation: () => false,
   });
   protected readonly viewParam = computed(() => (this.current().view === 'notes' ? null : this.current().view));
+  protected readonly queryParam = computed(() => (this.query().trim() ? this.query() : null));
   protected readonly tags = computed(() => collectTags(this.notes(), this.current().view));
-  protected readonly items = computed(() =>
-    queryNotes(this.notes(), this.current().view, this.tag()).map((note) => ({
+  private readonly search = computed(() => createNoteSearch(this.notes()));
+  protected readonly items = computed(() => {
+    const notes = queryNotes(this.notes(), this.current().view, this.tag());
+    const query = this.queryParam();
+    return (query ? this.search()(query, notes) : notes).map((note) => ({
       note,
       title: note.title || 'Bez názvu',
       snippet: snippet(note.content),
-    })),
-  );
+    }));
+  });
+  protected readonly found = computed(() => {
+    if (!this.queryParam() || this.loadFailed()) {
+      return '';
+    }
+    const count = this.items().length;
+    if (count === 1) {
+      return 'Nalezena 1 poznámka';
+    }
+    return count >= 2 && count <= 4 ? `Nalezeny ${count} poznámky` : `Nalezeno ${count} poznámek`;
+  });
+
+  constructor() {
+    inject(DestroyRef).onDestroy(() => clearTimeout(this.urlTimer));
+  }
 
   ngOnInit(): Promise<void> {
+    this.query.set(this.q() ?? '');
     return this.load();
+  }
+
+  protected onQuery(value: string): void {
+    this.query.set(value);
+    clearTimeout(this.urlTimer);
+    this.urlTimer = setTimeout(
+      () => this.router.navigate([], { ...this.queryUrlOptions(), replaceUrl: true }),
+      URL_DEBOUNCE_MS,
+    );
+  }
+
+  // Nezapsané hledání se před odchodem uloží do aktuální položky historie
+  protected flushQuery(): void {
+    clearTimeout(this.urlTimer);
+    this.location.replaceState(this.router.createUrlTree([], this.queryUrlOptions()).toString());
+  }
+
+  private queryUrlOptions() {
+    return { relativeTo: this.route, queryParams: { q: this.queryParam() }, queryParamsHandling: 'merge' as const };
   }
 
   // Fokus na první akci otevřené nabídky
