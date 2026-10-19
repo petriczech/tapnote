@@ -20,6 +20,7 @@ import { collectTags, isNotesView, queryNotes, snippet, templatesOf } from '../.
 import { NoteActions } from '../../core/notes/note-actions';
 import { createNoteSearch } from '../../core/search/note-search';
 import { NOTE_COLORS, NoteColor, noteColorVar } from '../../core/model/note-colors';
+import { isPlainKey, readShortcutsEnabled } from '../../core/shortcuts/shortcuts';
 import { NotesRepository } from '../../core/storage/notes-repository';
 import { BottomNav } from './bottom-nav';
 import { VIEWS } from './views';
@@ -41,7 +42,7 @@ function readLayout(): string | null {
 
 @Component({
   selector: 'tn-notes-list',
-  host: { '[class.with-templates]': 'templates().length > 0' },
+  host: { '[class.with-templates]': 'templates().length > 0', '(document:keydown)': 'onKey($event)' },
   imports: [RouterLink, BottomNav],
   template: `
     <header class="header">
@@ -610,6 +611,7 @@ export class NotesList implements OnInit {
   private readonly location = inject(Location);
   private urlTimer?: ReturnType<typeof setTimeout>;
   private readonly heading = viewChild.required<ElementRef<HTMLElement>>('heading');
+  private readonly field = viewChild.required<ElementRef<HTMLInputElement>>('field');
 
   protected readonly notes = signal<Note[]>([]);
   protected readonly loadFailed = signal(false);
@@ -713,11 +715,61 @@ export class NotesList implements OnInit {
     }
   }
 
+  // Zkratky seznamu; akce f, e, # platí pro poznámku s fokusem
+  protected onKey(event: KeyboardEvent): void {
+    if (!readShortcutsEnabled() || !isPlainKey(event)) {
+      return;
+    }
+    const item = document.activeElement?.closest<HTMLElement>('li[data-id]') ?? undefined;
+    const note = this.notes().find((note) => note.id === item?.dataset['id']);
+    switch (event.key) {
+      case 'c':
+        this.flushQuery();
+        void this.router.navigate(['/new']);
+        break;
+      case '/':
+        this.field().nativeElement.focus();
+        break;
+      case 'j':
+      case 'k':
+        this.moveFocus(item, event.key === 'j' ? 1 : -1);
+        break;
+      case '?':
+        this.flushQuery();
+        void this.router.navigate(['/settings'], { fragment: 'shortcuts' });
+        break;
+      case 'f':
+      case 'e':
+      case '#': {
+        const menu = item?.querySelector<HTMLElement>('.menu');
+        // Podržená klávesa akci neopakuje
+        if (!note || !menu || event.repeat || this.current().view === 'trash') {
+          return;
+        }
+        const action = event.key === 'f' ? 'pin' : event.key === '#' ? 'trash' : note.archived ? 'unarchive' : 'archive';
+        void this.run(note, action, menu);
+        break;
+      }
+      default:
+        return;
+    }
+    event.preventDefault();
+  }
+
+  // Bez vybrané poznámky j začne první a k poslední
+  private moveFocus(item: HTMLElement | undefined, step: number): void {
+    const items = [...this.host.querySelectorAll<HTMLElement>('li[data-id]')];
+    const index = item ? items.indexOf(item) + step : step > 0 ? 0 : items.length - 1;
+    items[Math.max(0, Math.min(index, items.length - 1))]?.querySelector<HTMLElement>('a.body, .actions')?.focus();
+  }
+
   protected async run(note: Note, action: NoteAction, menu: HTMLElement, color?: NoteColor): Promise<void> {
     if (action === 'delete' && !confirm(`Smazat poznámku „${note.title || 'Bez názvu'}“ trvale?`)) {
       return;
     }
     menu.hidePopover?.();
+    // Po akci ze zkratky se fokus vrátí na odkaz poznámky, jinak na ⋮
+    const focusLink = document.activeElement?.matches('a.body') ?? false;
     const index = this.items().findIndex((item) => item.note.id === note.id);
     this.actionFailed.set(false);
     try {
@@ -726,7 +778,7 @@ export class NotesList implements OnInit {
       this.actionFailed.set(true);
     }
     await this.load();
-    afterNextRender(() => this.restoreFocus(note.id, index), { injector: this.injector });
+    afterNextRender(() => this.restoreFocus(note.id, index, focusLink), { injector: this.injector });
   }
 
   private perform(note: Note, action: NoteAction, color?: NoteColor): Promise<void> {
@@ -759,9 +811,9 @@ export class NotesList implements OnInit {
   }
 
   // Fokus na tutéž poznámku, jinak na položku na stejné pozici, jinak na nadpis
-  private restoreFocus(id: string, index: number): void {
+  private restoreFocus(id: string, index: number, focusLink: boolean): void {
     const items = [...this.host.querySelectorAll<HTMLElement>('li[data-id]')];
     const target = items.find((item) => item.dataset['id'] === id) ?? items[Math.min(index, items.length - 1)];
-    (target?.querySelector<HTMLElement>('.actions') ?? this.heading().nativeElement).focus();
+    (target?.querySelector<HTMLElement>(focusLink ? 'a.body, .actions' : '.actions') ?? this.heading().nativeElement).focus();
   }
 }

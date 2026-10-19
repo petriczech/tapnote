@@ -3,6 +3,7 @@ import { Location } from '@angular/common';
 import { provideRouter, Router } from '@angular/router';
 import { LAST_BACKUP_KEY } from '../../core/backup/notes-backup';
 import { createNote, Note } from '../../core/model/note';
+import { SHORTCUTS_KEY } from '../../core/shortcuts/shortcuts';
 import { NotesRepository } from '../../core/storage/notes-repository';
 import { InMemoryNotesRepository } from '../../core/storage/testing/in-memory-notes-repository';
 import { LAYOUT_KEY, NotesList, URL_DEBOUNCE_MS } from './notes-list';
@@ -440,5 +441,70 @@ describe('NotesList', () => {
     await fixture.whenStable();
 
     await vi.waitFor(() => expect(root.querySelector('[role="alert"]')?.textContent).toContain('nepodařilo'));
+  });
+
+  describe('keyboard shortcuts', () => {
+    afterEach(() => localStorage.removeItem(SHORTCUTS_KEY));
+
+    function press(key: string, target: Element = document.activeElement ?? document.body): KeyboardEvent {
+      const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+      target.dispatchEvent(event);
+      return event;
+    }
+
+    const focusedId = () => document.activeElement?.closest<HTMLElement>('li[data-id]')?.dataset['id'];
+
+    it('moves between notes with j and k', async () => {
+      await render();
+      (document.activeElement as HTMLElement | null)?.blur();
+
+      press('j');
+      expect(focusedId()).toBe('new');
+      press('j');
+      expect(focusedId()).toBe('untitled');
+      press('k');
+      press('k');
+      expect(focusedId()).toBe('new');
+    });
+
+    it('focuses the search with / and leaves typing alone', async () => {
+      await render();
+      const search = root.querySelector('input[type="search"]') as HTMLInputElement;
+
+      expect(press('/', document.body).defaultPrevented).toBe(true);
+      expect(document.activeElement).toBe(search);
+      expect(press('j', search).defaultPrevented).toBe(false);
+    });
+
+    it('pins and archives the focused note', async () => {
+      await render();
+      root.querySelector<HTMLElement>('li[data-id="old"] a.body')?.focus();
+
+      press('f');
+      await vi.waitFor(() => expect(repository.notes.get('old')?.pinned).toBe(true));
+      await fixture.whenStable();
+      await vi.waitFor(() => expect(document.activeElement?.matches('li[data-id="old"] a.body')).toBe(true));
+      press('e');
+      await vi.waitFor(() => expect(repository.notes.get('old')?.archived).toBe(true));
+    });
+
+    it('opens a new note with c and the overview with ?', async () => {
+      const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+      await render();
+
+      press('c', document.body);
+      press('?', document.body);
+
+      expect(navigate).toHaveBeenCalledWith(['/new']);
+      expect(navigate).toHaveBeenCalledWith(['/settings'], { fragment: 'shortcuts' });
+    });
+
+    it('does nothing when turned off', async () => {
+      localStorage.setItem(SHORTCUTS_KEY, 'off');
+      await render();
+
+      expect(press('/', document.body).defaultPrevented).toBe(false);
+      expect(document.activeElement).not.toBe(root.querySelector('input[type="search"]'));
+    });
   });
 });

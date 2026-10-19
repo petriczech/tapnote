@@ -4,6 +4,7 @@ import { createExport, LAST_BACKUP_KEY } from '../../core/backup/notes-backup';
 import { createNote, Note } from '../../core/model/note';
 import { NotesRepository } from '../../core/storage/notes-repository';
 import { InMemoryNotesRepository } from '../../core/storage/testing/in-memory-notes-repository';
+import { SHORTCUTS_KEY } from '../../core/shortcuts/shortcuts';
 import { THEME_KEY } from '../../core/theme/theme';
 import { MAX_IMPORT_BYTES, Settings } from './settings';
 
@@ -51,6 +52,7 @@ describe('Settings', () => {
 
   afterEach(() => {
     localStorage.removeItem(LAST_BACKUP_KEY);
+    localStorage.removeItem(SHORTCUTS_KEY);
     vi.restoreAllMocks();
     URL.createObjectURL = createObjectURL;
     URL.revokeObjectURL = revokeObjectURL;
@@ -247,5 +249,16 @@ describe('Settings', () => {
     await chooseFile(JSON.stringify(createExport([note('c', '2026-10-15T10:00:00.000Z')], new Date())));
 
     expect(status()).toBe('Zálohu se nepodařilo obnovit.');
+  });
+
+  it('turns keyboard shortcuts off and lists them', async () => {
+    await render();
+    const box = root.querySelector('input[type="checkbox"]') as HTMLInputElement;
+
+    expect(box.checked).toBe(true);
+    expect(root.querySelectorAll('.shortcuts tbody tr').length).toBeGreaterThan(0);
+    box.click();
+
+    expect(localStorage.getItem(SHORTCUTS_KEY)).toBe('off');
   });
 });

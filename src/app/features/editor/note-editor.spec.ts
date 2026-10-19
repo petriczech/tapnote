@@ -195,4 +195,40 @@ describe('NoteEditor', () => {
     await vi.waitFor(() => expect(buttonOf(harness.routeNativeElement!, 'Upravit')).toBeTruthy());
     expect(textareaOf(harness.routeNativeElement!)).toBeNull();
   });
+
+  describe('keyboard shortcuts', () => {
+    function press(init: KeyboardEventInit): KeyboardEvent {
+      const event = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init });
+      (document.activeElement ?? document.body).dispatchEvent(event);
+      return event;
+    }
+
+    it('goes back to the list with Esc', async () => {
+      const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+      const fixture = TestBed.createComponent(NoteEditor);
+      await fixture.whenStable();
+
+      press({ key: 'Escape' });
+
+      expect(navigate).toHaveBeenCalledWith(['/notes']);
+    });
+
+    it('switches modes with Ctrl+Enter and adds an item with Ctrl+Shift+8', async () => {
+      const fixture = TestBed.createComponent(NoteEditor);
+      await fixture.whenStable();
+      const root: HTMLElement = fixture.nativeElement;
+      type(textareaOf(root), 'mléko');
+
+      press({ key: '*', code: 'Digit8', ctrlKey: true, shiftKey: true });
+      expect(textareaOf(root).value).toBe('- [ ] mléko');
+
+      press({ key: 'Enter', ctrlKey: true });
+      await fixture.whenStable();
+      expect(textareaOf(root)).toBeNull();
+
+      press({ key: 'Enter', ctrlKey: true });
+      await fixture.whenStable();
+      expect(document.activeElement).toBe(textareaOf(root));
+    });
+  });
 });

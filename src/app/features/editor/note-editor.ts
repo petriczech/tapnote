@@ -15,6 +15,7 @@ import {
 import { Router, RouterLink } from '@angular/router';
 import { continueList, hasChecklist, TextEdit, toggleItem, toggleItemPrefix } from '../../core/model/checklist';
 import { noteColorVar } from '../../core/model/note-colors';
+import { readShortcutsEnabled } from '../../core/shortcuts/shortcuts';
 import { NoteDraft } from './note-draft';
 import { NoteView } from './note-view';
 
@@ -25,6 +26,7 @@ import { NoteView } from './note-view';
   host: {
     '(document:visibilitychange)': 'onVisibilityChange()',
     '(window:pagehide)': 'draft.flush()',
+    '(document:keydown)': 'onKey($event)',
     '[style.--note-bg]': 'noteBg()',
     '[class.colored]': 'noteBg() !== null',
   },
@@ -246,6 +248,24 @@ export class NoteEditor implements OnInit {
     textarea.setRangeText(edit.insert, edit.from, edit.to);
     textarea.setSelectionRange(edit.cursor, edit.cursor);
     this.draft.update(textarea.value);
+  }
+
+  // Esc zpět na seznam (uloží se při zavření editoru), Ctrl+Enter přepne režim, Ctrl+Shift+8 checklist
+  protected onKey(event: KeyboardEvent): void {
+    if (!readShortcutsEnabled() || event.isComposing || event.defaultPrevented) {
+      return;
+    }
+    const ctrl = event.ctrlKey || event.metaKey;
+    if (event.key === 'Escape' && !ctrl && !event.shiftKey && !event.altKey) {
+      void this.router.navigate(['/notes']);
+    } else if (event.key === 'Enter' && ctrl && !event.shiftKey && !event.altKey && !event.repeat) {
+      this.setMode(this.mode() === 'edit' ? 'view' : 'edit');
+    } else if (event.code === 'Digit8' && ctrl && event.shiftKey && !event.altKey && this.mode() === 'edit') {
+      this.toggleChecklistLine();
+    } else {
+      return;
+    }
+    event.preventDefault();
   }
 
   protected onVisibilityChange(): void {

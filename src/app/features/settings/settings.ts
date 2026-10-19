@@ -1,5 +1,5 @@
 import { afterNextRender, Component, computed, ElementRef, inject, Injector, OnInit, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
   createExport,
   exportFileName,
@@ -11,6 +11,7 @@ import {
 import { Note } from '../../core/model/note';
 import { templatesOf } from '../../core/model/note-query';
 import { NoteActions } from '../../core/notes/note-actions';
+import { readShortcutsEnabled, SHORTCUTS, writeShortcutsEnabled } from '../../core/shortcuts/shortcuts';
 import { NotesRepository } from '../../core/storage/notes-repository';
 import { applyTheme, readTheme, ThemeId, THEMES } from '../../core/theme/theme';
 import { BottomNav } from '../list/bottom-nav';
@@ -34,6 +35,32 @@ const REVOKE_DELAY_MS = 60_000;
           </label>
         }
       </fieldset>
+    </section>
+
+    <section aria-labelledby="shortcuts-heading">
+      <h2 id="shortcuts-heading" tabindex="-1">Klávesové zkratky</h2>
+      <label class="check">
+        <input #shortcutsBox type="checkbox" [checked]="shortcuts()" (change)="setShortcuts(shortcutsBox.checked)" />
+        Zapnout klávesové zkratky
+      </label>
+      <table class="shortcuts">
+        <thead>
+          <tr>
+            <th scope="col">Kde</th>
+            <th scope="col">Klávesa</th>
+            <th scope="col">Akce</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of shortcutList; track item.keys) {
+            <tr>
+              <td>{{ item.place }}</td>
+              <td><kbd>{{ item.keys }}</kbd></td>
+              <td>{{ item.label }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
     </section>
 
     <section aria-labelledby="templates-heading">
@@ -193,14 +220,16 @@ const REVOKE_DELAY_MS = 60_000;
       color: var(--on-surface);
     }
 
-    fieldset label {
+    fieldset label,
+    .check {
       display: flex;
       align-items: center;
       gap: 12px;
       min-height: 48px;
     }
 
-    fieldset input {
+    fieldset input,
+    .check input {
       flex: none;
       width: 20px;
       height: 20px;
@@ -261,6 +290,33 @@ const REVOKE_DELAY_MS = 60_000;
       cursor: pointer;
     }
 
+    .shortcuts {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9375rem;
+    }
+
+    .shortcuts th,
+    .shortcuts td {
+      padding: 8px 8px 8px 0;
+      border-bottom: 1px solid var(--outline-variant);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .shortcuts th {
+      color: var(--on-surface-variant);
+      font-weight: 600;
+    }
+
+    kbd {
+      padding: 0 6px;
+      border: 1px solid var(--outline);
+      border-radius: 4px;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+
     .status {
       margin: 0 16px;
     }
@@ -275,12 +331,17 @@ export class Settings implements OnInit {
   private readonly actions = inject(NoteActions);
   private readonly host: HTMLElement = inject(ElementRef).nativeElement;
   private readonly injector = inject(Injector);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly templates = signal<Note[]>([]);
   // Mimo šablonu komponenty, kde by se {{ }} vyhodnotilo
   protected readonly variablesHint = 'V textu šablony lze použít {{date}}, {{time}} a {{weekday}}; {{cursor}} označí místo kurzoru.';
 
   ngOnInit(): Promise<void> {
+    // Zkratka ? ze seznamu otevírá přehled zkratek
+    if (this.route.snapshot.fragment === 'shortcuts') {
+      afterNextRender(() => this.host.querySelector<HTMLElement>('#shortcuts-heading')?.focus(), { injector: this.injector });
+    }
     return this.loadTemplates();
   }
 
@@ -331,6 +392,14 @@ export class Settings implements OnInit {
   protected readonly busy = signal(false);
   protected readonly status = signal('');
   protected readonly failed = signal(false);
+
+  protected readonly shortcutList = SHORTCUTS;
+  protected readonly shortcuts = signal(readShortcutsEnabled());
+
+  protected setShortcuts(enabled: boolean): void {
+    writeShortcutsEnabled(enabled);
+    this.shortcuts.set(enabled);
+  }
 
   protected setTheme(theme: ThemeId): void {
     applyTheme(theme);
