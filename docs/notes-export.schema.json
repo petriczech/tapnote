@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/petriczech/tapnote/docs/notes-export.schema.json",
+  "title": "Tapnote export",
+  "description": "Záloha všech poznámek Tapnote (včetně archivu a koše). Kontrakt mezi verzemi aplikace; při změně se zvýší schemaVersion a doplní migrace v core/backup/notes-backup.ts.",
+  "type": "object",
+  "required": ["schemaVersion", "exportedAt", "notes"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "exportedAt": { "type": "string", "format": "date-time" },
+    "notes": { "type": "array", "items": { "$ref": "#/$defs/note" } }
+  },
+  "$defs": {
+    "note": {
+      "type": "object",
+      "required": ["id", "title", "content", "tags", "pinned", "archived", "isTemplate", "createdAt", "updatedAt"],
+      "properties": {
+        "id": { "type": "string", "description": "UUID, při sloučení se poznámky párují podle id" },
+        "title": { "type": "string", "description": "Odvozený z prvního neprázdného řádku obsahu" },
+        "content": { "type": "string", "description": "Markdown" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "color": { "type": "string" },
+        "pinned": { "type": "boolean" },
+        "archived": { "type": "boolean" },
+        "isTemplate": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Při sloučení vyhrává novější" },
+        "deletedAt": { "type": "string", "format": "date-time", "description": "Čas přesunu do koše" }
+      }
+    }
+  }
+}

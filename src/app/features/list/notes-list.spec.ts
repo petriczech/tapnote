@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Location } from '@angular/common';
 import { provideRouter, Router } from '@angular/router';
+import { LAST_BACKUP_KEY } from '../../core/backup/notes-backup';
 import { createNote, Note } from '../../core/model/note';
 import { NotesRepository } from '../../core/storage/notes-repository';
 import { InMemoryNotesRepository } from '../../core/storage/testing/in-memory-notes-repository';
@@ -194,6 +195,42 @@ describe('NotesList', () => {
     await fixture.whenStable();
 
     expect(root.querySelector('.error')).toBeNull();
+  });
+
+  describe('backup reminder', () => {
+    const daysAgo = (days: number) => new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+    const reminder = () => root.querySelector('.backup')?.textContent?.replace(/\s+/g, ' ').trim();
+
+    beforeEach(async () => {
+      await repository.put(note('ancient', { createdAt: '2020-01-01T00:00:00.000Z' }));
+    });
+
+    afterEach(() => localStorage.removeItem(LAST_BACKUP_KEY));
+
+    it('shows the days without a backup and links to the settings', async () => {
+      localStorage.setItem(LAST_BACKUP_KEY, daysAgo(10));
+      await render();
+
+      expect(reminder()).toBe('Bez zálohy 10 dní Zálohovat');
+      expect(root.querySelector('.backup a')?.getAttribute('href')).toBe('/settings');
+    });
+
+    it('is hidden after a recent backup and outside the notes view', async () => {
+      localStorage.setItem(LAST_BACKUP_KEY, daysAgo(1));
+      await render();
+      expect(reminder()).toBeUndefined();
+
+      localStorage.setItem(LAST_BACKUP_KEY, daysAgo(10));
+      await render({ view: 'archive' });
+      expect(reminder()).toBeUndefined();
+    });
+  });
+
+  it('links to the settings', async () => {
+    await render();
+
+    const link = [...root.querySelectorAll('a')].find((item) => item.textContent?.trim() === 'Nastavení');
+    expect(link?.getAttribute('href')).toBe('/settings');
   });
 
   describe('search', () => {

@@ -14,6 +14,7 @@ import {
 } from '@angular/core';
 import { Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { daysWithoutBackup, readLastBackup } from '../../core/backup/notes-backup';
 import { Note } from '../../core/model/note';
 import { collectTags, isNotesView, NotesView, queryNotes, snippet } from '../../core/model/note-query';
 import { NoteActions } from '../../core/notes/note-actions';
@@ -50,13 +51,23 @@ const VIEWS: { view: NotesView; label: string; empty: string; icon: string }[] =
   imports: [RouterLink],
   template: `
     <header class="header">
-      <h1 #heading tabindex="-1">
-        @if (current().view === 'notes') {
-          Tapnote<span class="visually-hidden"> – {{ current().label }}</span>
-        } @else {
-          {{ current().label }}
-        }
-      </h1>
+      <div class="app-bar">
+        <h1 #heading tabindex="-1">
+          @if (current().view === 'notes') {
+            Tapnote<span class="visually-hidden"> – {{ current().label }}</span>
+          } @else {
+            {{ current().label }}
+          }
+        </h1>
+        <a class="icon-btn" routerLink="/settings" title="Nastavení" (click)="flushQuery()">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87a.47.47 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"
+            />
+          </svg>
+          <span class="visually-hidden">Nastavení</span>
+        </a>
+      </div>
       <div role="search" class="search">
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
           <path
@@ -86,6 +97,13 @@ const VIEWS: { view: NotesView; label: string; empty: string; icon: string }[] =
         </nav>
       }
     </header>
+
+    @if (backupDays(); as days) {
+      <p class="backup">
+        Bez zálohy {{ days }} dní
+        <a routerLink="/settings" (click)="flushQuery()">Zálohovat</a>
+      </p>
+    }
 
     <p class="visually-hidden" aria-live="polite">{{ found() }}</p>
 
@@ -207,7 +225,14 @@ const VIEWS: { view: NotesView; label: string; empty: string; icon: string }[] =
       padding-bottom: calc(10rem + env(safe-area-inset-bottom));
     }
 
+    .app-bar {
+      display: flex;
+      align-items: center;
+      padding-right: 4px;
+    }
+
     h1 {
+      flex: 1;
       display: flex;
       align-items: center;
       min-height: 56px;
@@ -282,6 +307,27 @@ const VIEWS: { view: NotesView; label: string; empty: string; icon: string }[] =
       border-color: transparent;
       background: var(--primary-container);
       color: var(--on-primary-container);
+      font-weight: 600;
+    }
+
+    .backup {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 0 16px 12px;
+      padding: 4px 4px 4px 16px;
+      border-radius: var(--radius-m);
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+    }
+
+    .backup a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      padding: 0 12px;
+      color: inherit;
       font-weight: 600;
     }
 
@@ -516,6 +562,10 @@ export class NotesList implements OnInit {
   });
   protected readonly viewParam = computed(() => (this.current().view === 'notes' ? null : this.current().view));
   protected readonly queryParam = computed(() => (this.query().trim() ? this.query() : null));
+  // Připomínka zálohy jen v poznámkách
+  protected readonly backupDays = computed(() =>
+    this.current().view === 'notes' ? daysWithoutBackup(readLastBackup(), this.notes(), new Date()) : undefined,
+  );
   protected readonly tags = computed(() => collectTags(this.notes(), this.current().view));
   private readonly search = computed(() => createNoteSearch(this.notes()));
   protected readonly items = computed(() => {

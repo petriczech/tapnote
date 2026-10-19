@@ -6,5 +6,6 @@ export const routes: Routes = [
   { path: 'new', component: NoteEditor },
   { path: 'note/:id', component: NoteEditor },
   { path: 'notes', loadComponent: () => import('./features/list/notes-list').then((m) => m.NotesList) },
+  { path: 'settings', loadComponent: () => import('./features/settings/settings').then((m) => m.Settings) },
   { path: '**', redirectTo: '' },
 ];
