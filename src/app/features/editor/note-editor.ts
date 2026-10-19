@@ -2,6 +2,7 @@ import {
   afterNextRender,
   booleanAttribute,
   Component,
+  computed,
   DestroyRef,
   ElementRef,
   inject,
@@ -13,6 +14,7 @@ import {
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { continueList, hasChecklist, TextEdit, toggleItem, toggleItemPrefix } from '../../core/model/checklist';
+import { noteColorVar } from '../../core/model/note-colors';
 import { NoteDraft } from './note-draft';
 import { NoteView } from './note-view';
 
@@ -23,6 +25,8 @@ import { NoteView } from './note-view';
   host: {
     '(document:visibilitychange)': 'onVisibilityChange()',
     '(window:pagehide)': 'draft.flush()',
+    '[style.--note-bg]': 'noteBg()',
+    '[class.colored]': 'noteBg() !== null',
   },
   template: `
     <div class="toolbar">
@@ -85,7 +89,12 @@ import { NoteView } from './note-view';
       box-sizing: border-box;
       height: 100dvh;
       padding-bottom: env(safe-area-inset-bottom);
-      background: var(--editor-bg);
+      background: var(--note-bg, var(--editor-bg));
+    }
+
+    /* Akcent na barevném pozadí v barvě textu kvůli kontrastu */
+    :host(.colored) {
+      --primary: var(--on-surface);
     }
 
     .toolbar {
@@ -167,6 +176,7 @@ export class NoteEditor implements OnInit {
   private readonly editButton = viewChild<ElementRef<HTMLButtonElement>>('editButton');
 
   protected readonly mode = signal<'edit' | 'view'>('edit');
+  protected readonly noteBg = computed(() => noteColorVar(this.draft.color()));
 
   constructor() {
     afterNextRender(() => this.textarea()?.nativeElement.focus());

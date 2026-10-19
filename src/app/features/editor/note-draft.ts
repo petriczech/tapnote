@@ -41,6 +41,10 @@ function writeLastEdit(lastEdit: LastEdit | undefined): void {
   }
 }
 
+function withColor(note: Note, color: string | undefined): Note {
+  return color === undefined ? note : { ...note, color };
+}
+
 @Injectable()
 export class NoteDraft {
   private readonly repository = inject(NotesRepository);
@@ -50,6 +54,8 @@ export class NoteDraft {
   readonly saveFailed = signal(false);
   // Obsah je uložený (bez čekajících změn)
   readonly saved = signal(true);
+  // Barva otevřené poznámky, u nové poznámky ze šablony barva šablony
+  readonly color = signal<string | undefined>(undefined);
 
   private note: Note | undefined;
   // Obsah ze šablony, který se bez úpravy neukládá
@@ -93,6 +99,7 @@ export class NoteDraft {
     const expanded = expandTemplate(template.content, new Date());
     this.prefill = expanded.content;
     this.content.set(expanded.content);
+    this.color.set(template.color);
     this.saved.set(false);
     return expanded.cursor;
   }
@@ -115,6 +122,7 @@ export class NoteDraft {
   private load(note: Note): void {
     this.note = note;
     this.content.set(note.content);
+    this.color.set(note.color);
   }
 
   private async findResumable(): Promise<Note | undefined> {
@@ -155,7 +163,7 @@ export class NoteDraft {
     }
     const now = new Date().toISOString();
     const note: Note = {
-      ...(this.note ?? createNote(crypto.randomUUID(), now)),
+      ...(this.note ?? withColor(createNote(crypto.randomUUID(), now), this.color())),
       content,
       title: deriveTitle(content),
       tags: extractTags(content),

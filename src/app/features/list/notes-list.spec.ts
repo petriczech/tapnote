@@ -5,7 +5,7 @@ import { LAST_BACKUP_KEY } from '../../core/backup/notes-backup';
 import { createNote, Note } from '../../core/model/note';
 import { NotesRepository } from '../../core/storage/notes-repository';
 import { InMemoryNotesRepository } from '../../core/storage/testing/in-memory-notes-repository';
-import { NotesList, URL_DEBOUNCE_MS } from './notes-list';
+import { LAYOUT_KEY, NotesList, URL_DEBOUNCE_MS } from './notes-list';
 
 function note(id: string, overrides: Partial<Note> = {}): Note {
   return { ...createNote(id, '2026-10-15T10:00:00.000Z'), title: `Poznámka ${id}`, ...overrides };
@@ -195,6 +195,53 @@ describe('NotesList', () => {
     await fixture.whenStable();
 
     expect(root.querySelector('.error')).toBeNull();
+  });
+
+  describe('colors and layout', () => {
+    const swatch = (id: string, label: string) =>
+      root.querySelector<HTMLButtonElement>(`li[data-id="${id}"] .swatches button[aria-label="${label}"]`) as HTMLButtonElement;
+    const gridButton = () => [...root.querySelectorAll('button')].find((button) => button.textContent?.trim() === 'Mřížka') as HTMLButtonElement;
+
+    afterEach(() => localStorage.removeItem(LAYOUT_KEY));
+
+    it('colors a note from its menu and removes the color again', async () => {
+      await render();
+      expect(swatch('old', 'Bez barvy').getAttribute('aria-pressed')).toBe('true');
+
+      swatch('old', 'Zelená').click();
+
+      await vi.waitFor(() => expect(repository.notes.get('old')?.color).toBe('green'));
+      await vi.waitFor(() => expect(root.querySelector<HTMLElement>('li[data-id="old"]')?.style.getPropertyValue('--note-bg')).toBe('var(--note-green)'));
+      expect(swatch('old', 'Zelená').getAttribute('aria-pressed')).toBe('true');
+      await vi.waitFor(() => expect(document.activeElement).toBe(actionsOf('old')));
+
+      swatch('old', 'Bez barvy').click();
+      await vi.waitFor(() => expect(repository.notes.get('old')?.color).toBeUndefined());
+      await vi.waitFor(() => expect(root.querySelector('li[data-id="old"]')?.classList).not.toContain('colored'));
+    });
+
+    it('ignores an unknown color', async () => {
+      await repository.update('old', { color: '#ff0000' });
+      await render();
+
+      expect(root.querySelector('li[data-id="old"]')?.classList).not.toContain('colored');
+    });
+
+    it('switches to the grid and remembers it', async () => {
+      await render();
+      expect(gridButton().getAttribute('aria-pressed')).toBe('false');
+
+      gridButton().click();
+      await fixture.whenStable();
+
+      expect(gridButton().getAttribute('aria-pressed')).toBe('true');
+      expect(root.querySelector('ul.notes')?.classList).toContain('grid');
+      expect(localStorage.getItem(LAYOUT_KEY)).toBe('grid');
+
+      fixture.destroy();
+      await render();
+      expect(root.querySelector('ul.notes')?.classList).toContain('grid');
+    });
   });
 
   describe('templates', () => {

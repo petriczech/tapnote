@@ -266,6 +266,18 @@ describe('NoteDraft', () => {
       expect(repository.notes.get('tpl')?.content).toBe('# Porada {{date}}\n{{cursor}}');
     });
 
+    it('gives the new note the template color', async () => {
+      await repository.update('tpl', { color: 'yellow' });
+      await draft.openTemplate('tpl');
+      expect(draft.color()).toBe('yellow');
+
+      draft.update(draft.content() + 'x');
+      await draft.flush();
+
+      const created = [...repository.notes.values()].find((note) => note.id !== 'tpl');
+      expect(created?.color).toBe('yellow');
+    });
+
     it('ignores a missing id or a normal note', async () => {
       await repository.put(existingNote('plain', 'text', ago(1000)));
 

@@ -42,6 +42,14 @@ describe('NoteActions', () => {
     expect(stored()?.isTemplate).toBe(false);
   });
 
+  it('sets and removes the color', async () => {
+    await actions.setColor(stored()!, 'green');
+    expect(stored()).toMatchObject({ color: 'green', updatedAt: NOW.toISOString() });
+
+    await actions.setColor(stored()!, undefined);
+    expect(stored() && 'color' in stored()!).toBe(false);
+  });
+
   it('archives and unarchives', async () => {
     await actions.setArchived(stored()!, true);
     expect(stored()?.archived).toBe(true);

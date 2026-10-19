@@ -1,5 +1,6 @@
 import { inject, Service } from '@angular/core';
 import { Note } from '../model/note';
+import { NoteColor } from '../model/note-colors';
 import { NotesRepository } from '../storage/notes-repository';
 
 export const TRASH_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
@@ -19,6 +20,11 @@ export class NoteActions {
   // Šablona ani poznámka z ní vrácená nezůstává v archivu
   setTemplate(note: Note, isTemplate: boolean): Promise<void> {
     return this.change(note, { isTemplate, archived: false });
+  }
+
+  // undefined = bez barvy (pole se odstraní)
+  setColor(note: Note, color: NoteColor | undefined): Promise<void> {
+    return this.change(note, { color });
   }
 
   trash(note: Note): Promise<void> {

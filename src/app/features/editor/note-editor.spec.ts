@@ -52,6 +52,19 @@ describe('NoteEditor', () => {
     expect(repository.notes.size).toBe(1);
   });
 
+  it('shows the note color as the editor background', async () => {
+    await repository.put({ ...createNote('1', '2026-10-15T10:00:00.000Z'), content: 'barevná', color: 'yellow' });
+    const fixture = TestBed.createComponent(NoteEditor);
+    fixture.componentRef.setInput('id', '1');
+    const host: HTMLElement = fixture.nativeElement;
+
+    await vi.waitFor(() => expect(textareaOf(host).value).toBe('barevná'));
+    await fixture.whenStable();
+
+    expect(host.style.getPropertyValue('--note-bg')).toBe('var(--note-yellow)');
+    expect(host.classList).toContain('colored');
+  });
+
   it('saves typed text when destroyed', async () => {
     const fixture = TestBed.createComponent(NoteEditor);
     await fixture.whenStable();

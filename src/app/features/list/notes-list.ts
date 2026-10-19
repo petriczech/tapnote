@@ -19,13 +19,25 @@ import { Note } from '../../core/model/note';
 import { collectTags, isNotesView, queryNotes, snippet, templatesOf } from '../../core/model/note-query';
 import { NoteActions } from '../../core/notes/note-actions';
 import { createNoteSearch } from '../../core/search/note-search';
+import { NOTE_COLORS, NoteColor, noteColorVar } from '../../core/model/note-colors';
 import { NotesRepository } from '../../core/storage/notes-repository';
 import { BottomNav } from './bottom-nav';
 import { VIEWS } from './views';
 
 export const URL_DEBOUNCE_MS = 300;
 
-type NoteAction = 'pin' | 'archive' | 'unarchive' | 'template' | 'trash' | 'restore' | 'delete';
+type NoteAction = 'pin' | 'archive' | 'unarchive' | 'template' | 'color' | 'trash' | 'restore' | 'delete';
+
+// Rozložení seznamu v zařízení: 'grid' nebo 'list'
+export const LAYOUT_KEY = 'tapnote.layout';
+
+function readLayout(): string | null {
+  try {
+    return localStorage.getItem(LAYOUT_KEY);
+  } catch {
+    return null;
+  }
+}
 
 @Component({
   selector: 'tn-notes-list',
@@ -33,13 +45,30 @@ type NoteAction = 'pin' | 'archive' | 'unarchive' | 'template' | 'trash' | 'rest
   imports: [RouterLink, BottomNav],
   template: `
     <header class="header">
-      <h1 #heading tabindex="-1">
-        @if (current().view === 'notes') {
-          Tapnote<span class="visually-hidden"> – {{ current().label }}</span>
-        } @else {
-          {{ current().label }}
-        }
-      </h1>
+      <div class="app-bar">
+        <h1 #heading tabindex="-1">
+          @if (current().view === 'notes') {
+            Tapnote<span class="visually-hidden"> – {{ current().label }}</span>
+          } @else {
+            {{ current().label }}
+          }
+        </h1>
+        <button
+          type="button"
+          class="icon-btn"
+          title="Mřížka"
+          [class.on]="grid()"
+          [attr.aria-pressed]="grid()"
+          (click)="toggleGrid()"
+        >
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M3 3v8h8V3H3zm6 6H5V5h4v4zm-6 4v8h8v-8H3zm6 6H5v-4h4v4zm4-16v8h8V3h-8zm6 6h-4V5h4v4zm-6 4v8h8v-8h-8zm6 6h-4v-4h4v4z"
+            />
+          </svg>
+          <span class="visually-hidden">Mřížka</span>
+        </button>
+      </div>
       <div role="search" class="search">
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
           <path
@@ -101,9 +130,14 @@ type NoteAction = 'pin' | 'archive' | 'unarchive' | 'template' | 'trash' | 'rest
         @if (group.label) {
           <h2 class="label">{{ group.label }}</h2>
         }
-        <ul class="notes">
+        <ul class="notes" [class.grid]="grid()">
           @for (item of group.items; track item.note.id) {
-            <li [attr.data-id]="item.note.id" [class.pinned]="item.note.pinned && current().view !== 'trash'">
+            <li
+              [attr.data-id]="item.note.id"
+              [class.pinned]="item.note.pinned && current().view !== 'trash'"
+              [class.colored]="colorVar(item.note.color) !== null"
+              [style.--note-bg]="colorVar(item.note.color)"
+            >
               @if (current().view === 'trash') {
                 <div class="body">
                   <span class="title">{{ item.title }}</span>
@@ -163,6 +197,25 @@ type NoteAction = 'pin' | 'archive' | 'unarchive' | 'template' | 'trash' | 'rest
                   }
                   <button type="button" (click)="run(item.note, 'template', menu)">Uložit jako šablonu</button>
                   <button type="button" (click)="run(item.note, 'trash', menu)">Smazat</button>
+                  <div class="swatches" role="group" aria-label="Barva">
+                    <button
+                      type="button"
+                      class="swatch none"
+                      aria-label="Bez barvy"
+                      [attr.aria-pressed]="colorVar(item.note.color) === null"
+                      (click)="run(item.note, 'color', menu)"
+                    ></button>
+                    @for (color of colors; track color.id) {
+                      <button
+                        type="button"
+                        class="swatch"
+                        [attr.aria-label]="color.label"
+                        [attr.aria-pressed]="item.note.color === color.id"
+                        [style.--swatch]="colorVar(color.id)"
+                        (click)="run(item.note, 'color', menu, color.id)"
+                      ></button>
+                    }
+                  </div>
                 }
               </div>
             </li>
@@ -207,7 +260,14 @@ type NoteAction = 'pin' | 'archive' | 'unarchive' | 'template' | 'trash' | 'rest
       padding-bottom: calc(14rem + env(safe-area-inset-bottom));
     }
 
+    .app-bar {
+      display: flex;
+      align-items: center;
+      padding-right: 4px;
+    }
+
     h1 {
+      flex: 1;
       display: flex;
       align-items: center;
       min-height: 56px;
@@ -384,6 +444,27 @@ type NoteAction = 'pin' | 'archive' | 'unarchive' | 'template' | 'trash' | 'rest
       background: var(--card-pinned-bg);
     }
 
+    /* Akcent na barevné kartě v barvě textu kvůli kontrastu */
+    li.colored {
+      --primary: var(--on-surface);
+      border-color: transparent;
+      background: var(--note-bg);
+    }
+
+    .notes.grid {
+      column-count: 2;
+      column-gap: 8px;
+    }
+
+    .notes.grid li {
+      break-inside: avoid;
+      margin-bottom: 8px;
+    }
+
+    .notes.grid .snippet {
+      -webkit-line-clamp: 6;
+    }
+
     .body {
       display: flex;
       flex: 1;
@@ -461,6 +542,33 @@ type NoteAction = 'pin' | 'archive' | 'unarchive' | 'template' | 'trash' | 'rest
       text-decoration: none;
     }
 
+    .menu .swatches {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      max-width: 12rem;
+      padding: 8px 12px 4px;
+    }
+
+    .menu .swatch {
+      width: 40px;
+      min-width: 0;
+      height: 40px;
+      min-height: 0;
+      padding: 0;
+      border: 1px solid var(--outline);
+      border-radius: 50%;
+      background: var(--swatch, var(--surface));
+    }
+
+    .menu .swatch.none {
+      background: linear-gradient(135deg, transparent 46%, var(--outline) 46% 54%, transparent 54%), var(--surface);
+    }
+
+    .menu .swatch[aria-pressed='true'] {
+      border: 3px solid var(--on-surface);
+    }
+
     .from-template {
       position: fixed;
       right: 20px;
@@ -525,6 +633,9 @@ export class NotesList implements OnInit {
   );
   protected readonly tags = computed(() => collectTags(this.notes(), this.current().view));
   protected readonly templates = computed(() => templatesOf(this.notes()));
+  protected readonly colors = NOTE_COLORS;
+  protected readonly colorVar = noteColorVar;
+  protected readonly grid = signal(readLayout() === 'grid');
   private readonly search = computed(() => createNoteSearch(this.notes()));
   protected readonly items = computed(() => {
     const notes = queryNotes(this.notes(), this.current().view, this.tag());
@@ -593,7 +704,16 @@ export class NotesList implements OnInit {
     }
   }
 
-  protected async run(note: Note, action: NoteAction, menu: HTMLElement): Promise<void> {
+  protected toggleGrid(): void {
+    this.grid.update((grid) => !grid);
+    try {
+      localStorage.setItem(LAYOUT_KEY, this.grid() ? 'grid' : 'list');
+    } catch {
+      // Bez úložiště platí rozložení jen do zavření
+    }
+  }
+
+  protected async run(note: Note, action: NoteAction, menu: HTMLElement, color?: NoteColor): Promise<void> {
     if (action === 'delete' && !confirm(`Smazat poznámku „${note.title || 'Bez názvu'}“ trvale?`)) {
       return;
     }
@@ -601,7 +721,7 @@ export class NotesList implements OnInit {
     const index = this.items().findIndex((item) => item.note.id === note.id);
     this.actionFailed.set(false);
     try {
-      await this.perform(note, action);
+      await this.perform(note, action, color);
     } catch {
       this.actionFailed.set(true);
     }
@@ -609,7 +729,7 @@ export class NotesList implements OnInit {
     afterNextRender(() => this.restoreFocus(note.id, index), { injector: this.injector });
   }
 
-  private perform(note: Note, action: NoteAction): Promise<void> {
+  private perform(note: Note, action: NoteAction, color?: NoteColor): Promise<void> {
     switch (action) {
       case 'pin':
         return this.actions.togglePin(note);
@@ -618,6 +738,8 @@ export class NotesList implements OnInit {
         return this.actions.setArchived(note, action === 'archive');
       case 'template':
         return this.actions.setTemplate(note, true);
+      case 'color':
+        return this.actions.setColor(note, color);
       case 'trash':
         return this.actions.trash(note);
       case 'restore':
