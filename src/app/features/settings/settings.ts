@@ -1,5 +1,4 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import {
   createExport,
   exportFileName,
@@ -9,21 +8,16 @@ import {
   writeLastBackup,
 } from '../../core/backup/notes-backup';
 import { NotesRepository } from '../../core/storage/notes-repository';
+import { BottomNav } from '../list/bottom-nav';
 
 export const MAX_IMPORT_BYTES = 50 * 1024 * 1024;
 const REVOKE_DELAY_MS = 60_000;
 
 @Component({
   selector: 'tn-settings',
-  imports: [RouterLink],
+  imports: [BottomNav],
   template: `
-    <div class="toolbar">
-      <a class="icon-btn" routerLink="/notes" title="Seznam">
-        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" /></svg>
-        <span class="visually-hidden">Seznam</span>
-      </a>
-      <h1>Nastavení</h1>
-    </div>
+    <h1>Nastavení</h1>
 
     <section aria-labelledby="backup-heading">
       <h2 id="backup-heading">Záloha</h2>
@@ -56,23 +50,21 @@ const REVOKE_DELAY_MS = 60_000;
     </section>
 
     <p class="status" [class.error]="failed()" aria-live="polite">{{ status() }}</p>
+
+    <tn-bottom-nav current="settings" />
   `,
   styles: `
     :host {
       display: block;
-      padding: env(safe-area-inset-top) 0 calc(2rem + env(safe-area-inset-bottom));
-    }
-
-    .toolbar {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      min-height: 56px;
-      padding: 0 4px;
+      padding: env(safe-area-inset-top) 0 calc(7rem + env(safe-area-inset-bottom));
     }
 
     h1 {
+      display: flex;
+      align-items: center;
+      min-height: 56px;
       margin: 0;
+      padding: 0 16px;
       font-size: 1.375rem;
       font-weight: 500;
     }

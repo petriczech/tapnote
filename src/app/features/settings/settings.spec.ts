@@ -55,6 +55,14 @@ describe('Settings', () => {
     URL.revokeObjectURL = revokeObjectURL;
   });
 
+  it('marks Nastavení as the current item in the bottom navigation', async () => {
+    await render();
+
+    const current = root.querySelector('nav[aria-label="Pohledy"] [aria-current="page"]');
+    expect(current?.textContent?.trim()).toBe('Nastavení');
+    expect(current?.getAttribute('href')).toBe('/settings');
+  });
+
   it('downloads all notes and remembers the backup', async () => {
     const createUrl = vi.fn((file: File) => (void file, 'blob:zaloha'));
     URL.createObjectURL = createUrl as typeof URL.createObjectURL;
