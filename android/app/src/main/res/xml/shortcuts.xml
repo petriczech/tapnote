@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dlouhý stisk ikony: nová poznámka (tapnote://new zpracuje AppUrls) -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="new_note"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_new"
+        android:shortcutShortLabel="@string/shortcut_new_short"
+        android:shortcutLongLabel="@string/shortcut_new_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="tapnote://new"
+            android:targetClass="cz.petriczech.tapnote.MainActivity"
+            android:targetPackage="cz.petriczech.tapnote" />
+    </shortcut>
+</shortcuts>

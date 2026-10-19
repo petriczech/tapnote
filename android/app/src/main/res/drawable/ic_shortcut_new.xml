@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ikona zkratky: plus na modrém kruhu -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:fillColor="#1A56B8"
+        android:pathData="M24,0A24,24 0,1 1,24,48A24,24 0,1 1,24,0z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M33,25h-8v8h-2v-8h-8v-2h8v-8h2v8h8z" />
+</vector>

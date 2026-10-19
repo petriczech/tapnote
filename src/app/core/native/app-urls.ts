@@ -1,0 +1,27 @@
+import { Location } from '@angular/common';
+import { inject } from '@angular/core';
+import { Router } from '@angular/router';
+import { App } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
+
+// Zkratka „Nová poznámka“ z Androidu (res/xml/shortcuts.xml)
+export const NEW_NOTE_URL = 'tapnote://new';
+
+// Start ze zkratky přepíše adresu před první navigací (statická zkratka spouští úlohu vždy znovu);
+// posluchač pokrývá odkazy do běžící aplikace
+export async function listenForAppUrls(): Promise<void> {
+  if (!Capacitor.isNativePlatform()) {
+    return;
+  }
+  const router = inject(Router);
+  const location = inject(Location);
+  void App.addListener('appUrlOpen', (event) => {
+    if (event.url === NEW_NOTE_URL) {
+      void router.navigateByUrl('/new');
+    }
+  });
+  const launch = await App.getLaunchUrl().catch(() => undefined);
+  if (launch?.url === NEW_NOTE_URL) {
+    location.replaceState('/new');
+  }
+}

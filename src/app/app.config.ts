@@ -11,6 +11,7 @@ import { provideServiceWorker } from '@angular/service-worker';
 import { NotesRepository } from './core/storage/notes-repository';
 import { DexieNotesRepository } from './core/storage/dexie-notes-repository';
 import { NoteActions } from './core/notes/note-actions';
+import { listenForAppUrls } from './core/native/app-urls';
 import { ParamsRouteReuseStrategy } from './params-route-reuse-strategy';
 
 export const appConfig: ApplicationConfig = {
@@ -21,6 +22,8 @@ export const appConfig: ApplicationConfig = {
     { provide: NotesRepository, useClass: DexieNotesRepository },
     // Úklid koše na pozadí
     provideAppInitializer(() => void inject(NoteActions).purgeTrash().catch(() => undefined)),
+    // Zkratky a odkazy z Androidu
+    provideAppInitializer(listenForAppUrls),
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),
       registrationStrategy: 'registerWhenStable:30000',
