@@ -454,16 +454,16 @@ describe('NotesList', () => {
 
     const focusedId = () => document.activeElement?.closest<HTMLElement>('li[data-id]')?.dataset['id'];
 
-    it('moves between notes with j and k', async () => {
+    it('moves between notes with the arrow keys', async () => {
       await render();
       (document.activeElement as HTMLElement | null)?.blur();
 
-      press('j');
+      press('ArrowDown');
       expect(focusedId()).toBe('new');
-      press('j');
+      press('ArrowDown');
       expect(focusedId()).toBe('untitled');
-      press('k');
-      press('k');
+      press('ArrowUp');
+      press('ArrowUp');
       expect(focusedId()).toBe('new');
     });
 
@@ -473,26 +473,43 @@ describe('NotesList', () => {
 
       expect(press('/', document.body).defaultPrevented).toBe(true);
       expect(document.activeElement).toBe(search);
-      expect(press('j', search).defaultPrevented).toBe(false);
+      expect(press('n', search).defaultPrevented).toBe(false);
+    });
+
+    it('focuses the search with Ctrl+F', async () => {
+      await render();
+      const event = new KeyboardEvent('keydown', { key: 'f', ctrlKey: true, bubbles: true, cancelable: true });
+      document.body.dispatchEvent(event);
+
+      expect(event.defaultPrevented).toBe(true);
+      expect(document.activeElement).toBe(root.querySelector('input[type="search"]'));
     });
 
     it('pins and archives the focused note', async () => {
       await render();
       root.querySelector<HTMLElement>('li[data-id="old"] a.body')?.focus();
 
-      press('f');
+      press('p');
       await vi.waitFor(() => expect(repository.notes.get('old')?.pinned).toBe(true));
       await fixture.whenStable();
       await vi.waitFor(() => expect(document.activeElement?.matches('li[data-id="old"] a.body')).toBe(true));
-      press('e');
+      press('A');
       await vi.waitFor(() => expect(repository.notes.get('old')?.archived).toBe(true));
     });
 
-    it('opens a new note with c and the overview with ?', async () => {
+    it('moves the focused note to the trash with Delete', async () => {
+      await render();
+      root.querySelector<HTMLElement>('li[data-id="new"] a.body')?.focus();
+
+      press('Delete');
+      await vi.waitFor(() => expect(repository.notes.get('new')?.deletedAt).toBeTruthy());
+    });
+
+    it('opens a new note with N and the overview with ?', async () => {
       const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
       await render();
 
-      press('c', document.body);
+      press('n', document.body);
       press('?', document.body);
 
       expect(navigate).toHaveBeenCalledWith(['/new']);

@@ -2,16 +2,16 @@
 export const SHORTCUTS_KEY = 'tapnote.shortcuts';
 
 export const SHORTCUTS = [
-  { place: 'Seznam', keys: 'c', label: 'Nová poznámka' },
-  { place: 'Seznam', keys: '/', label: 'Hledat' },
-  { place: 'Seznam', keys: 'j / k', label: 'Další / předchozí poznámka, Enter ji otevře' },
-  { place: 'Seznam', keys: 'f', label: 'Připnout nebo odepnout vybranou poznámku' },
-  { place: 'Seznam', keys: 'e', label: 'Archivovat nebo vrátit z archivu' },
-  { place: 'Seznam', keys: '#', label: 'Smazat (do koše)' },
+  { place: 'Seznam', keys: 'N', label: 'Nová poznámka' },
+  { place: 'Seznam', keys: '/ nebo Ctrl + F', label: 'Hledat' },
+  { place: 'Seznam', keys: '↓ / ↑', label: 'Další / předchozí poznámka, Enter ji otevře' },
+  { place: 'Seznam', keys: 'P', label: 'Připnout nebo odepnout vybranou poznámku' },
+  { place: 'Seznam', keys: 'A', label: 'Archivovat nebo vrátit z archivu' },
+  { place: 'Seznam', keys: 'Delete', label: 'Smazat (do koše)' },
   { place: 'Seznam', keys: '?', label: 'Přehled zkratek' },
   { place: 'Editor', keys: 'Esc', label: 'Zpět na seznam' },
   { place: 'Editor', keys: 'Ctrl + Enter', label: 'Hotovo / Upravit' },
-  { place: 'Editor', keys: 'Ctrl + Shift + 8', label: 'Checklist na řádku' },
+  { place: 'Editor', keys: 'Ctrl + Shift + L', label: 'Checklist na řádku' },
 ] as const;
 
 export function readShortcutsEnabled(): boolean {
@@ -30,7 +30,7 @@ export function writeShortcutsEnabled(enabled: boolean): void {
   }
 }
 
-// Jednoklávesové zkratky jen mimo psaní a bez Ctrl/Alt/Meta (AltGr na české klávesnici píše např. #)
+// Jednoklávesové zkratky jen mimo psaní a bez Ctrl/Alt/Meta (AltGr na některých klávesnicích píše běžné znaky)
 export function isPlainKey(event: KeyboardEvent): boolean {
   const target = event.target;
   const typing =

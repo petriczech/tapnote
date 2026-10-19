@@ -715,38 +715,56 @@ export class NotesList implements OnInit {
     }
   }
 
-  // Zkratky seznamu; akce f, e, # platí pro poznámku s fokusem
+  // Zkratky seznamu; akce P, A, Delete platí pro poznámku s fokusem
   protected onKey(event: KeyboardEvent): void {
-    if (!readShortcutsEnabled() || !isPlainKey(event)) {
+    if (!readShortcutsEnabled() || event.isComposing || event.defaultPrevented) {
       return;
     }
-    const item = document.activeElement?.closest<HTMLElement>('li[data-id]') ?? undefined;
+    // Ctrl+F hledá v poznámkách místo hledání na stránce
+    if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'f') {
+      this.field().nativeElement.focus();
+      event.preventDefault();
+      return;
+    }
+    if (!isPlainKey(event)) {
+      return;
+    }
+    const active = document.activeElement;
+    const item = active?.closest<HTMLElement>('li[data-id]') ?? undefined;
     const note = this.notes().find((note) => note.id === item?.dataset['id']);
-    switch (event.key) {
-      case 'c':
+    // Písmena platí i se zapnutým Caps Lockem
+    switch (event.key.length === 1 ? event.key.toLowerCase() : event.key) {
+      case 'n':
         this.flushQuery();
         void this.router.navigate(['/new']);
         break;
       case '/':
         this.field().nativeElement.focus();
         break;
-      case 'j':
-      case 'k':
-        this.moveFocus(item, event.key === 'j' ? 1 : -1);
+      case 'ArrowDown':
+      case 'ArrowUp': {
+        // Šipky jen na poznámce nebo bez fokusu; v nabídce ⋮, se Shiftem (výběr) a jinde zůstává výchozí chování
+        const free = active === document.body || active === this.heading().nativeElement;
+        if (event.shiftKey || active?.closest('.menu') || (!item && !free)) {
+          return;
+        }
+        this.moveFocus(item, event.key === 'ArrowDown' ? 1 : -1);
         break;
+      }
       case '?':
         this.flushQuery();
         void this.router.navigate(['/settings'], { fragment: 'shortcuts' });
         break;
-      case 'f':
-      case 'e':
-      case '#': {
+      case 'p':
+      case 'a':
+      case 'Delete': {
         const menu = item?.querySelector<HTMLElement>('.menu');
         // Podržená klávesa akci neopakuje
         if (!note || !menu || event.repeat || this.current().view === 'trash') {
           return;
         }
-        const action = event.key === 'f' ? 'pin' : event.key === '#' ? 'trash' : note.archived ? 'unarchive' : 'archive';
+        const key = event.key.toLowerCase();
+        const action = key === 'p' ? 'pin' : key === 'delete' ? 'trash' : note.archived ? 'unarchive' : 'archive';
         void this.run(note, action, menu);
         break;
       }
@@ -756,7 +774,7 @@ export class NotesList implements OnInit {
     event.preventDefault();
   }
 
-  // Bez vybrané poznámky j začne první a k poslední
+  // Bez vybrané poznámky šipka dolů začne první a nahoru poslední
   private moveFocus(item: HTMLElement | undefined, step: number): void {
     const items = [...this.host.querySelectorAll<HTMLElement>('li[data-id]')];
     const index = item ? items.indexOf(item) + step : step > 0 ? 0 : items.length - 1;

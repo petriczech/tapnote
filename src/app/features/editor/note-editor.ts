@@ -250,7 +250,7 @@ export class NoteEditor implements OnInit {
     this.draft.update(textarea.value);
   }
 
-  // Esc zpět na seznam (uloží se při zavření editoru), Ctrl+Enter přepne režim, Ctrl+Shift+8 checklist
+  // Esc zpět na seznam (uloží se při zavření editoru), Ctrl+Enter přepne režim, Ctrl+Shift+L checklist
   protected onKey(event: KeyboardEvent): void {
     if (!readShortcutsEnabled() || event.isComposing || event.defaultPrevented) {
       return;
@@ -260,7 +260,7 @@ export class NoteEditor implements OnInit {
       void this.router.navigate(['/notes']);
     } else if (event.key === 'Enter' && ctrl && !event.shiftKey && !event.altKey && !event.repeat) {
       this.setMode(this.mode() === 'edit' ? 'view' : 'edit');
-    } else if (event.code === 'Digit8' && ctrl && event.shiftKey && !event.altKey && this.mode() === 'edit') {
+    } else if (event.code === 'KeyL' && ctrl && event.shiftKey && !event.altKey && !event.repeat && this.mode() === 'edit') {
       this.toggleChecklistLine();
     } else {
       return;

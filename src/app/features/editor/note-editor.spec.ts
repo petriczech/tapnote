@@ -213,13 +213,13 @@ describe('NoteEditor', () => {
       expect(navigate).toHaveBeenCalledWith(['/notes']);
     });
 
-    it('switches modes with Ctrl+Enter and adds an item with Ctrl+Shift+8', async () => {
+    it('switches modes with Ctrl+Enter and adds an item with Ctrl+Shift+L', async () => {
       const fixture = TestBed.createComponent(NoteEditor);
       await fixture.whenStable();
       const root: HTMLElement = fixture.nativeElement;
       type(textareaOf(root), 'mléko');
 
-      press({ key: '*', code: 'Digit8', ctrlKey: true, shiftKey: true });
+      press({ key: 'L', code: 'KeyL', ctrlKey: true, shiftKey: true });
       expect(textareaOf(root).value).toBe('- [ ] mléko');
 
       press({ key: 'Enter', ctrlKey: true });
