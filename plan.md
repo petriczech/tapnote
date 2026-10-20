@@ -31,6 +31,73 @@ Osobní mobilní aplikace na poznámky. Offline, bez serveru, bez účtu. Priori
 - [ ] Historie verzí (snapshot po pauze v psaní, posledních ~20)
 - [ ] **Quick Settings tile** (nativní `TileService`) → otevře editor
 
+### Fáze 2b (úkoly, kategorie, design)
+- [ ] **Návrh designu soutěží subagentů:** 4 subagenti navrhnou nezávisle atraktivnější vzhled (mockupy v `.tmp/mockup/`, včetně záložek Úkoly/Poznámky a kategorií), pak se navzájem anonymně ohodnotí podle společných kritérií (čitelnost, rychlost zápisu, přístupnost WCAG AA, konzistence, „wow“); výběr z top 2–3 dělá uživatel, výsledek se zapracuje do tokenů a stylů
+- [ ] **Bílé téma:** čtvrtý vzhled „Bílá“ (čistě bílé plochy, jemné stíny, bez barevného nádechu) vedle Modrá / Papír / Grafit, včetně tmavé varianty
+- [ ] **Úkoly à la Microsoft To Do:** samostatná záložka „Úkoly“ jako výchozí, „Poznámky“ druhá, dál Archiv, Koš, Nastavení
+  - úkol: název, hotovo, důležitý (hvězdička), termín, kroky (podúkoly), poznámka k úkolu
+  - hotové úkoly dolů a sbalitelné, rychlé přidání úkolu nahoře / u „+“
+  - pohledy: Můj den, Důležité, Naplánované, Vše (podle MS To Do; rozsah upřesnit)
+- [ ] **Kategorie:** vlastní kategorie s názvem, ikonou (výběr z připravené sady) a barvou; přiřazení k úkolům i poznámkám; filtr podle kategorie v seznamu; správa kategorií v Nastavení (přidat, přejmenovat, změnit ikonu/barvu, smazat, pořadí)
+
+#### Design Konfety – plán zapracování
+Vítěz soutěže je návrh B „Konfety“ (`.tmp/mockup/soutez/B.html`, 39,6 bodu). Zapracuje se ve zklidněné podobě a s rychlými čipy z návrhu D.
+
+**Co se přebírá z B**
+- **Písma:** Bricolage Grotesque na nadpisy, Nunito na text.
+  - Písma se přibalí do aplikace jako woff2 (latin + latin-ext) v `public/fonts`, ne z Google Fonts. Aplikace je offline a nemá volat cizí servery.
+  - Velikost písem se hlídá v rozpočtu buildu.
+- **Paleta Konfety:** krémové pozadí, fialová primární barva `#5b2ee8`, slunečnicově žlutá `#ffc53d` na FAB „Nová“. Tmavá varianta je švestková.
+  - Tokeny se namapují na stávající názvy (`--primary`, `--surface`, `--on-surface` …), komponenty se kvůli tomu nepřepisují.
+- **Kategorie:** 8 sytých barev (`--c-*`) a k nim světlé podklady (`--t-*`) pro světlý i tmavý režim. Sada asi 16 ikon kategorií jako inline SVG.
+- **Tvary:** velká zaoblení, měkké stíny (`--shadow`, `--shadow-pop`) a tučné nadpisy obrazovek.
+- **Úkoly:**
+  - kroužek postupu dne (3/8);
+  - dlaždice pohledů Můj den / Důležité / Naplánované / Vše s počty;
+  - sbalená sekce „Hotové (n)“.
+- **Prázdné stavy:** ilustrace s textem, například koš „Tady je čisto!“.
+- **Bílé téma:** bílé plochy, fialový akcent, jemné stíny.
+
+**Zklidnění seznamu úkolů (oproti B)**
+- Na řádku je jen jeden řádek metadat. Barevné štítky na řádku nejsou.
+  - Kategorie se pozná podle barvy kroužku hotovo a malé tečky s názvem, napsané obyčejným textem.
+  - Termín je zvýrazněný jen u „Dnes“ a u zpožděných úkolů, jinak je to obyčejný text.
+- Název úkolu má váhu 600 (v B 800). Metadata mají nejméně 13 px a kontrast nejméně 4,5 : 1.
+- Nevyplněná hvězdička je tlumená, barvu má jen u důležitých úkolů.
+- Pole „Přidat úkol…“ je plné, ne čárkované, aby nezaniklo.
+- Popisky spodní navigace mají nejméně 12 px.
+
+**Rychlé čipy u přidání úkolu (z D)**
+- Pod polem jsou čipy **Termín**, **Kategorie** a **Důležité**. Vybraný čip ukazuje hodnotu, například „Zítra“ nebo „Práce“.
+  - Termín nabízí Dnes, Zítra, Příští týden a Vybrat datum.
+  - Kategorie otevře popover se seznamem kategorií.
+  - Důležité funguje jako přepínač (`aria-pressed`).
+- Pole má potvrzovací tlačítko. Enter úkol přidá a fokus zůstane v poli pro další úkol.
+
+**Opravy z hodnocení**
+- Žlutá poznámka v tmavém režimu nesmí být kalně olivová, tmavé `--note-*` se proto upraví.
+- FAB nesmí zakrývat text karty, seznam proto dostane dolní odsazení.
+
+**Pořadí (každý krok má vlastní commit s plným lifecyclem)**
+1. **Tokeny a písma:**
+   - paleta Konfety (světlá a tmavá) a mapování na stávající tokeny;
+   - barvy kategorií, tvary a stíny;
+   - přibalená písma;
+   - vzhled Bílá;
+   - vzhledy Modrá, Papír a Grafit zůstanou jako palety nad stejným tvarem;
+   - ověření kontroly přístupnosti (axe) ve všech vzhledech.
+2. **Restyle stávajících obrazovek** bez nových funkcí: seznam poznámek, editor, nastavení, spodní lišta, prázdné stavy.
+3. **Datový model:** Task, Category, export v2 a migrace z v1.
+4. **Záložka Úkoly:**
+   - zklidněný seznam, rychlé čipy;
+   - pohledy, kroužek postupu, sekce Hotové;
+   - spodní navigace s 5 položkami.
+5. **Kategorie:**
+   - správa v Nastavení (název, ikona, barva, pořadí, smazání);
+   - filtr čipy v seznamech;
+   - barva kroužku u úkolů.
+6. **Mikro-detaily:** konfety u „Hotové“ jen bez `prefers-reduced-motion`, drobné animace.
+
 ### Fáze 3 (nativní doplňky)
 - [ ] **Widget** (Glance): připnutá poznámka / checklist s odškrtáváním + tlačítko „+“
 - [ ] `[[odkazy]]` + backlinky (seznam „odkazuje sem“, bez grafu)
@@ -80,8 +147,34 @@ interface Note {
   deletedAt?: string;    // koš (tombstone)
 }
 
+// Fáze 2b (návrh)
+interface Category {
+  id: string;
+  name: string;
+  icon: string;          // klíč z připravené sady ikon
+  color: string;         // název barvy jako u poznámek (var(--note-x))
+  order: number;
+}
+
+interface Task {
+  id: string;
+  title: string;
+  done: boolean;
+  important: boolean;
+  dueDate?: string;      // datum bez času (RRRR-MM-DD)
+  myDay?: string;        // datum, kdy byl úkol přidán do Můj den
+  steps: { id: string; title: string; done: boolean }[];
+  note: string;          // Markdown
+  categoryId?: string;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
+  deletedAt?: string;
+}
+// Note dostane categoryId?: string
+
 interface NotesExport {
-  schemaVersion: 1;
+  schemaVersion: 1;      // fáze 2b: verze 2 s tasks a categories + migrace z 1
   exportedAt: string;    // ISO 8601
   notes: Note[];
 }
@@ -120,7 +213,15 @@ Pravidla:
 7. Export/import JSON (validace, migrace, merge) + připomínka zálohy
 8. Capacitor Android: build, `windowSoftInputMode`, `shortcuts.xml`, splash
 9. Fáze 2: šablony, barvy + grid/list, historie verzí, Quick Settings tile
+9b. Fáze 2b: soutěž návrhů designu → bílé téma → datový model (Task, Category, export v2 + migrace) → záložka Úkoly → kategorie (ikona, barva, filtr, správa) → zapracování vybraného designu
 10. Fáze 3: widget + WidgetBridge, backlinky, denní poznámka
 
 ## Otevřené
 - Název aplikace, logo, design (navazující průzkum: UI top aplikací, Material 3, koncepty loga, požadavky na ikony)
+- Úkoly: má `/` (jedno tapnutí) otevírat nový úkol, nebo dál novou poznámku?
+- Úkoly: termíny bez notifikací (připomínky jsou mimo scope), nebo připomínky přidat?
+- Úkoly: které pohledy MS To Do opravdu chceme (Můj den, Důležité, Naplánované)?
+- Kategorie: jedna kategorie na položku, nebo víc? Vztah k tagům (kategorie = pevná složka, tagy dál volné)?
+- Bílé téma: tmavá varianta jako černá (OLED), nebo stejná jako Grafit?
+- Konfety: má být výchozím vzhledem místo Modré (Modrá, Papír, Grafit a Bílá zůstanou na výběr)?
+- Konfety: animace konfet u dokončení úkolu ano, nebo ne?
