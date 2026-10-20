@@ -1,12 +1,13 @@
 // Vzhled aplikace; při startu ho před vykreslením nastavuje i skript v index.html (stejný klíč a hodnoty)
 export const THEME_KEY = 'tapnote.theme';
 
+// Náhled: pozadí, karta, akcent (světlá varianta)
 export const THEMES = [
-  { id: 'konfety', label: 'Konfety' },
-  { id: 'blue', label: 'Modrá' },
-  { id: 'paper', label: 'Papír' },
-  { id: 'graphite', label: 'Grafit' },
-  { id: 'white', label: 'Bílá' },
+  { id: 'konfety', label: 'Konfety', preview: ['#fff8f1', '#ffffff', '#5b2ee8'] },
+  { id: 'blue', label: 'Modrá', preview: ['#fbf9ff', '#ffffff', '#1a56b8'] },
+  { id: 'paper', label: 'Papír', preview: ['#f7f1e3', '#fffaf0', '#b4441c'] },
+  { id: 'graphite', label: 'Grafit', preview: ['#f0f0f0', '#ffffff', '#0d7a5f'] },
+  { id: 'white', label: 'Bílá', preview: ['#ffffff', '#f4f4f5', '#5b2ee8'] },
 ] as const;
 
 export type ThemeId = (typeof THEMES)[number]['id'];

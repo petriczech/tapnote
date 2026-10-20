@@ -28,12 +28,26 @@ const REVOKE_DELAY_MS = 60_000;
     <section>
       <fieldset>
         <legend><h2>Vzhled</h2></legend>
-        @for (item of themes; track item.id) {
-          <label>
-            <input type="radio" name="theme" [value]="item.id" [checked]="theme() === item.id" (change)="setTheme(item.id)" />
-            {{ item.label }}
-          </label>
-        }
+        <div class="themes">
+          @for (item of themes; track item.id) {
+            <label class="theme">
+              <span
+                class="preview"
+                aria-hidden="true"
+                [style.--bg]="item.preview[0]"
+                [style.--card]="item.preview[1]"
+                [style.--accent]="item.preview[2]"
+              >
+                <span class="bar"></span>
+                <span class="dot"></span>
+              </span>
+              <span class="theme-name">
+                <input type="radio" name="theme" [value]="item.id" [checked]="theme() === item.id" (change)="setTheme(item.id)" />
+                {{ item.label }}
+              </span>
+            </label>
+          }
+        </div>
       </fieldset>
     </section>
 
@@ -235,6 +249,71 @@ const REVOKE_DELAY_MS = 60_000;
       height: 20px;
       margin: 0;
       accent-color: var(--primary);
+    }
+
+    .themes {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 10px;
+    }
+
+    /* .themes kvůli přednosti před obecným fieldset label */
+    .themes .theme {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 4px;
+      padding: 8px;
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--card-radius);
+      background: var(--card-bg);
+      cursor: pointer;
+    }
+
+    .themes .theme:has(input:checked) {
+      border: 2px solid var(--primary);
+      padding: 7px;
+    }
+
+    .themes .theme:has(input:focus-visible) {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    .preview {
+      position: relative;
+      display: block;
+      height: 64px;
+      border: 1px solid rgb(0 0 0 / 8%);
+      border-radius: 10px;
+      background: var(--bg);
+    }
+
+    .preview .bar {
+      position: absolute;
+      inset: 12px 12px auto;
+      height: 22px;
+      border-radius: 6px;
+      background: var(--card);
+      box-shadow: 0 1px 3px rgb(0 0 0 / 12%);
+    }
+
+    .preview .dot {
+      position: absolute;
+      right: 12px;
+      bottom: 8px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .theme-name {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 32px;
+      font-weight: 600;
     }
 
     .file input {

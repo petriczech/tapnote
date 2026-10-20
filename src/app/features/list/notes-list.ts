@@ -399,16 +399,20 @@ function readLayout(): string | null {
     }
 
     .empty-state .icon {
-      width: 72px;
-      height: 72px;
-      color: var(--primary);
-      opacity: 0.6;
+      box-sizing: content-box;
+      width: 56px;
+      height: 56px;
+      padding: 32px;
+      border-radius: 50%;
+      background: var(--primary-container);
+      color: var(--on-primary-container);
     }
 
     .empty {
       margin: 0;
-      font-size: 1.125rem;
-      font-weight: 600;
+      font-family: var(--title-font);
+      font-size: 1.25rem;
+      font-weight: 700;
     }
 
     .label {
