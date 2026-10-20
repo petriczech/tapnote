@@ -7,13 +7,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
     <link rel="manifest" href="manifest.webmanifest" />
-    <meta name="theme-color" content="#fbf9ff" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#121318" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#fff8f1" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#17121f" media="(prefers-color-scheme: dark)" />
     <script>
       // Vzhled před prvním vykreslením (klíč a hodnoty jako core/theme/theme.ts)
       try {
         var theme = localStorage.getItem('tapnote.theme');
-        if (theme === 'paper' || theme === 'graphite') document.documentElement.dataset.theme = theme;
+        if (['blue', 'paper', 'graphite', 'white'].indexOf(theme) >= 0) document.documentElement.dataset.theme = theme;
       } catch (e) {}
     </script>
   </head>

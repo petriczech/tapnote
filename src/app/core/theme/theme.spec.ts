@@ -6,11 +6,11 @@ describe('theme', () => {
     delete document.documentElement.dataset['theme'];
   });
 
-  it('defaults to blue', () => {
-    expect(readTheme()).toBe('blue');
+  it('defaults to konfety', () => {
+    expect(readTheme()).toBe('konfety');
 
     localStorage.setItem(THEME_KEY, 'neon');
-    expect(readTheme()).toBe('blue');
+    expect(readTheme()).toBe('konfety');
   });
 
   it('applies and remembers a theme', () => {
@@ -20,11 +20,17 @@ describe('theme', () => {
     expect(readTheme()).toBe('paper');
   });
 
-  it('uses no attribute for blue', () => {
-    applyTheme('graphite');
-    applyTheme('blue');
+  it('uses no attribute for konfety', () => {
+    applyTheme('white');
+    applyTheme('konfety');
 
     expect(document.documentElement.hasAttribute('data-theme')).toBe(false);
-    expect(localStorage.getItem(THEME_KEY)).toBe('blue');
+    expect(localStorage.getItem(THEME_KEY)).toBe('konfety');
+  });
+
+  it('applies blue as an attribute', () => {
+    applyTheme('blue');
+
+    expect(document.documentElement.dataset['theme']).toBe('blue');
   });
 });

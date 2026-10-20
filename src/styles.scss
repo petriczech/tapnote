@@ -1,19 +1,57 @@
-/* Barvy a tvary jako proměnné; vzhled podle data-theme na <html>, světlý i tmavý režim podle systému */
+/* Barvy a tvary jako proměnné; vzhled podle data-theme na <html> (výchozí Konfety bez atributu), světlý i tmavý režim podle systému */
+// Písma přibalená v aplikaci (offline, licence OFL v public/licenses)
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 1000;
+  src: url('./fonts/nunito-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 1000;
+  src: url('./fonts/nunito-latin-ext-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url('./fonts/bricolage-grotesque-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url('./fonts/bricolage-grotesque-latin-ext-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+
+// Konfety: krémová, fialová, slunečnicová; výchozí vzhled
 :root {
   color-scheme: light dark;
-  --primary: #1a56b8;
+  --primary: #5b2ee8;
   --on-primary: #ffffff;
-  --primary-container: #dce5ff;
-  --on-primary-container: #001a42;
-  --surface: #fbf9ff;
-  --surface-low: #f3f3fa;
-  --surface-high: #e8e9f2;
-  --on-surface: #1a1b20;
-  --on-surface-variant: #44474f;
-  --outline: #74777f;
-  --outline-variant: #c4c6d0;
-  --pin: #8a5a00;
-  --error: #b00020;
+  --primary-container: #ece4ff;
+  --on-primary-container: #3a1a9e;
+  --surface: #fff8f1;
+  --surface-low: #f7ebdd;
+  --surface-high: #ffffff;
+  --on-surface: #1e1533;
+  --on-surface-variant: #554a63;
+  --outline: #6a5f7b;
+  --outline-variant: #ead9c4;
+  --pin: #c2410c;
+  --error: #c21f3a;
   --radius-s: 8px;
   --radius-m: 16px;
   --radius-l: 28px;
@@ -45,16 +83,136 @@
   --editor-lines: none;
 
   // Barvy poznámek
+  --note-yellow: #fff0b0;
+  --note-blue: #e1e9ff;
+  --note-green: #dcf5e5;
+  --note-red: #ffe0ec;
+  --note-purple: #ece4ff;
+  --note-gray: #efe7dc;
+
+  // Barvy kategorií (sytá barva a světlý podklad) pro všechny vzhledy
+  --c-green: #0b7a45;
+  --c-blue: #2557d6;
+  --c-orange: #b03a09;
+  --c-pink: #c2185b;
+  --c-teal: #0e7490;
+  --c-violet: #6d28d9;
+  --c-yellow: #8a5a00;
+  --c-red: #b91c1c;
+  --on-cat: #ffffff;
+  --t-green: #dcf5e5;
+  --t-blue: #e1e9ff;
+  --t-orange: #ffe5d4;
+  --t-pink: #ffe0ec;
+  --t-teal: #d4f1f5;
+  --t-violet: #ece4ff;
+  --t-yellow: #fff0b0;
+  --t-red: #ffe1e1;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #b9a0ff;
+    --on-primary: #1a0b3d;
+    --primary-container: #3a2b66;
+    --on-primary-container: #e6dcff;
+    --surface: #17121f;
+    --surface-low: #1f1829;
+    --surface-high: #2a2138;
+    --on-surface: #f6f0ff;
+    --on-surface-variant: #d0c6e0;
+    --outline: #a497b8;
+    --outline-variant: #3c3250;
+    --pin: #ff9a5c;
+    --error: #ff8a9a;
+    --note-yellow: #4d3b14;
+    --note-blue: #1d2a52;
+    --note-green: #15352a;
+    --note-red: #45182f;
+    --note-purple: #2f2357;
+    --note-gray: #2e2838;
+    --c-green: #4ade80;
+    --c-blue: #85a8ff;
+    --c-orange: #ff9a5c;
+    --c-pink: #ff7eb3;
+    --c-teal: #4fd1e6;
+    --c-violet: #c4a5ff;
+    --c-yellow: #facc15;
+    --c-red: #ff8a80;
+    --on-cat: #140f1c;
+    --t-green: #15352a;
+    --t-blue: #1d2a52;
+    --t-orange: #43260f;
+    --t-pink: #45182f;
+    --t-teal: #0f3640;
+    --t-violet: #2f2357;
+    --t-yellow: #4d3b14;
+    --t-red: #4a1c1c;
+  }
+}
+
+// Tvar Konfety (písma, zaoblení, stíny, slunečnicové „Nová“) pro Konfety, Modrou a Bílou; Papír a Grafit mají vlastní
+:root:not([data-theme='paper'], [data-theme='graphite']) {
+  --font: 'Nunito', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --title-font: 'Bricolage Grotesque', var(--font);
+  --title-size: 1.75rem;
+  --title-weight: 800;
+  --title-spacing: -0.02em;
+  --search-bg: var(--surface-high);
+  --search-border: var(--outline-variant);
+  --search-radius: 18px;
+  --chip-radius: 999px;
+  --card-bg: var(--surface-high);
+  --card-border: transparent;
+  --card-radius: 20px;
+  --card-shadow: 0 1px 0 rgb(30 21 51 / 4%), 0 8px 20px -10px rgb(30 21 51 / 22%);
+  --card-gap: 10px;
+  --card-pinned-bg: var(--surface-high);
+  --card-pinned-border: transparent;
+  --fab-bg: #ffc53d;
+  --fab-text: #1e1533;
+  --fab-radius: 999px;
+  --nav-bg: var(--surface-high);
+  --nav-border: var(--outline-variant);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='paper'], [data-theme='graphite']) {
+    --card-border: var(--outline-variant);
+    --card-shadow: 0 10px 22px -12px rgb(0 0 0 / 70%);
+  }
+}
+
+// Modrá: původní výchozí paleta
+:root[data-theme='blue'] {
+  --primary: #1a56b8;
+  --on-primary: #ffffff;
+  --primary-container: #dce5ff;
+  --on-primary-container: #001a42;
+  --surface: #fbf9ff;
+  --surface-low: #f3f3fa;
+  --surface-high: #e8e9f2;
+  --on-surface: #1a1b20;
+  --on-surface-variant: #44474f;
+  --outline: #74777f;
+  --outline-variant: #c4c6d0;
+  --pin: #8a5a00;
+  --error: #b00020;
   --note-yellow: #fff4c2;
   --note-blue: #d6e8ff;
   --note-green: #d8f3d1;
   --note-red: #ffdad6;
   --note-purple: #ebdcff;
   --note-gray: #e6e6ea;
+  --card-bg: #ffffff;
+  --card-pinned-bg: #ffffff;
+  --nav-bg: var(--surface-low);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root[data-theme='blue'] {
+    --card-bg: var(--surface-low);
+    --card-pinned-bg: var(--surface-high);
     --primary: #adc6ff;
     --on-primary: #002e69;
     --primary-container: #1d4392;
@@ -74,6 +232,52 @@
     --note-red: #4b2a2a;
     --note-purple: #3d2f5c;
     --note-gray: #34353a;
+  }
+}
+
+// Bílá: čistě bílé plochy bez barevného nádechu, fialový akcent, jemné stíny
+:root[data-theme='white'] {
+  --primary: #5b2ee8;
+  --on-primary: #ffffff;
+  --primary-container: #ece4ff;
+  --on-primary-container: #3a1a9e;
+  --surface: #ffffff;
+  --surface-low: #f6f6f8;
+  --surface-high: #ffffff;
+  --on-surface: #18181b;
+  --on-surface-variant: #52525b;
+  --outline: #71717a;
+  --outline-variant: #e4e4e7;
+  --pin: #5b2ee8;
+  --error: #b00020;
+  --search-bg: #f4f4f5;
+  --search-border: transparent;
+  --card-shadow: 0 1px 2px rgb(0 0 0 / 6%), 0 4px 14px -6px rgb(0 0 0 / 12%);
+  --fab-bg: var(--primary);
+  --fab-text: var(--on-primary);
+  --nav-bg: #ffffff;
+  --nav-border: var(--outline-variant);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme='white'] {
+    --primary: #b9a0ff;
+    --on-primary: #1a0b3d;
+    --primary-container: #2e2457;
+    --on-primary-container: #e6dcff;
+    --surface: #0f0f11;
+    --surface-low: #18181b;
+    --surface-high: #1c1c1f;
+    --on-surface: #f4f4f5;
+    --on-surface-variant: #b4b4bc;
+    --outline: #8b8b94;
+    --outline-variant: #2c2c30;
+    --pin: #b9a0ff;
+    --error: #ffb4ab;
+    --search-bg: #1c1c1f;
+    --card-border: var(--outline-variant);
+    --card-shadow: none;
+    --nav-bg: #0f0f11;
   }
 }
 

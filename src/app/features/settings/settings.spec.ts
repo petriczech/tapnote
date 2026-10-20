@@ -116,7 +116,7 @@ describe('Settings', () => {
 
   it('switches the theme', async () => {
     await render();
-    expect(radio('blue').checked).toBe(true);
+    expect(radio('konfety').checked).toBe(true);
 
     radio('graphite').click();
     await fixture.whenStable();
@@ -125,7 +125,7 @@ describe('Settings', () => {
     expect(localStorage.getItem(THEME_KEY)).toBe('graphite');
     expect(radio('graphite').checked).toBe(true);
 
-    radio('blue').click();
+    radio('konfety').click();
     expect(document.documentElement.hasAttribute('data-theme')).toBe(false);
     localStorage.removeItem(THEME_KEY);
   });

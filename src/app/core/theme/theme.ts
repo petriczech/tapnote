@@ -2,9 +2,11 @@
 export const THEME_KEY = 'tapnote.theme';
 
 export const THEMES = [
+  { id: 'konfety', label: 'Konfety' },
   { id: 'blue', label: 'Modrá' },
   { id: 'paper', label: 'Papír' },
   { id: 'graphite', label: 'Grafit' },
+  { id: 'white', label: 'Bílá' },
 ] as const;
 
 export type ThemeId = (typeof THEMES)[number]['id'];
@@ -16,15 +18,15 @@ function isThemeId(value: unknown): value is ThemeId {
 export function readTheme(): ThemeId {
   try {
     const value = localStorage.getItem(THEME_KEY);
-    return isThemeId(value) ? value : 'blue';
+    return isThemeId(value) ? value : 'konfety';
   } catch {
-    return 'blue';
+    return 'konfety';
   }
 }
 
-// Modrá je výchozí vzhled bez atributu
+// Konfety jsou výchozí vzhled bez atributu
 export function applyTheme(theme: ThemeId): void {
-  if (theme === 'blue') {
+  if (theme === 'konfety') {
     delete document.documentElement.dataset['theme'];
   } else {
     document.documentElement.dataset['theme'] = theme;
