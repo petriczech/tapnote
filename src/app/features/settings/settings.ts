@@ -3,7 +3,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
   createExport,
   exportFileName,
-  mergeNotes,
+  mergeNewer,
   parseExport,
   readLastBackup,
   writeLastBackup,
@@ -12,7 +12,9 @@ import { Note } from '../../core/model/note';
 import { templatesOf } from '../../core/model/note-query';
 import { NoteActions } from '../../core/notes/note-actions';
 import { readShortcutsEnabled, SHORTCUTS, writeShortcutsEnabled } from '../../core/shortcuts/shortcuts';
+import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { NotesRepository } from '../../core/storage/notes-repository';
+import { TasksRepository } from '../../core/storage/tasks-repository';
 import { applyTheme, readTheme, ThemeId, THEMES } from '../../core/theme/theme';
 import { BottomNav } from '../list/bottom-nav';
 
@@ -407,6 +409,8 @@ const REVOKE_DELAY_MS = 60_000;
 })
 export class Settings implements OnInit {
   private readonly repository = inject(NotesRepository);
+  private readonly tasks = inject(TasksRepository);
+  private readonly categories = inject(CategoriesRepository);
   private readonly actions = inject(NoteActions);
   private readonly host: HTMLElement = inject(ElementRef).nativeElement;
   private readonly injector = inject(Injector);
@@ -488,7 +492,12 @@ export class Settings implements OnInit {
   protected async exportNotes(target: 'download' | 'share'): Promise<void> {
     await this.run(async () => {
       const now = new Date();
-      const json = JSON.stringify(createExport(await this.repository.getAll(), now), null, 2);
+      const data = {
+        notes: await this.repository.getAll(),
+        tasks: await this.tasks.getAll(),
+        categories: await this.categories.getAll(),
+      };
+      const json = JSON.stringify(createExport(data, now), null, 2);
       const file = new File([json], exportFileName(now), { type: 'application/json' });
       if (target === 'share') {
         if (!navigator.canShare({ files: [file] })) {
@@ -528,22 +537,39 @@ export class Settings implements OnInit {
         this.failed.set(true);
         return parsed.error === 'version' ? 'Záloha je z novější verze aplikace.' : 'Soubor není platná záloha Tapnote.';
       }
+      // Úkoly se v hláškách zmíní, jen když nějaké jsou
+      const withTasks = (text: string, count: number) => (count > 0 ? `${text}, úkolů: ${count}` : text);
       if (this.mode() === 'replace') {
-        const notes = mergeNotes([], parsed.notes);
-        if (notes.length === 0) {
+        const notes = mergeNewer([], parsed.notes);
+        const tasks = mergeNewer([], parsed.tasks);
+        const categories = mergeNewer([], parsed.categories);
+        if (notes.length === 0 && tasks.length === 0) {
           this.failed.set(true);
           return 'Záloha neobsahuje žádné poznámky.';
         }
         const current = (await this.repository.getAll()).length;
-        if (!confirm(`Smazat všechny současné poznámky (${current}) a nahradit je poznámkami ze zálohy (${notes.length})?`)) {
+        const currentTasks = (await this.tasks.getAll()).length;
+        const question =
+          currentTasks + tasks.length > 0
+            ? `Smazat všechny současné poznámky (${current}) a úkoly (${currentTasks}) a nahradit je zálohou (poznámky ${notes.length}, úkoly ${tasks.length})?`
+            : `Smazat všechny současné poznámky (${current}) a nahradit je poznámkami ze zálohy (${notes.length})?`;
+        if (!confirm(question)) {
           return '';
         }
+        // Záloha bez kategorií (třeba verze 1) současné kategorie nemaže
+        if (categories.length > 0) {
+          await this.categories.replaceAll(categories);
+        }
+        await this.tasks.replaceAll(tasks);
         await this.repository.replaceAll(notes);
-        return `Obnoveno poznámek: ${notes.length}`;
+        return withTasks(`Obnoveno poznámek: ${notes.length}`, tasks.length);
       }
-      const changed = mergeNotes(await this.repository.getAll(), parsed.notes);
+      const changed = mergeNewer(await this.repository.getAll(), parsed.notes);
+      const changedTasks = mergeNewer(await this.tasks.getAll(), parsed.tasks);
+      await this.categories.bulkPut(mergeNewer(await this.categories.getAll(), parsed.categories));
+      await this.tasks.bulkPut(changedTasks);
       await this.repository.bulkPut(changed);
-      return `Přidáno nebo aktualizováno poznámek: ${changed.length}`;
+      return withTasks(`Přidáno nebo aktualizováno poznámek: ${changed.length}`, changedTasks.length);
     }, 'Zálohu se nepodařilo obnovit.');
   }
 

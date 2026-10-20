@@ -1,4 +1,4 @@
-import { createNote, deriveTitle, extractTags, isNote, isNotesExport, Note } from './note';
+import { createNote, deriveTitle, extractTags, isNote, Note } from './note';
 
 const note: Note = {
   id: '1',
@@ -35,22 +35,6 @@ describe('isNote', () => {
     expect(isNote({ ...note, pinned: 'true' })).toBe(false);
     expect(isNote({ ...note, tags: ['a', 1] })).toBe(false);
     expect(isNote({ ...note, color: 1 })).toBe(false);
-  });
-});
-
-describe('isNotesExport', () => {
-  const exported = { schemaVersion: 1, exportedAt: '2026-10-15T12:00:00.000Z', notes: [note] };
-
-  it('accepts a valid export', () => {
-    expect(isNotesExport(exported)).toBe(true);
-  });
-
-  it('rejects an unknown schema version', () => {
-    expect(isNotesExport({ ...exported, schemaVersion: 2 })).toBe(false);
-  });
-
-  it('rejects an invalid note', () => {
-    expect(isNotesExport({ ...exported, notes: [{ ...note, id: 1 }] })).toBe(false);
   });
 });
 

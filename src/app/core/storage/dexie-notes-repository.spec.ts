@@ -1,8 +1,17 @@
+// Všechny repozitáře Dexie v jednom souboru: modul dexie si IndexedDB z fake-indexeddb přebírá jen jednou
 import 'fake-indexeddb/auto';
 import { TestBed } from '@angular/core/testing';
-import { Note } from '../model/note';
+import { Dexie } from 'dexie';
+import { Category } from '../model/category';
+import { createNote as newNote, Note } from '../model/note';
+import { createTask } from '../model/task';
+import { CategoriesRepository } from './categories-repository';
+import { DexieCategoriesRepository } from './dexie-categories-repository';
 import { DexieNotesRepository } from './dexie-notes-repository';
+import { DexieTasksRepository } from './dexie-tasks-repository';
 import { NotesRepository } from './notes-repository';
+import { TapnoteDb } from './tapnote-db';
+import { TasksRepository } from './tasks-repository';
 
 function createNote(id: string, overrides: Partial<Note> = {}): Note {
   return {
@@ -117,5 +126,60 @@ describe('DexieNotesRepository', () => {
     await expect(repository.replaceAll([createNote('2'), createNote('2')])).rejects.toThrow();
 
     expect((await repository.getAll()).map((note) => note.id)).toEqual(['1']);
+  });
+});
+
+function category(id: string, order: number): Category {
+  return { id, name: id, icon: 'home', color: 'green', order, createdAt: '2026-10-15T10:00:00.000Z', updatedAt: '2026-10-15T10:00:00.000Z' };
+}
+
+describe('Dexie tasks and categories', () => {
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: TasksRepository, useClass: DexieTasksRepository },
+        { provide: CategoriesRepository, useClass: DexieCategoriesRepository },
+      ],
+    });
+  });
+
+  afterEach(() => TestBed.inject(TapnoteDb).close());
+
+  it('keeps notes when the version 1 database is upgraded', async () => {
+    await Dexie.delete('tapnote');
+    const old = new Dexie('tapnote');
+    old.version(1).stores({ notes: 'id, updatedAt, deletedAt, *tags' });
+    await old.table('notes').put(newNote('n', '2026-10-15T10:00:00.000Z'));
+    old.close();
+
+    const db = TestBed.inject(TapnoteDb);
+
+    expect((await db.notes.toArray()).map((note) => note.id)).toEqual(['n']);
+    expect(await db.tasks.count()).toBe(0);
+  });
+
+  it('stores, updates and purges tasks', async () => {
+    const repository = TestBed.inject(TasksRepository);
+    await repository.replaceAll([
+      createTask('a', 'A', '2026-10-15T10:00:00.000Z'),
+      { ...createTask('b', 'B', '2026-10-15T10:00:00.000Z'), deletedAt: '2026-10-01T10:00:00.000Z' },
+    ]);
+
+    await repository.update('a', { done: true, dueDate: '2026-10-20' });
+    await repository.update('a', { dueDate: undefined });
+    expect(await repository.purgeTrash('2026-10-10T00:00:00.000Z')).toBe(1);
+
+    const [task] = await repository.getAll();
+    expect(task.done).toBe(true);
+    expect('dueDate' in task).toBe(false);
+  });
+
+  it('returns categories in their order', async () => {
+    const repository = TestBed.inject(CategoriesRepository);
+    await repository.replaceAll([category('b', 2), category('a', 1)]);
+    await repository.put(category('c', 0));
+    await repository.delete('b');
+
+    expect((await repository.getAll()).map((item) => item.id)).toEqual(['c', 'a']);
   });
 });

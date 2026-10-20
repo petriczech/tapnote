@@ -2,8 +2,13 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { createExport, LAST_BACKUP_KEY } from '../../core/backup/notes-backup';
 import { createNote, Note } from '../../core/model/note';
+import { createTask, Task } from '../../core/model/task';
+import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { NotesRepository } from '../../core/storage/notes-repository';
+import { TasksRepository } from '../../core/storage/tasks-repository';
+import { InMemoryCategoriesRepository } from '../../core/storage/testing/in-memory-categories-repository';
 import { InMemoryNotesRepository } from '../../core/storage/testing/in-memory-notes-repository';
+import { InMemoryTasksRepository } from '../../core/storage/testing/in-memory-tasks-repository';
 import { SHORTCUTS_KEY } from '../../core/shortcuts/shortcuts';
 import { THEME_KEY } from '../../core/theme/theme';
 import { MAX_IMPORT_BYTES, Settings } from './settings';
@@ -12,8 +17,11 @@ function note(id: string, updatedAt: string, content = id): Note {
   return { ...createNote(id, updatedAt), content };
 }
 
+const backupOf = (notes: Note[], tasks: Task[] = []) => JSON.stringify(createExport({ notes, tasks, categories: [] }, new Date()));
+
 describe('Settings', () => {
   let repository: InMemoryNotesRepository;
+  let tasks: InMemoryTasksRepository;
   let fixture: ComponentFixture<Settings>;
   let root: HTMLElement;
 
@@ -40,10 +48,16 @@ describe('Settings', () => {
   beforeEach(async () => {
     localStorage.removeItem(LAST_BACKUP_KEY);
     repository = new InMemoryNotesRepository();
+    tasks = new InMemoryTasksRepository();
     await repository.bulkPut([note('a', '2026-10-15T10:00:00.000Z'), note('b', '2026-10-16T10:00:00.000Z')]);
     TestBed.configureTestingModule({
       imports: [Settings],
-      providers: [provideRouter([]), { provide: NotesRepository, useValue: repository }],
+      providers: [
+        provideRouter([]),
+        { provide: NotesRepository, useValue: repository },
+        { provide: TasksRepository, useValue: tasks },
+        { provide: CategoriesRepository, useClass: InMemoryCategoriesRepository },
+      ],
     });
   });
 
@@ -154,7 +168,8 @@ describe('Settings', () => {
     const file = createUrl.mock.calls[0][0];
     expect(file.name).toMatch(/^tapnote-\d{4}-\d{2}-\d{2}\.json$/);
     const exported = JSON.parse(await file.text());
-    expect(exported.schemaVersion).toBe(1);
+    expect(exported.schemaVersion).toBe(2);
+    expect(exported.tasks).toEqual([]);
     expect(exported.notes.map((item: Note) => item.id).sort()).toEqual(['a', 'b']);
     expect(localStorage.getItem(LAST_BACKUP_KEY)).not.toBeNull();
     expect(root.querySelector('.last-backup')?.textContent).not.toContain('zatím žádná');
@@ -165,7 +180,7 @@ describe('Settings', () => {
     expect(radio('merge').checked).toBe(true);
 
     await chooseFile(
-      JSON.stringify(createExport([note('a', '2026-10-17T10:00:00.000Z', 'a2'), note('b', '2026-10-01T10:00:00.000Z', 'b0'), note('c', '2026-10-15T10:00:00.000Z')], new Date())),
+      backupOf([note('a', '2026-10-17T10:00:00.000Z', 'a2'), note('b', '2026-10-01T10:00:00.000Z', 'b0'), note('c', '2026-10-15T10:00:00.000Z')]),
     );
 
     expect(status()).toBe('Přidáno nebo aktualizováno poznámek: 2');
@@ -179,11 +194,35 @@ describe('Settings', () => {
     await render();
     radio('replace').click();
 
-    await chooseFile(JSON.stringify(createExport([note('c', '2026-10-15T10:00:00.000Z')], new Date())));
+    await chooseFile(backupOf([note('c', '2026-10-15T10:00:00.000Z')]));
 
     expect(confirm).toHaveBeenCalledWith('Smazat všechny současné poznámky (2) a nahradit je poznámkami ze zálohy (1)?');
     expect(status()).toBe('Obnoveno poznámek: 1');
     expect([...repository.notes.keys()]).toEqual(['c']);
+  });
+
+  it('restores tasks from the backup, mentions them and keeps categories missing in the backup', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await render();
+
+    const categoriesBefore = [
+      { id: 'c', name: 'Práce', icon: 'briefcase', color: 'blue' as const, order: 0, createdAt: '2026-10-15T10:00:00.000Z', updatedAt: '2026-10-15T10:00:00.000Z' },
+    ];
+    await TestBed.inject(CategoriesRepository).bulkPut(categoriesBefore);
+    await chooseFile(backupOf([], [createTask('t1', 'Zavolat', '2026-10-15T10:00:00.000Z')]));
+
+    expect(status()).toBe('Přidáno nebo aktualizováno poznámek: 0, úkolů: 1');
+    expect(tasks.tasks.has('t1')).toBe(true);
+
+    radio('replace').click();
+    await chooseFile(backupOf([note('c', '2026-10-15T10:00:00.000Z')], [createTask('t2', 'Nakoupit', '2026-10-15T10:00:00.000Z')]));
+
+    expect(window.confirm).toHaveBeenCalledWith(
+      'Smazat všechny současné poznámky (2) a úkoly (1) a nahradit je zálohou (poznámky 1, úkoly 1)?',
+    );
+    expect([...tasks.tasks.keys()]).toEqual(['t2']);
+    expect(await TestBed.inject(CategoriesRepository).getAll()).toEqual(categoriesBefore);
+    expect(status()).toBe('Obnoveno poznámek: 1, úkolů: 1');
   });
 
   it('refuses to replace with an empty backup', async () => {
@@ -191,7 +230,7 @@ describe('Settings', () => {
     await render();
     radio('replace').click();
 
-    await chooseFile(JSON.stringify(createExport([], new Date())));
+    await chooseFile(backupOf([]));
 
     expect(confirm).not.toHaveBeenCalled();
     expect(status()).toBe('Záloha neobsahuje žádné poznámky.');
@@ -204,7 +243,7 @@ describe('Settings', () => {
     radio('replace').click();
 
     const input = root.querySelector<HTMLInputElement>('input[type="file"]') as HTMLInputElement;
-    const backup = JSON.stringify(createExport([note('c', '2026-10-15T10:00:00.000Z')], new Date()));
+    const backup = backupOf([note('c', '2026-10-15T10:00:00.000Z')]);
     Object.defineProperty(input, 'files', { value: [new File([backup], 'x.json')], configurable: true });
     input.dispatchEvent(new Event('change'));
     await vi.waitFor(() => expect(window.confirm).toHaveBeenCalled());
@@ -216,7 +255,7 @@ describe('Settings', () => {
 
   it.each([
     ['{', 'Soubor není platná záloha Tapnote.'],
-    [JSON.stringify({ schemaVersion: 2, exportedAt: '', notes: [] }), 'Záloha je z novější verze aplikace.'],
+    [JSON.stringify({ schemaVersion: 3, exportedAt: '', notes: [] }), 'Záloha je z novější verze aplikace.'],
   ])('reports an invalid file %s', async (content, message) => {
     await render();
 
@@ -246,7 +285,7 @@ describe('Settings', () => {
     vi.spyOn(repository, 'bulkPut').mockRejectedValue(new Error('fail'));
     await render();
 
-    await chooseFile(JSON.stringify(createExport([note('c', '2026-10-15T10:00:00.000Z')], new Date())));
+    await chooseFile(backupOf([note('c', '2026-10-15T10:00:00.000Z')]));
 
     expect(status()).toBe('Zálohu se nepodařilo obnovit.');
   });

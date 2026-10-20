@@ -2,30 +2,238 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/petriczech/tapnote/docs/notes-export.schema.json",
   "title": "Tapnote export",
-  "description": "Záloha všech poznámek Tapnote (včetně archivu a koše). Kontrakt mezi verzemi aplikace; při změně se zvýší schemaVersion a doplní migrace v core/backup/notes-backup.ts.",
+  "description": "Záloha všech poznámek, úkolů a kategorií Tapnote (včetně archivu a koše). Kontrakt mezi verzemi aplikace; při změně se zvýší schemaVersion a doplní migrace v core/backup/notes-backup.ts. Verze 1 obsahovala jen notes a při importu se převede.",
   "type": "object",
-  "required": ["schemaVersion", "exportedAt", "notes"],
+  "required": [
+    "schemaVersion",
+    "exportedAt",
+    "notes",
+    "tasks",
+    "categories"
+  ],
   "properties": {
-    "schemaVersion": { "const": 1 },
-    "exportedAt": { "type": "string", "format": "date-time" },
-    "notes": { "type": "array", "items": { "$ref": "#/$defs/note" } }
+    "schemaVersion": {
+      "const": 2
+    },
+    "exportedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/note"
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/task"
+      }
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/category"
+      }
+    }
   },
   "$defs": {
     "note": {
       "type": "object",
-      "required": ["id", "title", "content", "tags", "pinned", "archived", "isTemplate", "createdAt", "updatedAt"],
+      "required": [
+        "id",
+        "title",
+        "content",
+        "tags",
+        "pinned",
+        "archived",
+        "isTemplate",
+        "createdAt",
+        "updatedAt"
+      ],
       "properties": {
-        "id": { "type": "string", "description": "UUID, při sloučení se poznámky párují podle id" },
-        "title": { "type": "string", "description": "Odvozený z prvního neprázdného řádku obsahu" },
-        "content": { "type": "string", "description": "Markdown" },
-        "tags": { "type": "array", "items": { "type": "string" } },
-        "color": { "type": "string" },
-        "pinned": { "type": "boolean" },
-        "archived": { "type": "boolean" },
-        "isTemplate": { "type": "boolean" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "updatedAt": { "type": "string", "format": "date-time", "description": "Při sloučení vyhrává novější" },
-        "deletedAt": { "type": "string", "format": "date-time", "description": "Čas přesunu do koše" }
+        "id": {
+          "type": "string",
+          "description": "UUID, při sloučení se poznámky párují podle id"
+        },
+        "title": {
+          "type": "string",
+          "description": "Odvozený z prvního neprázdného řádku obsahu"
+        },
+        "content": {
+          "type": "string",
+          "description": "Markdown"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "color": {
+          "type": "string"
+        },
+        "pinned": {
+          "type": "boolean"
+        },
+        "archived": {
+          "type": "boolean"
+        },
+        "isTemplate": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Při sloučení vyhrává novější"
+        },
+        "deletedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Čas přesunu do koše"
+        },
+        "categoryId": {
+          "type": "string",
+          "description": "id kategorie"
+        }
+      }
+    },
+    "task": {
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "done",
+        "important",
+        "steps",
+        "note",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "UUID, při sloučení se úkoly párují podle id"
+        },
+        "title": {
+          "type": "string"
+        },
+        "done": {
+          "type": "boolean"
+        },
+        "important": {
+          "type": "boolean"
+        },
+        "dueDate": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Termín (datum bez času)"
+        },
+        "myDay": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Den, kdy byl úkol přidán do Můj den"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "title",
+              "done"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "done": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "note": {
+          "type": "string",
+          "description": "Markdown"
+        },
+        "categoryId": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Při sloučení vyhrává novější"
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "deletedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Čas přesunu do koše"
+        }
+      }
+    },
+    "category": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "icon",
+        "color",
+        "order",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string",
+          "description": "Klíč ikony ze sady kategorií"
+        },
+        "color": {
+          "enum": [
+            "green",
+            "blue",
+            "orange",
+            "pink",
+            "teal",
+            "violet",
+            "yellow",
+            "red"
+          ]
+        },
+        "order": {
+          "type": "number"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Při sloučení vyhrává novější"
+        }
       }
     }
   }

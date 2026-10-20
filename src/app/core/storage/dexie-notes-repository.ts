@@ -1,21 +1,11 @@
-import { Injectable } from '@angular/core';
-import { Dexie, Table } from 'dexie';
+import { inject, Injectable } from '@angular/core';
 import { Note } from '../model/note';
 import { NotesRepository } from './notes-repository';
-
-class NotesDb extends Dexie {
-  notes!: Table<Note, string>;
-
-  constructor() {
-    super('tapnote');
-    // Bez boolean indexů
-    this.version(1).stores({ notes: 'id, updatedAt, deletedAt, *tags' });
-  }
-}
+import { TapnoteDb } from './tapnote-db';
 
 @Injectable()
 export class DexieNotesRepository extends NotesRepository {
-  private readonly db = new NotesDb();
+  private readonly db = inject(TapnoteDb);
 
   get(id: string): Promise<Note | undefined> {
     return this.db.notes.get(id);

@@ -1,4 +1,20 @@
-import { isNotesExport, Note, NOTES_SCHEMA_VERSION, NotesExport } from '../model/note';
+import { Category, isCategory } from '../model/category';
+import { isNote, isRecord, Note } from '../model/note';
+import { isTask, Task } from '../model/task';
+
+// Verze 2 přidala úkoly a kategorie; zálohy verze 1 se převedou při importu
+export const EXPORT_SCHEMA_VERSION = 2;
+
+export interface BackupData {
+  notes: Note[];
+  tasks: Task[];
+  categories: Category[];
+}
+
+export interface NotesExport extends BackupData {
+  schemaVersion: typeof EXPORT_SCHEMA_VERSION;
+  exportedAt: string;
+}
 
 // Čas posledního exportu (ISO 8601)
 export const LAST_BACKUP_KEY = 'tapnote.lastBackup';
@@ -6,10 +22,10 @@ export const BACKUP_REMINDER_DAYS = 7;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type ImportError = 'json' | 'version' | 'format';
-export type ParsedExport = { ok: true; notes: Note[] } | { ok: false; error: ImportError };
+export type ParsedExport = ({ ok: true } & BackupData) | { ok: false; error: ImportError };
 
-export function createExport(notes: Note[], now: Date): NotesExport {
-  return { schemaVersion: NOTES_SCHEMA_VERSION, exportedAt: now.toISOString(), notes };
+export function createExport(data: BackupData, now: Date): NotesExport {
+  return { schemaVersion: EXPORT_SCHEMA_VERSION, exportedAt: now.toISOString(), ...data };
 }
 
 // tapnote-RRRR-MM-DD.json podle místního data
@@ -26,31 +42,60 @@ export function parseExport(text: string): ParsedExport {
   } catch {
     return { ok: false, error: 'json' };
   }
-  const version = typeof value === 'object' && value !== null ? (value as { schemaVersion?: unknown }).schemaVersion : undefined;
-  if (typeof version === 'number' && version > NOTES_SCHEMA_VERSION) {
-    return { ok: false, error: 'version' };
-  }
-  // Starší verze se převedou zde, zatím existuje jen verze 1
-  if (!isNotesExport(value)) {
+  if (!isRecord(value)) {
     return { ok: false, error: 'format' };
   }
-  const notes = value.notes.map(normalizeNote);
-  return notes.every((note) => note !== undefined) ? { ok: true, notes } : { ok: false, error: 'format' };
+  const version = value['schemaVersion'];
+  if (typeof version === 'number' && version > EXPORT_SCHEMA_VERSION) {
+    return { ok: false, error: 'version' };
+  }
+  // Verze 1 má jen poznámky
+  const tasks = version === 1 ? [] : value['tasks'];
+  const categories = version === 1 ? [] : value['categories'];
+  if (
+    (version !== 1 && version !== EXPORT_SCHEMA_VERSION) ||
+    typeof value['exportedAt'] !== 'string' ||
+    !Array.isArray(value['notes']) ||
+    !value['notes'].every(isNote) ||
+    !Array.isArray(tasks) ||
+    !tasks.every(isTask) ||
+    !Array.isArray(categories) ||
+    !categories.every(isCategory)
+  ) {
+    return { ok: false, error: 'format' };
+  }
+  const notes = value['notes'].map(normalizeNote);
+  const normalizedTasks = tasks.map(normalizeTask);
+  const normalizedCategories = categories.map(normalizeCategory);
+  return allDefined(notes) && allDefined(normalizedTasks) && allDefined(normalizedCategories)
+    ? { ok: true, notes, tasks: normalizedTasks, categories: normalizedCategories }
+    : { ok: false, error: 'format' };
 }
 
-// Jen známá pole a data v ISO 8601 (UTC), aby šla porovnávat jako text; neplatné datum = undefined
+function allDefined<T>(items: (T | undefined)[]): items is T[] {
+  return items.every((item) => item !== undefined);
+}
+
+// Čas v ISO 8601 (UTC), aby šel porovnávat jako text; neplatný = undefined
+function iso(value: string): string | undefined {
+  const time = Date.parse(value);
+  return Number.isNaN(time) ? undefined : new Date(time).toISOString();
+}
+
+// Skutečné datum RRRR-MM-DD (2026-13-45 neprojde)
+function isDateOnly(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) && iso(`${value}T00:00:00.000Z`)?.slice(0, 10) === value;
+}
+
+// Jen známá pole a data v ISO 8601 (UTC); neplatné datum = undefined
 function normalizeNote(note: Note): Note | undefined {
-  const iso = (value: string) => {
-    const time = Date.parse(value);
-    return Number.isNaN(time) ? undefined : new Date(time).toISOString();
-  };
   const createdAt = iso(note.createdAt);
   const updatedAt = iso(note.updatedAt);
   const deletedAt = note.deletedAt === undefined ? undefined : iso(note.deletedAt);
   if (!createdAt || !updatedAt || (note.deletedAt !== undefined && !deletedAt)) {
     return undefined;
   }
-  const { id, title, content, tags, color, pinned, archived, isTemplate } = note;
+  const { id, title, content, tags, color, pinned, archived, isTemplate, categoryId } = note;
   return {
     id,
     title,
@@ -60,25 +105,69 @@ function normalizeNote(note: Note): Note | undefined {
     pinned,
     archived,
     isTemplate,
+    ...(categoryId === undefined ? {} : { categoryId }),
     createdAt,
     updatedAt,
     ...(deletedAt === undefined ? {} : { deletedAt }),
   };
 }
 
-// Poznámky k zápisu: nové a novější podle updatedAt, v záloze jen nejnovější verze každého id
-export function mergeNotes(existing: Note[], incoming: Note[]): Note[] {
-  const newest = new Map<string, Note>();
-  for (const note of incoming) {
-    const kept = newest.get(note.id);
-    if (!kept || note.updatedAt > kept.updatedAt) {
-      newest.set(note.id, note);
+function normalizeTask(task: Task): Task | undefined {
+  const createdAt = iso(task.createdAt);
+  const updatedAt = iso(task.updatedAt);
+  const completedAt = task.completedAt === undefined ? undefined : iso(task.completedAt);
+  const deletedAt = task.deletedAt === undefined ? undefined : iso(task.deletedAt);
+  const datesValid = [task.dueDate, task.myDay].every((date) => date === undefined || isDateOnly(date));
+  if (
+    !createdAt ||
+    !updatedAt ||
+    !datesValid ||
+    (task.completedAt !== undefined && !completedAt) ||
+    (task.deletedAt !== undefined && !deletedAt)
+  ) {
+    return undefined;
+  }
+  const { id, title, done, important, dueDate, myDay, note, categoryId } = task;
+  return {
+    id,
+    title,
+    done,
+    important,
+    ...(dueDate === undefined ? {} : { dueDate }),
+    ...(myDay === undefined ? {} : { myDay }),
+    steps: task.steps.map(({ id, title, done }) => ({ id, title, done })),
+    note,
+    ...(categoryId === undefined ? {} : { categoryId }),
+    createdAt,
+    updatedAt,
+    ...(completedAt === undefined ? {} : { completedAt }),
+    ...(deletedAt === undefined ? {} : { deletedAt }),
+  };
+}
+
+function normalizeCategory(category: Category): Category | undefined {
+  const createdAt = iso(category.createdAt);
+  const updatedAt = iso(category.updatedAt);
+  if (!createdAt || !updatedAt) {
+    return undefined;
+  }
+  const { id, name, icon, color, order } = category;
+  return { id, name, icon, color, order, createdAt, updatedAt };
+}
+
+// Položky k zápisu: nové a novější podle updatedAt, v záloze jen nejnovější verze každého id
+export function mergeNewer<T extends { id: string; updatedAt: string }>(existing: T[], incoming: T[]): T[] {
+  const newest = new Map<string, T>();
+  for (const item of incoming) {
+    const kept = newest.get(item.id);
+    if (!kept || item.updatedAt > kept.updatedAt) {
+      newest.set(item.id, item);
     }
   }
-  const current = new Map(existing.map((note) => [note.id, note]));
-  return [...newest.values()].filter((note) => {
-    const stored = current.get(note.id);
-    return !stored || note.updatedAt > stored.updatedAt;
+  const current = new Map(existing.map((item) => [item.id, item]));
+  return [...newest.values()].filter((item) => {
+    const stored = current.get(item.id);
+    return !stored || item.updatedAt > stored.updatedAt;
   });
 }
 

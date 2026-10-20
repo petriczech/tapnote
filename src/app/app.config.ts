@@ -10,6 +10,10 @@ import { routes } from './app.routes';
 import { provideServiceWorker } from '@angular/service-worker';
 import { NotesRepository } from './core/storage/notes-repository';
 import { DexieNotesRepository } from './core/storage/dexie-notes-repository';
+import { TasksRepository } from './core/storage/tasks-repository';
+import { DexieTasksRepository } from './core/storage/dexie-tasks-repository';
+import { CategoriesRepository } from './core/storage/categories-repository';
+import { DexieCategoriesRepository } from './core/storage/dexie-categories-repository';
 import { NoteActions } from './core/notes/note-actions';
 import { listenForAppUrls } from './core/native/app-urls';
 import { ParamsRouteReuseStrategy } from './params-route-reuse-strategy';
@@ -20,6 +24,8 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes, withComponentInputBinding()),
     { provide: RouteReuseStrategy, useClass: ParamsRouteReuseStrategy },
     { provide: NotesRepository, useClass: DexieNotesRepository },
+    { provide: TasksRepository, useClass: DexieTasksRepository },
+    { provide: CategoriesRepository, useClass: DexieCategoriesRepository },
     // Úklid koše na pozadí
     provideAppInitializer(() => void inject(NoteActions).purgeTrash().catch(() => undefined)),
     // Zkratky a odkazy z Androidu
