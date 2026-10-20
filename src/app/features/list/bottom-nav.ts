@@ -8,6 +8,16 @@ import { VIEWS } from './views';
   imports: [RouterLink],
   template: `
     <nav aria-label="Pohledy">
+      <a routerLink="/tasks" [attr.aria-current]="current() === 'tasks' ? 'page' : null" (click)="leave.emit()">
+        <span class="pill">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            />
+          </svg>
+        </span>
+        Úkoly
+      </a>
       @for (item of views; track item.view) {
         <a
           routerLink="/notes"
@@ -80,7 +90,7 @@ import { VIEWS } from './views';
   `,
 })
 export class BottomNav {
-  readonly current = input.required<NotesView | 'settings'>();
+  readonly current = input.required<NotesView | 'tasks' | 'settings'>();
   // Hledání, které se drží při přepnutí pohledu
   readonly q = input<string | null>(null);
   // Před odchodem se uloží rozepsané hledání

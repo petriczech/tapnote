@@ -1,0 +1,351 @@
+:host {
+  display: block;
+  padding: env(safe-area-inset-top) 0 calc(7rem + env(safe-area-inset-bottom));
+}
+
+.app-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 64px;
+  padding: 0 16px;
+}
+
+h1 {
+  margin: 0;
+  font-family: var(--title-font);
+  font-size: var(--title-size);
+  font-weight: var(--title-weight);
+  letter-spacing: var(--title-spacing);
+}
+
+h1:focus:not(:focus-visible) {
+  outline: none;
+}
+
+// Kroužek postupu
+.ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.ring svg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+
+.ring circle {
+  fill: none;
+  stroke-width: 3.5;
+}
+
+.ring .track {
+  stroke: var(--outline-variant);
+}
+
+.ring .value {
+  stroke: var(--primary);
+  stroke-linecap: round;
+}
+
+.views {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 16px 12px;
+  scrollbar-width: none;
+}
+
+.views a {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--chip-radius);
+  background: var(--card-bg);
+  color: var(--on-surface);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.views a[aria-current] {
+  border-color: transparent;
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.count {
+  color: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 16px;
+  padding: 4px 4px 4px 16px;
+  border: 1px solid var(--search-border);
+  border-radius: var(--search-radius);
+  background: var(--search-bg);
+  box-shadow: var(--card-shadow);
+}
+
+.add:focus-within {
+  outline: 2px solid var(--primary);
+}
+
+.add input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  border: 0;
+  background: none;
+  color: var(--on-surface);
+  font: inherit;
+}
+
+.add input:focus {
+  outline: none;
+}
+
+.add input::placeholder {
+  color: var(--on-surface-variant);
+}
+
+.add-btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--on-primary);
+  cursor: pointer;
+}
+
+.add-btn[aria-disabled='true'] {
+  opacity: 0.5;
+}
+
+.quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 16px 4px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--chip-radius);
+  background: none;
+  color: var(--on-surface-variant);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.chip .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.chip.set {
+  border-color: transparent;
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+  font-weight: 600;
+}
+
+.menu {
+  padding: 8px 0;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: var(--surface-high);
+  color: var(--on-surface);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 25%);
+}
+
+.menu button,
+.menu .pick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 12rem;
+  min-height: 48px;
+  padding: 0 16px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.menu .pick input {
+  font: inherit;
+}
+
+.none {
+  margin: 0;
+  padding: 12px 16px;
+  color: var(--on-surface-variant);
+}
+
+.dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: var(--cat, var(--outline));
+}
+
+.error {
+  margin: 12px 16px 0;
+  color: var(--error);
+}
+
+.empty {
+  margin: 48px 16px;
+  color: var(--on-surface-variant);
+  font-family: var(--title-font);
+  font-size: 1.125rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0 16px;
+  list-style: none;
+}
+
+li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 6px 4px 6px 14px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
+}
+
+// Kroužek hotovo v barvě kategorie
+.check {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  border: 2px solid var(--cat, var(--primary));
+  border-radius: 50%;
+  appearance: none;
+  cursor: pointer;
+}
+
+.check:checked {
+  background: var(--cat, var(--primary))
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='white' d='M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E")
+    center / 16px no-repeat;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  color: var(--on-surface-variant);
+  font-size: 0.8125rem;
+}
+
+.meta .today {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.meta .overdue {
+  color: var(--error);
+  font-weight: 700;
+}
+
+.star {
+  flex: none;
+  width: 44px;
+  height: 44px;
+}
+
+.star.on {
+  background: none;
+  color: var(--pin);
+}
+
+li.done .title {
+  color: var(--on-surface-variant);
+  text-decoration: line-through;
+}
+
+.done-section {
+  margin-top: 16px;
+}
+
+summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  margin: 0 16px;
+  padding: 0 12px;
+  border-radius: var(--radius-m);
+  background: var(--surface-low);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+// Vlastní šipka, display: flex skryje nativní ::marker
+summary::before {
+  width: 0;
+  height: 0;
+  margin-right: 10px;
+  border-block: 5px solid transparent;
+  border-left: 6px solid currentColor;
+  content: '';
+  transition: transform 0.15s;
+}
+
+details[open] summary::before {
+  transform: rotate(90deg);
+}
