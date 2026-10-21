@@ -237,6 +237,42 @@ Pořadí dalších kroků, každý zvlášť s plným lifecyclem a commitem:
 4. **Android:** sestavit APK (`npm run sync:android`) s novými ikonami a ověřit na telefonu klávesnici u tlačítka „Nový“, konfety a historii
 5. **Nativní doplňky (fáze 2/3):** Quick Settings tile a widget až po ověření APK
 
+## Přepracování podle návrhu D Noir
+Hlavní vzhled je návrh D „Tapnote Noir“ (`.tmp/mockup/soutez/D-dark.png`, `D.html`); ostatní obrazovky a vzhledy přebírají jeho rozvržení. Podklady: `.tmp/mockup/redesign-d/ux.md`, `grafika.md`, `testing.md`.
+
+**Co už appka má (jen restyle):** spodní lišta se stejnými 5 záložkami, prstenec postupu, čipy pohledů s počty, rychlé čipy Termín/Kategorie/Důležité, hvězdička, Připnuté/Ostatní, mřížka/seznam, hledání Ctrl+F, „Uloženo“, sekce Hotové (n).
+
+### Rozhodnutí před startem (schváleno 21. 10. 2026 podle návrhu v závorce)
+1. Výchozí režim: Systém, nebo Tmavý? (Systém; Noir má světlou i tmavou variantu)
+2. Vzhledy: ponechat Noir, Bílá, Modrá, Papír, Grafit; Konfety, Vzdušná a Zápisník zrušit s převodem uložené volby (konfety→noir, airy→blue, notebook→paper) a odebrat písma Nunito a Bricolage (−135 kB v prefetch)? (ano)
+3. Bílá: černý akcent z náhledu D, nebo dál fialová? (černý)
+4. FAB „Nový“ na Úkolech: D ho nemá, pole přidání je v horní třetině mimo dosah palce. (FAB ponechat)
+5. Hotové položky checklistu: dnes padají dolů a sbalí se, D je nechává na místě přeškrtnuté. (ponechat dnešní chování)
+6. Nové funkce z mockupu — každá zvlášť ano/ne: tučné písmo (potřebuje vykreslování inline Markdownu v náhledu), vložení obrázku (v rozporu s „přílohy až jako ZIP“), přetažení položek a kategorií (šipky ▲▼ zůstanou kvůli WCAG 2.5.7), Nastavení jako rozcestník s podstránkami „Vzhled“ a „Kategorie“. (zatím jen rozcestník; ostatní odložit)
+7. Záchranná síť: commitnutá Playwright smoke sada `e2e/` (6 toků, axe, 412×860 světlý/tmavý) — přidá `@playwright/test` a `@axe-core/playwright` do devDependencies. (ano)
+
+### Kroky (každý s plným lifecyclem a vlastním commitem)
+0. **Smoke sada `e2e/`** před prvním zásahem (po schválení bodu 7); specy se přepisují na role a přístupná jména vždy v kroku, který mění šablonu
+1. **Tokeny Noir jako výchozí:** písma Geist a Geist Mono (OFL, latin-ext, licence do `public/licenses`), sklo (`--glass*`), přechody (`--grad`, tmavý začíná na `#6d4aff`), záře jako jedna pevná vrstva `radial-gradient`, poloměry; blur jen na pevných vrstvách (lišta, panel nástrojů, spodní panel); fallback pro `prefers-reduced-transparency`, `prefers-contrast: more` a bez `backdrop-filter`
+2. **Režim světlý/tmavý/systém:** nový atribut `data-scheme` vedle `data-theme`, tmavé tokeny platí pro media query i atribut, inline skript v `index.html` a `theme-color`; přepínač v Nastavení
+3. **Vzhledy:** převod uložených voleb, dlaždice motivů jako v D, přepínač „Ambientní přechody“ (`data-ambient`, jen Noir)
+4. **Shell:** plovoucí skleněná spodní lišta (radius 24, `env(safe-area-inset-bottom)`), ikony Phosphor Regular v liště a panelu nástrojů (Fill jen hvězda a špendlík), FAB „Nová“ s `--grad` místo `--grad-warm` (kontrast)
+5. **Úkoly – Můj den:** záhlaví s datem a prstencem, čipy, pole přidání, řádky úkolů, Hotové s „dnes 3 · včera 1“
+6. **Poznámky / Archiv / Koš:** mřížka s barevnými hranami karet, náhled checklistu a „4/7“ na kartě, ⋮ menu zůstává (zkratky P/A/Delete)
+7. **Editor – rozvržení:** horní lišta (zpět, Uloženo, Checklist, Hotovo), meta řádek (kategorie, připnuto, upraveno), proužek postupu checklistu, „+ Přidat položku“
+8. **Editor – spodní panel nástrojů:** Checklist, Tag, Barva, ⋯ (Historie se přesune sem z horní lišty)
+9. **Nastavení jako rozcestník + Vzhled** (podle bodu 6), přesměrování odkazů `?` → zkratky a Zálohovat
+10. **Kategorie:** vlastní obrazovka, počty položek, úprava ve spodním panelu na `<dialog>` + `showModal()`, „+ Nová“ dole na dosah palce
+11. **Detail úkolu a Historie** dorovnat do stejného jazyka
+12. **Nové funkce** jen ty schválené v bodu 6
+
+### Hlídat v každém kroku
+- Kontrast: bílá na oranžovém konci přechodu má 2,5–3,0 : 1 (nepoužívat pro text), světlý přechodový nadpis končit `#c2410c`, okraje polí přes `--outline`; axe za `backdrop-filter` kontrast nespočítá → ruční vzorkování pixelů a druhý průchod bez průhlednosti
+- Cíle dotyku ≥ 44 px, minima písma (navigace 12 px, metadata 13 px) zůstávají i proti menším velikostem v D
+- Pevná lišta nesmí zakrýt fokus (WCAG 2.4.11), nativní checkboxy a radia, odkazy s `aria-current`
+- Rozpočet stylů komponent 8 kB → sklo a přechody držet v `styles.scss`
+- Písma v `/media/*.woff2` (prefetch service workeru) i v APK
+
 ## Otevřené
 - Úkoly: má `/` (jedno tapnutí) otevírat nový úkol, nebo dál novou poznámku? (zatím poznámka)
 - Úkoly: termíny bez notifikací (připomínky jsou mimo scope), nebo připomínky přidat?
