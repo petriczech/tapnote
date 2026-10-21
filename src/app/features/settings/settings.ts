@@ -17,7 +17,7 @@ import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { NotesRepository } from '../../core/storage/notes-repository';
 import { TasksRepository } from '../../core/storage/tasks-repository';
 import { VersionsRepository } from '../../core/storage/versions-repository';
-import { applyTheme, readTheme, ThemeId, THEMES } from '../../core/theme/theme';
+import { applyScheme, applyTheme, readScheme, readTheme, SchemeId, SCHEMES, ThemeId, THEMES } from '../../core/theme/theme';
 import { BottomNav } from '../list/bottom-nav';
 import { CategoriesSection } from './categories-section';
 
@@ -31,6 +31,18 @@ const REVOKE_DELAY_MS = 60_000;
     <h1>Nastavení</h1>
 
     <section>
+      <fieldset>
+        <legend><h2>Režim</h2></legend>
+        <div class="schemes">
+          @for (item of schemes; track item.id) {
+            <label>
+              <input type="radio" name="scheme" [value]="item.id" [checked]="scheme() === item.id" (change)="setScheme(item.id)" />
+              {{ item.label }}
+            </label>
+          }
+        </div>
+      </fieldset>
+
       <fieldset>
         <legend><h2>Vzhled</h2></legend>
         <div class="themes">
@@ -266,6 +278,12 @@ const REVOKE_DELAY_MS = 60_000;
       accent-color: var(--primary);
     }
 
+    .schemes {
+      display: flex;
+      flex-wrap: wrap;
+      column-gap: 24px;
+    }
+
     .themes {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -494,6 +512,8 @@ export class Settings implements OnInit {
   protected readonly canShare = typeof navigator.canShare === 'function';
   protected readonly themes = THEMES;
   protected readonly theme = signal(readTheme());
+  protected readonly schemes = SCHEMES;
+  protected readonly scheme = signal(readScheme());
   private readonly lastBackup = signal(readLastBackup());
   protected readonly lastBackupText = computed(() => {
     const iso = this.lastBackup();
@@ -515,6 +535,11 @@ export class Settings implements OnInit {
   protected setTheme(theme: ThemeId): void {
     applyTheme(theme);
     this.theme.set(theme);
+  }
+
+  protected setScheme(scheme: SchemeId): void {
+    applyScheme(scheme);
+    this.scheme.set(scheme);
   }
 
   protected async exportNotes(target: 'download' | 'share'): Promise<void> {

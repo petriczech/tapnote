@@ -13,7 +13,9 @@
       // Vzhled před prvním vykreslením (klíč a hodnoty jako core/theme/theme.ts)
       // Barvy stavového řádku pro světlý a tmavý režim jako bar v THEMES; Noir je výchozí v metách výše
       // Uložené noir, zrušené konfety i neznámá hodnota zůstávají bez atributu, tedy Noir
+      // Režim (klíč a hodnoty jako SCHEMES): vynucený světlý nebo tmavý dává oběma metám barvu svého režimu, jinak rozhoduje systém
       var bars = {
+        noir: ['#f6f6fa', '#0b0b10'],
         blue: ['#fbf9ff', '#121318'],
         paper: ['#f7f1e3', '#1d1a16'],
         graphite: ['#ffffff', '#0b0b0b'],
@@ -21,13 +23,21 @@
         airy: ['#f7f8fb', '#111318'],
         notebook: ['#f5f0e6', '#1c1a17'],
       };
+      var schemes = { light: 0, dark: 1 };
       try {
         var theme = localStorage.getItem('tapnote.theme');
-        if (Object.prototype.hasOwnProperty.call(bars, theme)) {
+        var scheme = localStorage.getItem('tapnote.scheme');
+        var bar = bars.noir;
+        if (theme !== 'noir' && Object.prototype.hasOwnProperty.call(bars, theme)) {
           document.documentElement.dataset.theme = theme;
-          document.querySelector('meta[name="theme-color"][media*="light"]').content = bars[theme][0];
-          document.querySelector('meta[name="theme-color"][media*="dark"]').content = bars[theme][1];
+          bar = bars[theme];
         }
+        if (Object.prototype.hasOwnProperty.call(schemes, scheme)) {
+          document.documentElement.dataset.scheme = scheme;
+          bar = [bar[schemes[scheme]], bar[schemes[scheme]]];
+        }
+        document.querySelector('meta[name="theme-color"][media*="light"]').content = bar[0];
+        document.querySelector('meta[name="theme-color"][media*="dark"]').content = bar[1];
       } catch (e) {}
     </script>
   </head>

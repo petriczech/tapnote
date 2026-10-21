@@ -1,4 +1,19 @@
-/* Barvy a tvary jako proměnné; vzhled podle data-theme na <html> (výchozí Noir bez atributu), světlý i tmavý režim podle systému */
+/* Barvy a tvary jako proměnné; vzhled podle data-theme na <html> (výchozí Noir bez atributu), režim podle data-scheme (bez atributu podle systému) */
+
+// Tmavé tokeny bloku: podle systému, pokud není vynucený světlý režim, a vždy při vynuceném tmavém
+// :where() nepřidává přednost, takže pořadí bloků a záložní bloky (@supports, prefers-*) platí jako dřív
+@mixin dark {
+  @media (prefers-color-scheme: dark) {
+    &:where(:not([data-scheme='light'])) {
+      @content;
+    }
+  }
+
+  &:where([data-scheme='dark']) {
+    @content;
+  }
+}
+
 // Písma přibalená v aplikaci (offline, licence OFL v public/licenses)
 @font-face {
   font-family: 'Geist';
@@ -153,8 +168,17 @@
   --t-red: #ffe1e1;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
+// Nativní prvky (posuvníky, výběr data) se řídí vynuceným režimem
+:root[data-scheme='light'] {
+  color-scheme: light;
+}
+
+:root[data-scheme='dark'] {
+  color-scheme: dark;
+}
+
+:root {
+  @include dark {
     --primary: #b7a6ff;
     --on-primary: #1a0f40;
     --primary-container: #2a2150;
@@ -229,8 +253,8 @@
   --nav-border: var(--glass-border);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) {
+:root:not([data-theme]) {
+  @include dark {
     --glass: rgb(30 30 42 / 55%);
     --glass-strong: rgb(26 26 36 / 82%);
     --glass-border: rgb(255 255 255 / 9%);
@@ -297,8 +321,8 @@
   --nav-border: var(--outline-variant);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:where([data-theme]):not([data-theme='paper'], [data-theme='graphite']) {
+:root:where([data-theme]):not([data-theme='paper'], [data-theme='graphite']) {
+  @include dark {
     --card-border: var(--outline-variant);
     --card-shadow: 0 10px 22px -12px rgb(0 0 0 / 70%);
   }
@@ -330,8 +354,8 @@
   --nav-bg: var(--surface-low);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root[data-theme='blue'] {
+:root[data-theme='blue'] {
+  @include dark {
     --card-bg: var(--surface-low);
     --card-pinned-bg: var(--surface-high);
     --primary: #adc6ff;
@@ -386,8 +410,8 @@
   --note-gray: #efe7dc;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root[data-theme='white'] {
+:root[data-theme='white'] {
+  @include dark {
     --primary: #b9a0ff;
     --on-primary: #1a0b3d;
     --primary-container: #2e2457;
@@ -462,8 +486,8 @@
   --note-gray: #e4dccc;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root[data-theme='paper'] {
+:root[data-theme='paper'] {
+  @include dark {
     --primary: #f08a5d;
     --on-primary: #2b1004;
     --primary-container: #5a2a14;
@@ -527,8 +551,8 @@
   --note-gray: #e8e8e8;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root[data-theme='graphite'] {
+:root[data-theme='graphite'] {
+  @include dark {
     --primary: #3ddc97;
     --on-primary: #04261a;
     --primary-container: #f2f2f2;
@@ -582,8 +606,8 @@
   --note-gray: #eceef2;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root[data-theme='airy'] {
+:root[data-theme='airy'] {
+  @include dark {
     --primary: #8fb2ff;
     --on-primary: #0a1633;
     --primary-container: #1e2b47;
@@ -646,8 +670,8 @@
   --note-gray: #e8e2d6;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root[data-theme='notebook'] {
+:root[data-theme='notebook'] {
+  @include dark {
     --primary: #ee8d70;
     --on-primary: #1c1a17;
     --primary-container: #4a2a20;

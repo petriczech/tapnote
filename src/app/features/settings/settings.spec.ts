@@ -10,7 +10,7 @@ import { InMemoryCategoriesRepository } from '../../core/storage/testing/in-memo
 import { InMemoryNotesRepository } from '../../core/storage/testing/in-memory-notes-repository';
 import { InMemoryTasksRepository } from '../../core/storage/testing/in-memory-tasks-repository';
 import { SHORTCUTS_KEY } from '../../core/shortcuts/shortcuts';
-import { THEME_KEY } from '../../core/theme/theme';
+import { SCHEME_KEY, THEME_KEY } from '../../core/theme/theme';
 import { MAX_IMPORT_BYTES, Settings } from './settings';
 import { VersionsRepository } from '../../core/storage/versions-repository';
 import { InMemoryVersionsRepository } from '../../core/storage/testing/in-memory-versions-repository';
@@ -144,6 +144,28 @@ describe('Settings', () => {
     radio('noir').click();
     expect(document.documentElement.hasAttribute('data-theme')).toBe(false);
     localStorage.removeItem(THEME_KEY);
+  });
+
+  it('switches the scheme in the Režim group', async () => {
+    onTestFinished(() => localStorage.removeItem(SCHEME_KEY));
+    await render();
+    const group = [...root.querySelectorAll('fieldset')].find((item) => item.querySelector('legend')?.textContent?.trim() === 'Režim');
+    const labels = [...(group?.querySelectorAll('label') ?? [])].map((label) => label.textContent?.trim());
+    expect(labels).toEqual(['Světlý', 'Tmavý', 'Systém']);
+    expect(radio('system').checked).toBe(true);
+
+    radio('dark').click();
+    await fixture.whenStable();
+
+    expect(document.documentElement.dataset['scheme']).toBe('dark');
+    expect(localStorage.getItem(SCHEME_KEY)).toBe('dark');
+    expect(radio('dark').checked).toBe(true);
+
+    radio('system').click();
+    await fixture.whenStable();
+
+    expect(document.documentElement.hasAttribute('data-scheme')).toBe(false);
+    expect(radio('system').checked).toBe(true);
   });
 
   it('downloads all notes and remembers the backup', async () => {

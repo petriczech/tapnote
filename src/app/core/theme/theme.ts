@@ -15,6 +15,17 @@ export const THEMES = [
 
 export type ThemeId = (typeof THEMES)[number]['id'];
 
+// Režim; Systém je výchozí bez atributu, rozhoduje media query
+export const SCHEME_KEY = 'tapnote.scheme';
+
+export const SCHEMES = [
+  { id: 'light', label: 'Světlý' },
+  { id: 'dark', label: 'Tmavý' },
+  { id: 'system', label: 'Systém' },
+] as const;
+
+export type SchemeId = (typeof SCHEMES)[number]['id'];
+
 function isThemeId(value: unknown): value is ThemeId {
   return THEMES.some((theme) => theme.id === value);
 }
@@ -36,12 +47,42 @@ export function applyTheme(theme: ThemeId): void {
   } else {
     document.documentElement.dataset['theme'] = theme;
   }
-  const bar = THEMES.find((item) => item.id === theme)?.bar ?? THEMES[0].bar;
-  document.querySelector('meta[name="theme-color"][media*="light"]')?.setAttribute('content', bar[0]);
-  document.querySelector('meta[name="theme-color"][media*="dark"]')?.setAttribute('content', bar[1]);
+  applyBars();
   try {
     localStorage.setItem(THEME_KEY, theme);
   } catch {
     // Bez úložiště platí vzhled jen do zavření
   }
+}
+
+export function readScheme(): SchemeId {
+  try {
+    const value = localStorage.getItem(SCHEME_KEY);
+    return SCHEMES.find((scheme) => scheme.id === value)?.id ?? 'system';
+  } catch {
+    return 'system';
+  }
+}
+
+export function applyScheme(scheme: SchemeId): void {
+  if (scheme === 'system') {
+    delete document.documentElement.dataset['scheme'];
+  } else {
+    document.documentElement.dataset['scheme'] = scheme;
+  }
+  applyBars();
+  try {
+    localStorage.setItem(SCHEME_KEY, scheme);
+  } catch {
+    // Bez úložiště platí režim jen do zavření
+  }
+}
+
+// Stavový řádek podle vzhledu a režimu na <html>; vynucený režim dává oběma metám svou barvu
+function applyBars(): void {
+  const { theme, scheme } = document.documentElement.dataset;
+  const bar = THEMES.find((item) => item.id === theme)?.bar ?? THEMES[0].bar;
+  const index = scheme === 'light' ? 0 : scheme === 'dark' ? 1 : undefined;
+  document.querySelector('meta[name="theme-color"][media*="light"]')?.setAttribute('content', bar[index ?? 0]);
+  document.querySelector('meta[name="theme-color"][media*="dark"]')?.setAttribute('content', bar[index ?? 1]);
 }
