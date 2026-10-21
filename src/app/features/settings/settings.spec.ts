@@ -294,6 +294,16 @@ describe('Settings', () => {
     expect(status()).toBe('Zálohu se nepodařilo obnovit.');
   });
 
+  it('shows the app version in the about section', async () => {
+    await render();
+
+    const about = root.querySelector('section[aria-labelledby="about-heading"]');
+    expect(about?.querySelector('h2')?.textContent?.trim()).toBe('O aplikaci');
+    expect(about?.querySelector('dt')?.textContent?.trim()).toBe('Verze');
+    // Bez ngsw.json a hashovaného skriptu (test) se hlásí vývojový build
+    await vi.waitFor(() => expect(about?.querySelector('dd')?.textContent?.trim()).toBe('dev'));
+  });
+
   it('turns keyboard shortcuts off and lists them', async () => {
     await render();
     const box = root.querySelector('input[type="checkbox"]') as HTMLInputElement;

@@ -8,6 +8,7 @@ import {
   readLastBackup,
   writeLastBackup,
 } from '../../core/backup/notes-backup';
+import { loadBuildStamp } from '../../core/build-info';
 import { Note } from '../../core/model/note';
 import { templatesOf } from '../../core/model/note-query';
 import { NoteActions } from '../../core/notes/note-actions';
@@ -148,6 +149,14 @@ const REVOKE_DELAY_MS = 60_000;
     </section>
 
     <p class="status" [class.error]="failed()" aria-live="polite">{{ status() }}</p>
+
+    <section aria-labelledby="about-heading">
+      <h2 id="about-heading">O aplikaci</h2>
+      <dl class="about">
+        <dt>Verze</dt>
+        <dd>{{ build() }}</dd>
+      </dl>
+    </section>
 
     <tn-bottom-nav current="settings" />
   `,
@@ -409,6 +418,18 @@ const REVOKE_DELAY_MS = 60_000;
     .status.error {
       color: var(--error);
     }
+
+    .about {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 0;
+    }
+
+    .about dd {
+      margin: 0;
+      color: var(--on-surface-variant);
+    }
   `,
 })
 export class Settings implements OnInit {
@@ -422,10 +443,12 @@ export class Settings implements OnInit {
   private readonly route = inject(ActivatedRoute);
 
   protected readonly templates = signal<Note[]>([]);
+  protected readonly build = signal('…');
   // Mimo šablonu komponenty, kde by se {{ }} vyhodnotilo
   protected readonly variablesHint = 'V textu šablony lze použít {{date}}, {{time}} a {{weekday}}; {{cursor}} označí místo kurzoru.';
 
   ngOnInit(): Promise<void> {
+    void loadBuildStamp().then((stamp) => this.build.set(stamp));
     // Zkratka ? ze seznamu otevírá přehled zkratek
     if (this.route.snapshot.fragment === 'shortcuts') {
       afterNextRender(() => this.host.querySelector<HTMLElement>('#shortcuts-heading')?.focus(), { injector: this.injector });
