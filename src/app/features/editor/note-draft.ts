@@ -63,6 +63,8 @@ export class NoteDraft {
   readonly noteId = signal<string | undefined>(undefined);
 
   private note: Note | undefined;
+  // Poslední úprava textu otevřené poznámky; updatedAt mění i připnutí nebo barva
+  private textEditedAt: string | undefined;
   // Obsah ze šablony, který se bez úpravy neukládá
   private prefill = '';
   private createdHere = false;
@@ -126,6 +128,9 @@ export class NoteDraft {
 
   private load(note: Note): void {
     this.note = note;
+    // Známá je jen u naposledy psané poznámky, jinak se bere updatedAt
+    const lastEdit = readLastEdit();
+    this.textEditedAt = lastEdit?.id === note.id ? lastEdit.editedAt : note.updatedAt;
     this.noteId.set(note.id);
     this.content.set(note.content);
     this.color.set(note.color);
@@ -134,7 +139,8 @@ export class NoteDraft {
   // Úprava po pauze v psaní uloží předchozí znění jako verzi; chyba historie ukládání nezastaví
   private async keepVersion(now: string): Promise<void> {
     const previous = this.note;
-    if (!previous?.content.trim() || Date.parse(now) - Date.parse(previous.updatedAt) < VERSION_PAUSE_MS) {
+    const edited = this.textEditedAt;
+    if (!previous?.content.trim() || (edited !== undefined && Date.parse(now) - Date.parse(edited) < VERSION_PAUSE_MS)) {
       return;
     }
     await this.versions
@@ -193,6 +199,7 @@ export class NoteDraft {
     writeLastEdit({ id: note.id, editedAt: now });
     this.createdHere ||= !this.note;
     this.note = note;
+    this.textEditedAt = now;
     this.noteId.set(note.id);
     this.prefill = '';
   }

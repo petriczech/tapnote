@@ -389,11 +389,34 @@ describe('NoteDraft', () => {
 
     it('does not keep a version while typing continues', async () => {
       await repository.put(existingNote('v', 'Původní text', ago(VERSION_PAUSE_MS - 1000)));
+      markEdited('v', ago(VERSION_PAUSE_MS - 1000));
       await draft.open('v', false);
 
       draft.update('Nový text');
       await draft.flush();
       draft.update('Nový text a ještě');
+      await draft.flush();
+
+      expect(await versionsOf()).toEqual([]);
+    });
+
+    it('measures the pause from the last text edit, not from pinning', async () => {
+      await repository.put({ ...existingNote('v', 'Původní text', ago(1000)), pinned: true });
+      markEdited('v', ago(VERSION_PAUSE_MS));
+      await draft.open('v', false);
+
+      draft.update('Nový text');
+      await draft.flush();
+
+      expect((await versionsOf()).map((version) => version.content)).toEqual(['Původní text']);
+    });
+
+    it('measures the pause from the note when the last edit was in another note', async () => {
+      await repository.put(existingNote('v', 'Původní text', ago(1000)));
+      markEdited('other', ago(VERSION_PAUSE_MS));
+      await draft.open('v', false);
+
+      draft.update('Nový text');
       await draft.flush();
 
       expect(await versionsOf()).toEqual([]);
