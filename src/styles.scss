@@ -418,6 +418,185 @@
   }
 }
 
+// Vzdušná (návrh A): klidná, hodně bílého prostoru, jeden modrý akcent
+:root[data-theme='airy'] {
+  --primary: #2457c5;
+  --on-primary: #ffffff;
+  --primary-container: #e6edfc;
+  --on-primary-container: #1b45a2;
+  --surface: #f7f8fb;
+  --surface-low: #f0f2f6;
+  --surface-high: #ffffff;
+  --on-surface: #191c23;
+  --on-surface-variant: #4f5665;
+  --outline: #5f6676;
+  --outline-variant: #e2e5ec;
+  --pin: #b4530b;
+  --error: #b3261e;
+  --title-font: var(--font);
+  --search-radius: 14px;
+  --card-radius: 16px;
+  --card-shadow: 0 1px 2px rgb(22 34 64 / 5%), 0 2px 10px rgb(22 34 64 / 5%);
+  --fab-bg: var(--primary);
+  --fab-text: var(--on-primary);
+  --fab-radius: 16px;
+  --nav-bg: #ffffff;
+  --note-yellow: #fff4c7;
+  --note-blue: #e1ebff;
+  --note-green: #dff3e2;
+  --note-red: #fde4e6;
+  --note-purple: #ece5ff;
+  --note-gray: #eceef2;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme='airy'] {
+    --primary: #8fb2ff;
+    --on-primary: #0a1633;
+    --primary-container: #1e2b47;
+    --on-primary-container: #aec7ff;
+    --surface: #111318;
+    --surface-low: #16191f;
+    --surface-high: #1a1d24;
+    --on-surface: #eceef3;
+    --on-surface-variant: #b0b6c3;
+    --outline: #8d94a3;
+    --outline-variant: #2b303a;
+    --pin: #ffb366;
+    --error: #ffb4ab;
+    --card-shadow: 0 1px 2px rgb(0 0 0 / 40%);
+    --nav-bg: #16191f;
+    --note-yellow: #3b3418;
+    --note-blue: #1e2b47;
+    --note-green: #16301f;
+    --note-red: #3a1828;
+    --note-purple: #29213f;
+    --note-gray: #232731;
+  }
+}
+
+// Zápisník (návrh C): papír a inkoust, patkové titulky, linkovaný editor, rumělkový akcent
+:root[data-theme='notebook'] {
+  --primary: #a3301a;
+  --on-primary: #fff8ef;
+  --primary-container: #f3dbd0;
+  --on-primary-container: #5a1a0c;
+  --surface: #f5f0e6;
+  --surface-low: #ebe4d5;
+  --surface-high: #fbf8f1;
+  --on-surface: #1e1a15;
+  --on-surface-variant: #4a4237;
+  --outline: #675d4f;
+  --outline-variant: #ddd3c1;
+  --pin: #a3301a;
+  --error: #b3261e;
+  --title-font: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  --editor-font: var(--title-font);
+  --title-weight: 500;
+  --title-spacing: -0.01em;
+  --search-radius: 10px;
+  --card-radius: 6px;
+  --card-shadow: 0 1px 0 rgb(60 45 20 / 8%), 0 6px 16px -10px rgb(60 45 20 / 35%);
+  --fab-bg: #1e1a15;
+  --fab-text: #f5f0e6;
+  --editor-bg: var(--surface-high);
+  --editor-lines: repeating-linear-gradient(
+    to bottom,
+    transparent 0 calc(1.55em - 1px),
+    var(--outline-variant) calc(1.55em - 1px) 1.55em
+  );
+  --note-yellow: #f4e7b6;
+  --note-blue: #dde5ef;
+  --note-green: #e0e8d0;
+  --note-red: #f3dbd0;
+  --note-purple: #e7ddeb;
+  --note-gray: #e8e2d6;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme='notebook'] {
+    --primary: #ee8d70;
+    --on-primary: #1c1a17;
+    --primary-container: #4a2a20;
+    --on-primary-container: #ffd9cc;
+    --surface: #1c1a17;
+    --surface-low: #151310;
+    --surface-high: #25221d;
+    --on-surface: #efe7d8;
+    --on-surface-variant: #cdc3b1;
+    --outline: #a69b89;
+    --outline-variant: #38332b;
+    --pin: #ee8d70;
+    --error: #ffb4ab;
+    --card-shadow: 0 1px 0 rgb(0 0 0 / 40%), 0 8px 18px -12px rgb(0 0 0 / 80%);
+    --fab-bg: #efe7d8;
+    --fab-text: #1c1a17;
+    --note-yellow: #39321f;
+    --note-blue: #232b36;
+    --note-green: #293020;
+    --note-red: #3a2620;
+    --note-purple: #312838;
+    --note-gray: #2b2823;
+  }
+}
+
+// Noir (návrh D): tmavý, prémiový, fialovo-malinový přechod; světlá varianta Porcelán
+:root[data-theme='noir'] {
+  --primary: #5a32e0;
+  --on-primary: #ffffff;
+  --primary-container: #ece6ff;
+  --on-primary-container: #3a1fa0;
+  --surface: #f6f6fa;
+  --surface-low: #ededf4;
+  --surface-high: #ffffff;
+  --on-surface: #0d0d14;
+  --on-surface-variant: #43435a;
+  --outline: #575770;
+  --outline-variant: #e1e1ea;
+  --pin: #b4530a;
+  --error: #b3261e;
+  --font: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --title-font: var(--font);
+  --title-spacing: -0.03em;
+  --card-radius: 16px;
+  --card-shadow: 0 1px 2px rgb(15 15 35 / 6%), 0 8px 24px -8px rgb(15 15 35 / 14%);
+  // Bílý text má kontrast na obou koncích přechodu
+  --fab-bg: linear-gradient(120deg, #6d4aff, #c81e6a);
+  --fab-text: #ffffff;
+  --note-yellow: #fff0d6;
+  --note-blue: #dcefff;
+  --note-green: #dcf5ea;
+  --note-red: #ffe3ee;
+  --note-purple: #ece6ff;
+  --note-gray: #eeeef3;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme='noir'] {
+    --primary: #b7a6ff;
+    --on-primary: #1a0f40;
+    --primary-container: #2a2150;
+    --on-primary-container: #ddd4ff;
+    --surface: #0b0b10;
+    --surface-low: #101017;
+    --surface-high: #13131b;
+    --on-surface: #f4f4fa;
+    --on-surface-variant: #b4b4c8;
+    --outline: #9a9ab2;
+    --outline-variant: #26262f;
+    --pin: #ffb547;
+    --error: #ff8a80;
+    --card-shadow: 0 1px 0 rgb(255 255 255 / 4%) inset, 0 10px 30px -12px rgb(0 0 0 / 70%);
+    --nav-bg: #101017;
+    --note-yellow: #3a2a10;
+    --note-blue: #0f2a40;
+    --note-green: #0f3326;
+    --note-red: #3a1426;
+    --note-purple: #241d45;
+    --note-gray: #1c1c26;
+  }
+}
+
 body {
   margin: 0;
   background: var(--surface);

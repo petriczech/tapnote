@@ -8,6 +8,9 @@ export const THEMES = [
   { id: 'paper', label: 'Papír', preview: ['#f7f1e3', '#fffaf0', '#b4441c'] },
   { id: 'graphite', label: 'Grafit', preview: ['#f0f0f0', '#ffffff', '#0d7a5f'] },
   { id: 'white', label: 'Bílá', preview: ['#ffffff', '#f4f4f5', '#5b2ee8'] },
+  { id: 'airy', label: 'Vzdušná', preview: ['#f7f8fb', '#ffffff', '#2457c5'] },
+  { id: 'notebook', label: 'Zápisník', preview: ['#f5f0e6', '#fbf8f1', '#a3301a'] },
+  { id: 'noir', label: 'Noir', preview: ['#f6f6fa', '#ffffff', '#5a32e0'] },
 ] as const;
 
 export type ThemeId = (typeof THEMES)[number]['id'];
