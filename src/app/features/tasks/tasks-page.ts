@@ -360,6 +360,9 @@ export class TasksPage implements OnInit {
       if (!task.done && rect) {
         this.celebrate(rect.left + rect.width / 2, rect.top + rect.height / 2);
       }
+    } else if (event?.target instanceof HTMLInputElement) {
+      // Při chybě uložení se zaškrtnutí vrátí podle uloženého stavu
+      event.target.checked = task.done;
     }
     this.focusTask(task.id, '.check', index);
   }

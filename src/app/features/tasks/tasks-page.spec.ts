@@ -207,6 +207,18 @@ describe('TasksPage', () => {
     expect(root.querySelector('summary')?.textContent?.trim()).toBe('Hotové (2)');
   });
 
+  it('unticks the checkbox and reports the error when saving fails', async () => {
+    vi.spyOn(repository, 'update').mockRejectedValue(new Error('update failed'));
+    await render();
+    const check = root.querySelector<HTMLInputElement>('li[data-id="a"] .check') as HTMLInputElement;
+
+    check.click();
+    await vi.waitFor(() => expect(root.querySelector('.error')?.textContent?.trim()).toBe('Akci se nepodařilo dokončit.'));
+
+    await vi.waitFor(() => expect(check.checked).toBe(false));
+    expect(repository.tasks.get('a')?.done).toBe(false);
+  });
+
   it('shows confetti briefly after completing a task', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     onTestFinished(() => {

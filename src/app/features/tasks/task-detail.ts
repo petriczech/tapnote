@@ -35,7 +35,7 @@ const TEXT_DEBOUNCE_MS = 400;
     @if (task(); as task) {
       <h1 class="visually-hidden" tabindex="-1">Detail úkolu</h1>
       <div class="head">
-        <input type="checkbox" class="check" aria-label="Hotovo" [checked]="task.done" (change)="toggleDone()" />
+        <input type="checkbox" class="check" aria-label="Hotovo" [checked]="task.done" (change)="toggleDone($event)" />
         <textarea
           #title
           class="title"
@@ -162,8 +162,12 @@ export class TaskDetail implements OnInit {
     afterNextRender(() => this.host.querySelector<HTMLElement>('h1')?.focus(), { injector: this.injector });
   }
 
-  protected toggleDone(): Promise<void> {
-    return this.save((task) => ({ done: !task.done, completedAt: task.done ? undefined : new Date().toISOString() }));
+  protected async toggleDone(event: Event): Promise<void> {
+    await this.save((task) => ({ done: !task.done, completedAt: task.done ? undefined : new Date().toISOString() }));
+    // Při chybě uložení se zaškrtnutí vrátí podle uloženého úkolu
+    if (this.failed() && event.target instanceof HTMLInputElement) {
+      event.target.checked = this.task()?.done ?? false;
+    }
   }
 
   protected toggleImportant(): Promise<void> {

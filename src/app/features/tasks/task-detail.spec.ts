@@ -90,6 +90,19 @@ describe('TaskDetail', () => {
     await vi.waitFor(() => expect(stored().note).toBe('Kohoutek kape, vzít klíč'));
   });
 
+  it('unticks the checkbox and reports the error when saving fails', async () => {
+    vi.spyOn(repository, 'update').mockRejectedValue(new Error('update failed'));
+    await render();
+    await vi.waitFor(() => expect(root.querySelector('.head .check')).not.toBeNull());
+    const check = root.querySelector<HTMLInputElement>('.head .check') as HTMLInputElement;
+
+    check.click();
+    await vi.waitFor(() => expect(root.querySelector('.status')?.textContent?.trim()).toBe('Změnu se nepodařilo uložit.'));
+
+    await vi.waitFor(() => expect(check.checked).toBe(false));
+    expect(stored().done).toBe(false);
+  });
+
   it('does not lose a quick second change of the steps', async () => {
     await render();
     await vi.waitFor(() => expect(root.querySelector('input[aria-label="Najít číslo"]')).not.toBeNull());
