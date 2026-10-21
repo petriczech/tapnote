@@ -27,6 +27,11 @@ export class NoteActions {
     return this.change(note, { color });
   }
 
+  // undefined = bez kategorie (pole se odstraní)
+  setCategory(note: Note, categoryId: string | undefined): Promise<void> {
+    return this.change(note, { categoryId });
+  }
+
   trash(note: Note): Promise<void> {
     return this.change(note, { deletedAt: new Date().toISOString() });
   }

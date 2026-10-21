@@ -8,6 +8,8 @@ import { NotesRepository } from '../../core/storage/notes-repository';
 import { InMemoryNotesRepository } from '../../core/storage/testing/in-memory-notes-repository';
 import { createTask } from '../../core/model/task';
 import { TasksRepository } from '../../core/storage/tasks-repository';
+import { CategoriesRepository } from '../../core/storage/categories-repository';
+import { InMemoryCategoriesRepository } from '../../core/storage/testing/in-memory-categories-repository';
 import { InMemoryTasksRepository } from '../../core/storage/testing/in-memory-tasks-repository';
 import { LAYOUT_KEY, NotesList, URL_DEBOUNCE_MS } from './notes-list';
 
@@ -18,10 +20,11 @@ function note(id: string, overrides: Partial<Note> = {}): Note {
 describe('NotesList', () => {
   let repository: InMemoryNotesRepository;
   let tasks: InMemoryTasksRepository;
+  let categories: InMemoryCategoriesRepository;
   let fixture: ComponentFixture<NotesList>;
   let root: HTMLElement;
 
-  async function render(inputs: { view?: string; tag?: string; q?: string } = {}): Promise<void> {
+  async function render(inputs: { view?: string; tag?: string; q?: string; category?: string } = {}): Promise<void> {
     fixture = TestBed.createComponent(NotesList);
     root = fixture.nativeElement;
     Object.entries(inputs).forEach(([name, value]) => fixture.componentRef.setInput(name, value));
@@ -41,6 +44,7 @@ describe('NotesList', () => {
   beforeEach(async () => {
     repository = new InMemoryNotesRepository();
     tasks = new InMemoryTasksRepository();
+    categories = new InMemoryCategoriesRepository();
     await repository.bulkPut([
       note('old', { updatedAt: '2026-10-15T10:00:00.000Z', tags: ['domov'], content: 'Poznámka old\nmléko' }),
       note('new', { updatedAt: '2026-10-15T12:00:00.000Z', tags: ['práce'] }),
@@ -54,6 +58,7 @@ describe('NotesList', () => {
         provideRouter([]),
         { provide: NotesRepository, useValue: repository },
         { provide: TasksRepository, useValue: tasks },
+        { provide: CategoriesRepository, useValue: categories },
       ],
     });
   });
@@ -125,6 +130,77 @@ describe('NotesList', () => {
     await fixture.whenStable();
 
     expect([...root.querySelectorAll('li[data-task] .title')].map((title) => title.textContent?.trim())).toEqual(expected);
+  });
+
+  describe('categories', () => {
+    beforeEach(async () => {
+      await categories.put({
+        id: 'home',
+        name: 'Domov',
+        icon: 'home',
+        color: 'orange',
+        order: 0,
+        createdAt: '2026-10-15T10:00:00.000Z',
+        updatedAt: '2026-10-15T10:00:00.000Z',
+      });
+      await repository.update('old', { categoryId: 'home' });
+    });
+
+    it('shows the category on the card and filters by it', async () => {
+      await render({ category: 'home' });
+
+      expect(titles()).toEqual(['Poznámka old']);
+      expect(root.querySelector('li[data-id="old"] .note-cat')?.textContent?.trim()).toBe('Domov');
+      expect(root.querySelector('nav[aria-label="Kategorie"] [aria-current]')?.textContent?.trim()).toBe('Domov');
+    });
+
+    it('ignores an unknown category and explains an empty one', async () => {
+      await render({ category: 'missing' });
+      expect(titles()).toEqual(['Poznámka new', 'Bez názvu', 'Poznámka old']);
+
+      fixture.componentRef.setInput('category', 'home');
+      fixture.componentRef.setInput('view', 'archive');
+      await fixture.whenStable();
+      expect(root.querySelector('.empty')?.textContent?.trim()).toBe('Žádné poznámky v kategorii Domov');
+    });
+
+    it('filters trashed tasks by the category too', async () => {
+      await tasks.bulkPut([
+        { ...createTask('t1', 'Zavolat', '2026-10-15T10:00:00.000Z'), categoryId: 'home', deletedAt: '2026-10-16T10:00:00.000Z' },
+        { ...createTask('t2', 'Nakoupit', '2026-10-15T10:00:00.000Z'), deletedAt: '2026-10-17T10:00:00.000Z' },
+      ]);
+      await render({ view: 'trash', category: 'home' });
+      await vi.waitFor(() => expect(root.querySelectorAll('li[data-task]').length).toBe(1));
+
+      expect(root.querySelector('li[data-task] .title')?.textContent?.trim()).toBe('Zavolat');
+    });
+
+    it('keeps the category in tag links', async () => {
+      await render({ category: 'home' });
+
+      expect(root.querySelector('nav[aria-label="Tagy"] a')?.getAttribute('href')).toContain('category=home');
+    });
+
+    it('shows notes when categories fail to load', async () => {
+      vi.spyOn(categories, 'getAll').mockRejectedValue(new Error('db'));
+      await render();
+
+      expect(titles()).toEqual(['Poznámka new', 'Bez názvu', 'Poznámka old']);
+      expect(root.querySelector('[role="alert"]')).toBeNull();
+    });
+
+    it('assigns and removes a category from the menu', async () => {
+      await render();
+      const pick = () => root.querySelector<HTMLButtonElement>('li[data-id="new"] .menu-categories button') as HTMLButtonElement;
+
+      expect(pick().getAttribute('aria-pressed')).toBe('false');
+      pick().click();
+      await vi.waitFor(() => expect(repository.notes.get('new')?.categoryId).toBe('home'));
+      await fixture.whenStable();
+
+      pick().click();
+      await vi.waitFor(() => expect('categoryId' in (repository.notes.get('new') ?? {})).toBe(false));
+    });
   });
 
   it('does not show tasks outside the trash', async () => {

@@ -20,6 +20,9 @@ import { collectTags, isNotesView, queryNotes, snippet, templatesOf } from '../.
 import { NoteActions } from '../../core/notes/note-actions';
 import { createNoteSearch, normalizeTerm, parseQuery } from '../../core/search/note-search';
 import { NOTE_COLORS, NoteColor, noteColorVar } from '../../core/model/note-colors';
+import { Category } from '../../core/model/category';
+import { categoryIconPath } from '../../core/model/category-icons';
+import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { isPlainKey, readShortcutsEnabled } from '../../core/shortcuts/shortcuts';
 import { NotesRepository } from '../../core/storage/notes-repository';
 import { Task } from '../../core/model/task';
@@ -30,7 +33,7 @@ import { VIEWS } from './views';
 
 export const URL_DEBOUNCE_MS = 300;
 
-type NoteAction = 'pin' | 'archive' | 'unarchive' | 'template' | 'color' | 'trash' | 'restore' | 'delete';
+type NoteAction = 'pin' | 'archive' | 'unarchive' | 'template' | 'color' | 'category' | 'trash' | 'restore' | 'delete';
 
 // Rozložení seznamu v zařízení: 'grid' nebo 'list'
 export const LAYOUT_KEY = 'tapnote.layout';
@@ -89,12 +92,28 @@ function readLayout(): string | null {
           (keydown.escape)="onQuery('')"
         />
       </div>
+      @if (categories().length > 0) {
+        <nav class="chips categories" aria-label="Kategorie">
+          @for (item of categories(); track item.id) {
+            <a
+              routerLink="/notes"
+              queryParamsHandling="merge"
+              [queryParams]="{ category: item.id === category() ? null : item.id }"
+              [style.--cat]="catVar(item)"
+              [attr.aria-current]="item.id === category() ? 'true' : null"
+            >
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconPath(item.icon)" /></svg>
+              {{ item.name }}
+            </a>
+          }
+        </nav>
+      }
       @if (tags().length > 0) {
         <nav class="chips" aria-label="Tagy">
           @for (name of tags(); track name) {
             <a
               routerLink="/notes"
-              [queryParams]="{ view: viewParam(), tag: name === tag() ? null : name, q: queryParam() }"
+              [queryParams]="{ view: viewParam(), tag: name === tag() ? null : name, q: queryParam(), category: category() ?? null }"
               [attr.aria-current]="name === tag() ? 'true' : null"
               >#{{ name }}</a
             >
@@ -120,13 +139,13 @@ function readLayout(): string | null {
       <p class="error" role="alert">Akci se nepodařilo dokončit.</p>
     }
 
-    @if (loadFailed() || (items().length === 0 && trashedTasks().length === 0)) {
+    @if (loadFailed() || (loaded() && items().length === 0 && trashedTasks().length === 0)) {
       <div class="empty-state">
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="current().icon" /></svg>
         @if (loadFailed()) {
           <p class="empty" role="alert">Poznámky se nepodařilo načíst.</p>
         } @else {
-          <p class="empty">{{ queryParam() ? 'Nic nenalezeno pro „' + query().trim() + '“' : tag() ? 'Žádné poznámky s tagem #' + tag() : current().empty }}</p>
+          <p class="empty">{{ queryParam() ? 'Nic nenalezeno pro „' + query().trim() + '“' : tag() ? 'Žádné poznámky s tagem #' + tag() : activeCategory() ? 'Žádné poznámky v kategorii ' + activeCategory()!.name : current().empty }}</p>
         }
       </div>
     } @else {
@@ -164,6 +183,12 @@ function readLayout(): string | null {
                   </span>
                   @if (item.snippet) {
                     <span class="snippet">{{ item.snippet }}</span>
+                  }
+                  @if (categoryOf(item.note); as cat) {
+                    <span class="note-cat" [style.--cat]="catVar(cat)">
+                      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconPath(cat.icon)" /></svg>
+                      {{ cat.name }}
+                    </span>
                   }
                   @if (item.note.tags.length > 0) {
                     <span class="note-tags">
@@ -220,6 +245,21 @@ function readLayout(): string | null {
                       ></button>
                     }
                   </div>
+                  @if (categories().length > 0) {
+                    <div class="menu-categories" role="group" aria-label="Kategorie">
+                      @for (cat of categories(); track cat.id) {
+                        <button
+                          type="button"
+                          [style.--cat]="catVar(cat)"
+                          [attr.aria-pressed]="item.note.categoryId === cat.id"
+                          (click)="run(item.note, 'category', menu, undefined, item.note.categoryId === cat.id ? undefined : cat.id)"
+                        >
+                          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconPath(cat.icon)" /></svg>
+                          {{ cat.name }}
+                        </button>
+                      }
+                    </div>
+                  }
                 }
               </div>
             </li>
@@ -361,6 +401,53 @@ function readLayout(): string | null {
       color: var(--on-surface-variant);
       font-size: 0.875rem;
       text-decoration: none;
+    }
+
+    .chips.categories .icon {
+      width: 18px;
+      height: 18px;
+      margin-right: 4px;
+      color: var(--cat);
+    }
+
+    .chips a[aria-current] .icon {
+      color: inherit;
+    }
+
+    .note-cat {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 2px;
+      color: var(--on-surface-variant);
+      font-size: 0.8125rem;
+      font-weight: 600;
+    }
+
+    .note-cat .icon {
+      width: 16px;
+      height: 16px;
+      color: var(--cat);
+    }
+
+    .menu-categories {
+      border-top: 1px solid var(--outline-variant);
+      margin-top: 4px;
+      padding-top: 4px;
+    }
+
+    .menu .menu-categories button {
+      gap: 12px;
+    }
+
+    .menu-categories .icon {
+      color: var(--cat);
+    }
+
+    .menu .menu-categories button[aria-pressed='true'] {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      font-weight: 700;
     }
 
     .chips a[aria-current] {
@@ -643,9 +730,12 @@ function readLayout(): string | null {
 export class NotesList implements OnInit {
   readonly view = input<string>();
   readonly tag = input<string>();
+  // Filtr podle kategorie z ?category=
+  readonly category = input<string>();
   readonly q = input<string>();
 
   private readonly repository = inject(NotesRepository);
+  private readonly categoriesRepository = inject(CategoriesRepository);
   private readonly tasksRepository = inject(TasksRepository);
   private readonly taskActions = inject(TaskActions);
   private readonly actions = inject(NoteActions);
@@ -660,6 +750,8 @@ export class NotesList implements OnInit {
 
   protected readonly notes = signal<Note[]>([]);
   private readonly tasks = signal<Task[]>([]);
+  // Prázdný stav až po načtení, ať při otevření neproblikne
+  protected readonly loaded = signal(false);
   protected readonly loadFailed = signal(false);
   // Text pole hledání, do URL se zapisuje se zpožděním
   protected readonly query = signal('');
@@ -682,11 +774,18 @@ export class NotesList implements OnInit {
   protected readonly tags = computed(() => collectTags(this.notes(), this.current().view));
   protected readonly templates = computed(() => templatesOf(this.notes()));
   protected readonly colors = NOTE_COLORS;
+  protected readonly categories = signal<Category[]>([]);
+  protected readonly iconPath = categoryIconPath;
+  // Neznámé id kategorie (smazaná) filtr nepoužije
+  protected readonly activeCategory = computed(() => this.categories().find((item) => item.id === this.category()));
   protected readonly colorVar = noteColorVar;
   protected readonly grid = signal(readLayout() === 'grid');
   private readonly search = computed(() => createNoteSearch(this.notes()));
   protected readonly items = computed(() => {
-    const notes = queryNotes(this.notes(), this.current().view, this.tag());
+    const category = this.activeCategory();
+    const notes = queryNotes(this.notes(), this.current().view, this.tag()).filter(
+      (note) => !category || note.categoryId === category.id,
+    );
     const query = this.queryParam();
     return (query ? this.search()(query, notes) : notes).map((note) => ({
       note,
@@ -827,7 +926,15 @@ export class NotesList implements OnInit {
     items[Math.max(0, Math.min(index, items.length - 1))]?.querySelector<HTMLElement>('a.body, .actions')?.focus();
   }
 
-  protected async run(note: Note, action: NoteAction, menu: HTMLElement, color?: NoteColor): Promise<void> {
+  protected categoryOf(note: Note): Category | undefined {
+    return this.categories().find((item) => item.id === note.categoryId);
+  }
+
+  protected catVar(category: Category): string {
+    return `var(--c-${category.color})`;
+  }
+
+  protected async run(note: Note, action: NoteAction, menu: HTMLElement, color?: NoteColor, categoryId?: string): Promise<void> {
     if (action === 'delete' && !confirm(`Smazat poznámku „${note.title || 'Bez názvu'}“ trvale?`)) {
       return;
     }
@@ -837,7 +944,7 @@ export class NotesList implements OnInit {
     const index = this.items().findIndex((item) => item.note.id === note.id);
     this.actionFailed.set(false);
     try {
-      await this.perform(note, action, color);
+      await this.perform(note, action, color, categoryId);
     } catch {
       this.actionFailed.set(true);
     }
@@ -845,7 +952,7 @@ export class NotesList implements OnInit {
     afterNextRender(() => this.restoreFocus(note.id, index, focusLink), { injector: this.injector });
   }
 
-  private perform(note: Note, action: NoteAction, color?: NoteColor): Promise<void> {
+  private perform(note: Note, action: NoteAction, color?: NoteColor, categoryId?: string): Promise<void> {
     switch (action) {
       case 'pin':
         return this.actions.togglePin(note);
@@ -856,6 +963,8 @@ export class NotesList implements OnInit {
         return this.actions.setTemplate(note, true);
       case 'color':
         return this.actions.setColor(note, color);
+      case 'category':
+        return this.actions.setCategory(note, categoryId);
       case 'trash':
         return this.actions.trash(note);
       case 'restore':
@@ -866,12 +975,17 @@ export class NotesList implements OnInit {
   }
 
   private async load(): Promise<void> {
-    try {
-      this.notes.set(await this.repository.getAll());
-      this.loadFailed.set(false);
-    } catch {
-      this.loadFailed.set(true);
+    // Kategorie a poznámky najednou, aby filtr neproblikl nefiltrovaným seznamem
+    const [categories, notes] = await Promise.all([
+      this.categoriesRepository.getAll().catch(() => this.categories()),
+      this.repository.getAll().catch(() => undefined),
+    ]);
+    this.categories.set(categories);
+    if (notes) {
+      this.notes.set(notes);
     }
+    this.loadFailed.set(!notes);
+    this.loaded.set(true);
     // Úkoly jen pro koš; chyba nebrání zobrazení poznámek
     this.tasks.set(await this.tasksRepository.getAll().catch(() => this.tasks()));
   }
@@ -888,8 +1002,9 @@ export class NotesList implements OnInit {
       const titleWords = normalizeTerm(title).split(/[^\p{L}\p{N}]+/u);
       return words.every((word) => titleWords.some((titleWord) => titleWord.startsWith(word)));
     };
+    const category = this.activeCategory();
     return this.tasks()
-      .filter((task) => task.deletedAt && matches(task.title))
+      .filter((task) => task.deletedAt && matches(task.title) && (!category || task.categoryId === category.id))
       .sort((a, b) => (b.deletedAt ?? '').localeCompare(a.deletedAt ?? ''));
   });
 
