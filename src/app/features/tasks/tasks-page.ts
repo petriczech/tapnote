@@ -1,5 +1,5 @@
 import { afterNextRender, Component, computed, DestroyRef, ElementRef, inject, Injector, input, OnInit, signal } from '@angular/core';
-import { NgOptimizedImage, NgTemplateOutlet } from '@angular/common';
+import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Category } from '../../core/model/category';
 import { categoryIconPath } from '../../core/model/category-icons';
@@ -17,17 +17,20 @@ const CONFETTI_MS = 800;
 
 @Component({
   selector: 'tn-tasks-page',
-  imports: [BottomNav, Confetti, NgOptimizedImage, NgTemplateOutlet, RouterLink],
+  imports: [BottomNav, Confetti, NgTemplateOutlet, RouterLink],
   host: { '(document:visibilitychange)': 'refreshToday()' },
   template: `
     <header class="header">
       <div class="app-bar">
-        <h1 tabindex="-1"><img class="app-logo" ngSrc="icons/icon-96x96.png" width="32" height="32" alt="" />{{ current().label }}</h1>
+        <div>
+          <p class="eyebrow">{{ dateLine() }}</p>
+          <h1 tabindex="-1">{{ heading()[0] }}@if (heading()[1]) {<span class="title-accent">{{ heading()[1] }}</span>}</h1>
+        </div>
         @if (progress().total > 0) {
           <span class="ring" role="img" [attr.aria-label]="'Hotovo ' + progress().done + ' z ' + progress().total">
-            <svg viewBox="0 0 36 36" aria-hidden="true">
-              <circle class="track" cx="18" cy="18" r="15" pathLength="100" />
-              <circle class="value" cx="18" cy="18" r="15" pathLength="100" [attr.stroke-dasharray]="progress().dash + ' 100'" />
+            <svg viewBox="0 0 52 52" aria-hidden="true">
+              <circle class="track" cx="26" cy="26" r="22" pathLength="100" />
+              <circle class="value" cx="26" cy="26" r="22" pathLength="100" [attr.stroke-dasharray]="progress().dash + ' 100'" />
             </svg>
             <span aria-hidden="true">{{ progress().done }}/{{ progress().total }}</span>
           </span>
@@ -135,7 +138,13 @@ const CONFETTI_MS = 800;
     }
 
     <ng-template #row let-task>
-      <li [attr.data-id]="task.id" [class.done]="task.done" [style.--cat]="catVar(categoryOf(task))">
+      <li
+        [attr.data-id]="task.id"
+        [class.done]="task.done"
+        [class.hot]="!task.done && task.important"
+        [class.late]="!task.done && task.dueDate && task.dueDate < today()"
+        [style.--cat]="catVar(categoryOf(task))"
+      >
         <input type="checkbox" class="check" [checked]="task.done" [attr.aria-label]="'Hotovo: ' + task.title" (change)="toggleDone(task, $event)" />
         <div class="body">
           <a class="title" [routerLink]="['/task', task.id]">{{ task.title }}</a>
@@ -147,7 +156,9 @@ const CONFETTI_MS = 800;
                 }}</span>
               }
               @if (categoryOf(task); as item) {
-                <span><span class="dot"></span>{{ item.name }}</span>
+                <span class="cat">
+                  <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconPath(item.icon)" /></svg>{{ item.name }}
+                </span>
               }
               @if (task.steps.length > 0) {
                 <span>{{ doneSteps(task) }}/{{ task.steps.length }}</span>
@@ -226,9 +237,13 @@ export class TasksPage implements OnInit {
   // Místo konfet po dokončení úkolu
   protected readonly burst = signal<{ x: number; y: number } | undefined>(undefined);
   private burstTimer?: ReturnType<typeof setTimeout>;
+  private midnightTimer?: ReturnType<typeof setTimeout>;
 
   constructor() {
-    inject(DestroyRef).onDestroy(() => clearTimeout(this.burstTimer));
+    inject(DestroyRef).onDestroy(() => {
+      clearTimeout(this.burstTimer);
+      clearTimeout(this.midnightTimer);
+    });
   }
   protected readonly today = signal(localDate(new Date()));
   protected readonly tomorrow = computed(() => addDays(this.today(), 1));
@@ -243,6 +258,17 @@ export class TasksPage implements OnInit {
   protected readonly current = computed(() => {
     const view = this.view();
     return TASK_VIEWS.find((item) => item.view === (isTasksView(view) ? view : 'today')) ?? TASK_VIEWS[0];
+  });
+  // Nadpis: poslední slovo víceslovného názvu dostane akcent („Můj den“)
+  protected readonly heading = computed(() => {
+    const label = this.current().label;
+    const space = label.lastIndexOf(' ') + 1;
+    return space ? [label.slice(0, space), label.slice(space)] : [label, ''];
+  });
+  // Datum nad nadpisem („úterý 20. října“, verzálky dodá CSS)
+  protected readonly dateLine = computed(() => {
+    const [year, month, day] = this.today().split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString('cs-CZ', { weekday: 'long', day: 'numeric', month: 'long' });
   });
   protected readonly iconPath = categoryIconPath;
   protected readonly filter = computed(() => this.categories().find((item) => item.id === this.category()));
@@ -264,6 +290,7 @@ export class TasksPage implements OnInit {
   });
 
   ngOnInit(): Promise<void> {
+    this.refreshToday();
     return this.load();
   }
 
@@ -381,9 +408,12 @@ export class TasksPage implements OnInit {
     this.burstTimer = setTimeout(() => this.burst.set(undefined), CONFETTI_MS);
   }
 
-  // Po návratu do aplikace (třeba druhý den) se přepočítá dnešek
+  // Po návratu do aplikace (třeba druhý den) a o půlnoci se přepočítá dnešek
   protected refreshToday(): void {
-    this.today.set(localDate(new Date()));
+    const now = new Date();
+    this.today.set(localDate(now));
+    clearTimeout(this.midnightTimer);
+    this.midnightTimer = setTimeout(() => this.refreshToday(), new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime());
   }
 
   private async run(action: () => Promise<unknown>): Promise<boolean> {

@@ -257,7 +257,7 @@ Hlavní vzhled je návrh D „Tapnote Noir“ (`.tmp/mockup/soutez/D-dark.png`, 
 2. ✅ **Režim světlý/tmavý/systém:** nový atribut `data-scheme` vedle `data-theme`, tmavé tokeny platí pro media query i atribut, inline skript v `index.html` a `theme-color`; přepínač v Nastavení
 3. ✅ **Vzhledy:** převod uložených voleb, dlaždice motivů jako v D, přepínač „Ambientní přechody“ (`data-ambient`, jen Noir)
 4. ✅ **Shell:** plovoucí skleněná spodní lišta (radius 24, `env(safe-area-inset-bottom)`), ikony Phosphor Regular v liště a panelu nástrojů (Fill jen hvězda a špendlík), FAB „Nová“ s `--grad` místo `--grad-warm` (kontrast)
-5. **Úkoly – Můj den:** záhlaví s datem a prstencem, čipy, pole přidání, řádky úkolů, Hotové s „dnes 3 · včera 1“
+5. ✅ **Úkoly – Můj den:** záhlaví s datem a prstencem, čipy, pole přidání, řádky úkolů, Hotové s „dnes 3 · včera 1“
 6. **Poznámky / Archiv / Koš:** mřížka s barevnými hranami karet, náhled checklistu a „4/7“ na kartě, ⋮ menu zůstává (zkratky P/A/Delete)
 7. **Editor – rozvržení:** horní lišta (zpět, Uloženo, Checklist, Hotovo), meta řádek (kategorie, připnuto, upraveno), proužek postupu checklistu, „+ Přidat položku“
 8. **Editor – spodní panel nástrojů:** Checklist, Tag, Barva, ⋯ (Historie se přesune sem z horní lišty)

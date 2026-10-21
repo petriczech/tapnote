@@ -8,7 +8,7 @@
   align-items: center;
   justify-content: space-between;
   min-height: 64px;
-  padding: 0 16px;
+  padding: 8px 16px 0;
 }
 
 h1 {
@@ -28,8 +28,9 @@ h1:focus:not(:focus-visible) {
   position: relative;
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
+  font-family: var(--mono);
   font-size: 0.75rem;
   font-weight: 700;
 }
@@ -42,7 +43,7 @@ h1:focus:not(:focus-visible) {
 
 .ring circle {
   fill: none;
-  stroke-width: 3.5;
+  stroke-width: 5;
 }
 
 .ring .track {
@@ -50,59 +51,46 @@ h1:focus:not(:focus-visible) {
 }
 
 .ring .value {
-  stroke: var(--primary);
+  stroke: var(--ring);
   stroke-linecap: round;
 }
 
-.views {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding: 0 16px 12px;
-  scrollbar-width: none;
-}
-
-.views a {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 6px;
-  min-height: 40px;
-  padding: 0 14px;
-  border: 1px solid var(--outline-variant);
-  border-radius: var(--chip-radius);
-  background: var(--card-bg);
-  color: var(--on-surface);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.views a[aria-current] {
-  border-color: transparent;
-  background: var(--primary);
-  color: var(--on-primary);
-}
-
+.views,
 .filters {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   overflow-x: auto;
   padding: 0 16px 12px;
   scrollbar-width: none;
 }
 
+.views {
+  padding-top: 12px;
+}
+
+// Čipy pohledů a kategorií: skleněné, aktivní pohled s přechodem
+.views a,
 .filters a {
   display: inline-flex;
   flex: none;
   align-items: center;
   gap: 6px;
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 12px;
-  border: 1px solid var(--outline-variant);
-  border-radius: var(--chip-radius);
-  color: var(--on-surface-variant);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  background: var(--glass);
+  color: var(--on-surface);
   font-size: 0.875rem;
+  font-weight: 500;
   text-decoration: none;
+}
+
+.views a[aria-current] {
+  border-color: transparent;
+  background: var(--grad);
+  color: var(--on-grad);
+  font-weight: 600;
 }
 
 .filters .icon {
@@ -128,11 +116,10 @@ h1:focus:not(:focus-visible) {
   color: var(--cat);
 }
 
+// Počet bez průhlednosti: barva textu čipu drží kontrast ve všech vzhledech
 .count {
-  color: inherit;
+  font-family: var(--mono);
   font-size: 0.8125rem;
-  font-weight: 500;
-  opacity: 0.85;
 }
 
 .add {
@@ -175,9 +162,9 @@ h1:focus:not(:focus-visible) {
   width: 44px;
   height: 44px;
   border: 0;
-  border-radius: 50%;
-  background: var(--primary);
-  color: var(--on-primary);
+  border-radius: 13px;
+  background: var(--grad);
+  color: var(--on-grad);
   cursor: pointer;
 }
 
@@ -188,22 +175,22 @@ h1:focus:not(:focus-visible) {
 .quick {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 10px 16px 4px;
+  gap: 6px;
+  padding: 8px 16px 4px;
 }
 
 .chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 12px;
-  border: 1px solid var(--outline-variant);
-  border-radius: var(--chip-radius);
+  border: 1px dashed var(--outline);
+  border-radius: 12px;
   background: none;
   color: var(--on-surface-variant);
   font: inherit;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   cursor: pointer;
 }
 
@@ -255,13 +242,17 @@ h1:focus:not(:focus-visible) {
   color: var(--on-surface-variant);
 }
 
-.dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  margin-right: 4px;
-  border-radius: 50%;
-  background: var(--cat, var(--outline));
+// Kategorie v řádku: malá ikona v barvě kategorie bez dlaždice (zklidněný řádek)
+.cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cat .icon {
+  width: 16px;
+  height: 16px;
+  color: var(--cat);
 }
 
 .error {
@@ -291,31 +282,61 @@ li {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 4px;
   min-height: 56px;
-  padding: 6px 4px 6px 14px;
+  padding: 4px;
   border: 1px solid var(--card-border);
   border-radius: var(--card-radius);
   background: var(--card-bg);
   box-shadow: var(--card-shadow);
 }
 
-// Kroužek hotovo v barvě kategorie
+// Proužek vlevo u důležitých a prošlých (jako v D)
+li.hot::before,
+li.late::before {
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  left: 0;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--grad);
+  content: '';
+}
+
+li.late::before {
+  background: var(--error);
+}
+
+// Kroužek hotovo v barvě kategorie (24 px) uprostřed cíle 44 px
 .check {
+  --c: var(--cat, var(--primary));
+
   flex: none;
-  width: 24px;
-  height: 24px;
+  width: 44px;
+  height: 44px;
   margin: 0;
-  border: 2px solid var(--cat, var(--primary));
   border-radius: 50%;
+  background: radial-gradient(circle, transparent 9.5px, var(--c) 10px 11.5px, transparent 12px);
   appearance: none;
   cursor: pointer;
 }
 
 .check:checked {
-  background: var(--cat, var(--primary))
+  background:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='white' d='M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E")
-    center / 16px no-repeat;
+      center / 16px no-repeat,
+    radial-gradient(circle, var(--c) 11.5px, transparent 12px);
+}
+
+// Ve vysokém kontrastu se kroužek kreslí systémovou barvou textu (přechod by se jinak zahodil)
+@media (forced-colors: active) {
+  .check {
+    --c: CanvasText;
+
+    forced-color-adjust: none;
+    outline-color: Highlight;
+  }
 }
 
 .body {
@@ -328,7 +349,7 @@ li {
 
 .title {
   color: inherit;
-  font-weight: 600;
+  font-weight: 500;
   text-decoration: none;
   overflow-wrap: anywhere;
 }
@@ -381,18 +402,21 @@ li.done .title {
 }
 
 .done-section {
-  margin-top: 16px;
+  margin-top: 18px;
 }
 
+// Hotové jako skleněný řádek
 summary {
   display: flex;
   align-items: center;
-  min-height: 44px;
+  min-height: 48px;
   margin: 0 16px;
-  padding: 0 12px;
-  border-radius: var(--radius-m);
-  background: var(--surface-low);
-  font-weight: 700;
+  padding: 0 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  background: var(--glass);
+  font-size: 0.875rem;
+  font-weight: 600;
   cursor: pointer;
 }
 

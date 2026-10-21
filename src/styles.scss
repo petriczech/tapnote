@@ -80,6 +80,13 @@
   --on-grad: var(--on-primary);
   // Proužek aktivní záložky lišty
   --nav-pip: var(--grad);
+  // Sklo jen v Noiru; ostatní vzhledy mají plné panely
+  --glass: var(--surface-high);
+  --glass-strong: var(--surface-high);
+  --glass-border: var(--outline-variant);
+  // Akcentované slovo nadpisu: přechod jen v Noiru, jinde plná primary
+  --title-grad: none;
+  --title-accent: var(--primary);
 
   // Písmo a tvary, které se mezi vzhledy liší
   --font: 'Geist', system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -196,6 +203,9 @@
   --grad: linear-gradient(120deg, #6d4aff, #9a35d6 50%, #c81e6a);
   --on-grad: #ffffff;
   --ring: #6d4aff;
+  // Světlý přechod nadpisu končí na #c2410c (kontrast velkého textu)
+  --title-grad: linear-gradient(120deg, #6d4aff, #c81e6a 60%, #c2410c);
+  --title-accent: transparent;
   --blob-1: rgb(109 74 255 / 22%);
   --blob-2: rgb(200 30 106 / 16%);
   --blob-3: rgb(232 116 12 / 14%);
@@ -227,6 +237,7 @@
     --glass-strong: rgb(26 26 36 / 82%);
     --glass-border: rgb(255 255 255 / 9%);
     --ring: #b7a6ff;
+    --title-grad: linear-gradient(120deg, #7c5cff, #d12673 60%, #f08a24);
     --blob-1: rgb(124 92 255 / 34%);
     --blob-2: rgb(209 38 115 / 24%);
     --blob-3: rgb(240 138 36 / 16%);
@@ -262,6 +273,8 @@
     --glass-strong: var(--surface-high);
     --glass-border: var(--outline);
     --glass-blur: none;
+    --title-grad: none;
+    --title-accent: var(--primary);
   }
 }
 
@@ -566,6 +579,23 @@ body {
     radial-gradient(circle 300px at 100% 100%, var(--blob-3), transparent);
   content: '';
   pointer-events: none;
+}
+
+// Řádek nad nadpisem stránky (datum, počet) jako v návrhu D
+.eyebrow {
+  margin: 0;
+  color: var(--on-surface-variant);
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+// Akcentované slovo nadpisu („Můj den“)
+.title-accent {
+  background: var(--title-grad);
+  background-clip: text;
+  color: var(--title-accent);
 }
 
 // Logo aplikace v nadpisu seznamů (dekorace, název nese text nadpisu)
