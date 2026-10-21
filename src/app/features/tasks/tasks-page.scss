@@ -1,6 +1,6 @@
 :host {
   display: block;
-  padding: env(safe-area-inset-top) 0 calc(7rem + env(safe-area-inset-bottom));
+  padding: env(safe-area-inset-top) 0 calc(10rem + env(safe-area-inset-bottom));
 }
 
 .app-bar {
@@ -409,4 +409,24 @@ summary::before {
 
 details[open] summary::before {
   transform: rotate(90deg);
+}
+
+// Tlačítko pro nový úkol, stejné jako u poznámek
+.fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(96px + env(safe-area-inset-bottom));
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  height: 56px;
+  padding: 0 20px 0 16px;
+  border: 0;
+  border-radius: var(--fab-radius);
+  background: var(--fab-bg);
+  color: var(--fab-text);
+  font: inherit;
+  font-weight: 600;
+  box-shadow: 0 3px 8px rgb(0 0 0 / 25%);
+  cursor: pointer;
 }

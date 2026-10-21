@@ -108,6 +108,24 @@ describe('TasksPage', () => {
     expect(document.activeElement).toBe(input);
   });
 
+  it('focuses the quick-add field from the floating button', async () => {
+    vi.stubGlobal('matchMedia', () => ({ matches: true }));
+    // jsdom scrollIntoView nemá, náhrada se po testu odstraní
+    const scroll = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scroll;
+    onTestFinished(() => {
+      vi.unstubAllGlobals();
+      Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
+    });
+    await render();
+    const input = root.querySelector<HTMLInputElement>('.add input') as HTMLInputElement;
+
+    root.querySelector<HTMLButtonElement>('button.fab')?.click();
+
+    expect(document.activeElement).toBe(input);
+    expect(scroll).toHaveBeenCalledWith({ block: 'center', behavior: 'auto' });
+  });
+
   it('applies the quick chips to the new task and resets them', async () => {
     await render('all');
 

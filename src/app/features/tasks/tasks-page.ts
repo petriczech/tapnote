@@ -192,6 +192,11 @@ const CONFETTI_MS = 800;
       <tn-confetti [x]="burst.x" [y]="burst.y" />
     }
 
+    <button type="button" class="fab" aria-label="Nový úkol" (click)="focusAdd(title)">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" /></svg>
+      Nový
+    </button>
+
     <tn-bottom-nav current="tasks" />
   `,
   styleUrl: './tasks-page.scss',
@@ -309,6 +314,13 @@ export class TasksPage implements OnInit {
   protected setCategory(category: Category | undefined, menu: HTMLElement): void {
     this.chosenCategory.set(category);
     menu.hidePopover?.();
+  }
+
+  // Pole pro nový úkol se posune do středu a dostane fokus (na telefonu se otevře klávesnice)
+  protected focusAdd(input: HTMLInputElement): void {
+    const smooth = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+    input.scrollIntoView({ block: 'center', behavior: smooth ? 'smooth' : 'auto' });
+    input.focus({ preventScroll: true });
   }
 
   // Výchozí vlastnosti podle pohledu; fokus zůstane v poli pro další úkol
