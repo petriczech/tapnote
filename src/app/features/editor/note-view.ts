@@ -1,12 +1,29 @@
 import { afterNextRender, Component, computed, ElementRef, inject, Injector, input, output, signal } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { parseSegments } from '../../core/model/checklist';
+import { linkKey, splitLinks } from '../../core/model/links';
 
 @Component({
   selector: 'tn-note-view',
+  imports: [RouterLink, NgTemplateOutlet],
   template: `
+    <ng-template #rich let-text>
+      @for (part of splitLinks(text); track $index) {
+        @if ('link' in part) {
+          @if (targets().get(linkKey(part.link)); as id) {
+            <a class="link" [routerLink]="['/note', id]">{{ part.link }}</a>
+          } @else {
+            <span class="link missing" title="Poznámka zatím neexistuje">{{ part.link }}</span>
+          }
+        } @else {
+          <ng-container>{{ part.text }}</ng-container>
+        }
+      }
+    </ng-template>
     @for (segment of segments(); track $index; let block = $index) {
       @if (segment.kind === 'text') {
-        <p class="text">{{ segment.text }}</p>
+        <p class="text"><ng-container *ngTemplateOutlet="rich; context: { $implicit: segment.text }" /></p>
       } @else {
         <ul class="checklist">
           @for (row of segment.open; track row.line) {
@@ -19,7 +36,7 @@ import { parseSegments } from '../../core/model/checklist';
                   [attr.aria-label]="row.text ? null : 'Prázdná položka'"
                   (change)="onChange(box, row.line, row.checked)"
                 />
-                {{ row.text }}
+                <span><ng-container *ngTemplateOutlet="rich; context: { $implicit: row.text }" /></span>
               </label>
             </li>
           }
@@ -45,7 +62,7 @@ import { parseSegments } from '../../core/model/checklist';
                       [attr.aria-label]="row.text ? null : 'Prázdná položka'"
                       (change)="onChange(box, row.line, row.checked)"
                     />
-                    {{ row.text }}
+                    <span><ng-container *ngTemplateOutlet="rich; context: { $implicit: row.text }" /></span>
                   </label>
                 </li>
               }
@@ -96,6 +113,16 @@ import { parseSegments } from '../../core/model/checklist';
       text-decoration: line-through;
     }
 
+    .link {
+      color: var(--primary);
+      text-decoration: underline;
+    }
+
+    .link.missing {
+      color: var(--on-surface-variant);
+      text-decoration-style: dashed;
+    }
+
     .done-toggle {
       min-height: 48px;
       padding: 0;
@@ -109,7 +136,12 @@ import { parseSegments } from '../../core/model/checklist';
 })
 export class NoteView {
   readonly content = input.required<string>();
+  // Klíč názvu → id poznámky pro odkazy [[Název]]
+  readonly targets = input<ReadonlyMap<string, string>>(new Map());
   readonly itemToggle = output<number>();
+
+  protected readonly splitLinks = splitLinks;
+  protected readonly linkKey = linkKey;
 
   protected readonly segments = computed(() => parseSegments(this.content()));
   protected readonly expanded = signal(new Set<number>());

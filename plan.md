@@ -102,7 +102,7 @@ Vítěz soutěže je návrh B „Konfety“ (`.tmp/mockup/soutez/B.html`, 39,6 b
 
 ### Fáze 3 (nativní doplňky)
 - [ ] **Widget** (Glance): připnutá poznámka / checklist s odškrtáváním + tlačítko „+“
-- [ ] `[[odkazy]]` + backlinky (seznam „odkazuje sem“, bez grafu)
+- [x] `[[odkazy]]` + backlinky (seznam „odkazuje sem“, bez grafu)
 - [x] Denní poznámka (jedno tapnutí na dnešní datum)
 
 ### Mimo scope
@@ -227,8 +227,8 @@ Pravidla:
 
 ## Plán na zítra
 Pořadí dalších kroků, každý zvlášť s plným lifecyclem a commitem:
-1. **Denní poznámka:** jedním ťuknutím otevřít nebo založit poznámku s dnešním datem (název `RRRR-MM-DD` nebo „Úterý 22. 10.“), z lišty Poznámek a zkratkou; existující dnešní se jen otevře
-2. **`[[odkazy]]` a backlinky:** `[[Název]]` v textu jako odkaz na poznámku (v náhledu klikatelný), dole v editoru seznam „Odkazuje sem“; přejmenování poznámky odkazy neopravuje (zatím)
+1. ✅ **Denní poznámka:** jedním ťuknutím otevřít nebo založit poznámku s dnešním datem (název `RRRR-MM-DD` nebo „Úterý 22. 10.“), z lišty Poznámek a zkratkou; existující dnešní se jen otevře
+2. ✅ **`[[odkazy]]` a backlinky:** `[[Název]]` v textu jako odkaz na poznámku (v náhledu klikatelný), dole v editoru seznam „Odkazuje sem“; přejmenování poznámky odkazy neopravuje (zatím)
 3. **Drobnosti z review (odloženo):**
    - pauza pro verzi se měří od `updatedAt`, které mění i připnutí nebo barva; zvážit zvláštní čas poslední úpravy textu
    - zaškrtnutí úkolu se při chybě uložení nevrátí; tlačítko „Nový“ v Úkolech a pole mají podobný název

@@ -198,6 +198,52 @@ describe('NoteEditor', () => {
     expect(textareaOf(harness.routeNativeElement!)).toBeNull();
   });
 
+  describe('links', () => {
+    beforeEach(() =>
+      repository.bulkPut([
+        { ...createNote('1', '2026-10-15T10:00:00.000Z'), title: 'Nákup', content: 'Nákup\nviz [[Porada]]' },
+        { ...createNote('2', '2026-10-15T10:00:00.000Z'), title: 'Porada', content: 'Porada\nzpět na [[nákup]]' },
+        { ...createNote('3', '2026-10-15T10:00:00.000Z'), title: 'Jiná', content: 'Jiná' },
+      ]),
+    );
+
+    function backlinkTitles(root: HTMLElement): string[] {
+      return [...root.querySelectorAll('.backlinks a')].map((link) => link.textContent?.trim() ?? '');
+    }
+
+    it('opens a note with links in the view and lists notes linking here', async () => {
+      const harness = await RouterTestingHarness.create();
+      await harness.navigateByUrl('/note/1', NoteEditor);
+      const root = harness.routeNativeElement!;
+
+      await vi.waitFor(() => expect(root.querySelector('a.link')?.getAttribute('href')).toBe('/note/2'));
+      expect(textareaOf(root)).toBeNull();
+      expect(root.querySelector('.backlinks h2')?.textContent).toBe('Odkazuje sem');
+      expect(backlinkTitles(root)).toEqual(['Porada']);
+    });
+
+    it('updates content, links and backlinks after following a link', async () => {
+      const harness = await RouterTestingHarness.create();
+      await harness.navigateByUrl('/note/1', NoteEditor);
+      await vi.waitFor(() => expect(harness.routeNativeElement!.querySelector('a.link')).toBeTruthy());
+
+      harness.routeNativeElement!.querySelector<HTMLAnchorElement>('a.link')!.click();
+      await vi.waitFor(() => expect(harness.routeNativeElement!.textContent).toContain('zpět na'));
+      const root = harness.routeNativeElement!;
+
+      await vi.waitFor(() => expect(root.querySelector('a.link')?.getAttribute('href')).toBe('/note/1'));
+      expect(backlinkTitles(root)).toEqual(['Nákup']);
+    });
+
+    it('hides the section without backlinks', async () => {
+      const harness = await RouterTestingHarness.create();
+      await harness.navigateByUrl('/note/3', NoteEditor);
+
+      await vi.waitFor(() => expect(textareaOf(harness.routeNativeElement!).value).toBe('Jiná'));
+      expect(harness.routeNativeElement!.querySelector('.backlinks')).toBeNull();
+    });
+  });
+
   describe('keyboard shortcuts', () => {
     function press(init: KeyboardEventInit): KeyboardEvent {
       const event = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init });

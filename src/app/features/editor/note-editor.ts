@@ -14,7 +14,10 @@ import {
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { continueList, hasChecklist, TextEdit, toggleItem, toggleItemPrefix } from '../../core/model/checklist';
+import { backlinks, extractLinks, linkTargets } from '../../core/model/links';
+import { deriveTitle, Note } from '../../core/model/note';
 import { noteColorVar } from '../../core/model/note-colors';
+import { NotesRepository } from '../../core/storage/notes-repository';
 import { readShortcutsEnabled } from '../../core/shortcuts/shortcuts';
 import { NoteDraft } from './note-draft';
 import { NoteView } from './note-view';
@@ -83,7 +86,17 @@ import { ICONS } from '../../core/icons/icons';
         (keydown.enter)="onEnter($event)"
       ></textarea>
     } @else {
-      <tn-note-view class="view" [content]="draft.content()" (itemToggle)="toggleItem($event)" />
+      <tn-note-view class="view" [content]="draft.content()" [targets]="targets()" (itemToggle)="toggleItem($event)" />
+    }
+    @if (backlinks().length > 0) {
+      <nav class="backlinks" aria-labelledby="backlinks-heading">
+        <h2 id="backlinks-heading">Odkazuje sem</h2>
+        <ul>
+          @for (note of backlinks(); track note.id) {
+            <li><a [routerLink]="['/note', note.id]">{{ note.title || 'Bez názvu' }}</a></li>
+          }
+        </ul>
+      </nav>
     }
     <p class="status" aria-live="polite">
       @if (draft.saveFailed()) {
@@ -162,6 +175,33 @@ import { ICONS } from '../../core/icons/icons';
       outline-offset: -2px;
     }
 
+    .backlinks {
+      max-height: 40dvh;
+      overflow: auto;
+      padding: 8px 20px;
+      border-top: 1px solid var(--outline-variant);
+    }
+
+    .backlinks h2 {
+      margin: 0;
+      color: var(--on-surface-variant);
+      font-size: 0.8125rem;
+      font-weight: 600;
+    }
+
+    .backlinks ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .backlinks a {
+      display: flex;
+      align-items: center;
+      min-height: 48px;
+      color: var(--primary);
+    }
+
     .status {
       position: fixed;
       right: 1rem;
@@ -179,6 +219,7 @@ export class NoteEditor implements OnInit {
   readonly template = input<string>();
 
   protected readonly draft = inject(NoteDraft);
+  private readonly repository = inject(NotesRepository);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
@@ -187,6 +228,15 @@ export class NoteEditor implements OnInit {
 
   protected readonly mode = signal<'edit' | 'view'>('edit');
   protected readonly noteBg = computed(() => noteColorVar(this.draft.color()));
+  // Ostatní poznámky pro [[odkazy]] a „Odkazuje sem“, načtené při otevření editoru
+  private readonly notes = signal<Note[]>([]);
+  protected readonly targets = computed(() => linkTargets(this.notes()));
+  // Název se odvozuje zvlášť, aby se zpětné odkazy nepřepočítávaly při každém stisku klávesy
+  private readonly title = computed(() => deriveTitle(this.draft.content()));
+  protected readonly backlinks = computed(() => {
+    const id = this.draft.noteId();
+    return id === undefined ? [] : backlinks(this.notes(), { id, title: this.title() });
+  });
 
   constructor() {
     afterNextRender(() => this.textarea()?.nativeElement.focus());
@@ -194,6 +244,10 @@ export class NoteEditor implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
+    void this.repository
+      .getAll()
+      .then((notes) => this.notes.set(notes))
+      .catch(() => undefined);
     const template = this.template();
     if (this.id() === undefined && template !== undefined) {
       const cursor = await this.draft.openTemplate(template);
@@ -212,7 +266,7 @@ export class NoteEditor implements OnInit {
     const opened = await this.draft.open(this.id(), this.resume());
     if (!opened && !this.destroyRef.destroyed) {
       await this.router.navigate(['/new'], { replaceUrl: true });
-    } else if (this.id() !== undefined && hasChecklist(this.draft.content())) {
+    } else if (this.id() !== undefined && (hasChecklist(this.draft.content()) || extractLinks(this.draft.content()).length > 0)) {
       this.setMode('view');
     }
   }

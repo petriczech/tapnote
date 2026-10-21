@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { NoteView } from './note-view';
 
 describe('NoteView', () => {
@@ -19,6 +20,7 @@ describe('NoteView', () => {
   }
 
   beforeEach(() => {
+    TestBed.configureTestingModule({ providers: [provideRouter([{ path: 'note/:id', children: [] }])] });
     fixture = TestBed.createComponent(NoteView);
     root = fixture.nativeElement;
   });
@@ -97,5 +99,40 @@ describe('NoteView', () => {
     await render('- [ ] mléko');
 
     expect(doneToggle()).toBeNull();
+  });
+
+  describe('links', () => {
+    beforeEach(() => fixture.componentRef.setInput('targets', new Map([['nákup', 'n1']])));
+
+    it('links an existing note and keeps the surrounding text', async () => {
+      await render('Viz [[Nákup]] a [[Porada]].');
+
+      const link = root.querySelector<HTMLAnchorElement>('a.link');
+      expect(link?.textContent).toBe('Nákup');
+      expect(link?.getAttribute('href')).toBe('/note/n1');
+      expect(root.querySelector('.text')?.textContent).toBe('Viz Nákup a Porada.');
+    });
+
+    it('marks a link to a missing note', async () => {
+      await render('[[Porada]]');
+
+      const missing = root.querySelector('.link.missing');
+      expect(missing?.textContent).toBe('Porada');
+      expect(missing?.getAttribute('title')).toBe('Poznámka zatím neexistuje');
+      expect(root.querySelector('a')).toBeNull();
+    });
+
+    it('does not toggle an item when its link is clicked', async () => {
+      const toggled: number[] = [];
+      fixture.componentInstance.itemToggle.subscribe((line) => toggled.push(line));
+      await render('- [ ] koupit [[nákup]]');
+
+      root.querySelector<HTMLAnchorElement>('a.link')?.click();
+      await fixture.whenStable();
+
+      expect(labels()).toEqual(['koupit nákup']);
+      expect(root.querySelector<HTMLInputElement>('input[type=checkbox]')?.checked).toBe(false);
+      expect(toggled).toEqual([]);
+    });
   });
 });
