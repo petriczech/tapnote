@@ -39,6 +39,10 @@ export class DexieNotesRepository extends NotesRepository {
     return this.db.notes.delete(id);
   }
 
+  getTrashedIdsBefore(before: string): Promise<string[]> {
+    return this.db.notes.where('deletedAt').below(before).primaryKeys();
+  }
+
   purgeTrash(before: string): Promise<number> {
     return this.db.notes.where('deletedAt').below(before).delete();
   }

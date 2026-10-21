@@ -51,10 +51,10 @@ export class NoteActions {
 
   async purgeTrash(): Promise<number> {
     const before = new Date(Date.now() - TRASH_RETENTION_MS).toISOString();
-    const expired = (await this.repository.getAll()).filter((note) => note.deletedAt !== undefined && note.deletedAt < before);
+    const expired = await this.repository.getTrashedIdsBefore(before);
     const count = await this.repository.purgeTrash(before);
     if (expired.length > 0) {
-      await this.versions.deleteForNotes(expired.map((note) => note.id));
+      await this.versions.deleteForNotes(expired);
     }
     return count;
   }

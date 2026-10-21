@@ -52,6 +52,10 @@ export class InMemoryNotesRepository extends NotesRepository {
     this.notes.delete(id);
   }
 
+  async getTrashedIdsBefore(before: string): Promise<string[]> {
+    return [...this.notes.values()].filter((note) => note.deletedAt !== undefined && note.deletedAt < before).map((note) => note.id);
+  }
+
   async purgeTrash(before: string): Promise<number> {
     const expired = [...this.notes.values()].filter((note) => note.deletedAt !== undefined && note.deletedAt < before);
     expired.forEach((note) => this.notes.delete(note.id));

@@ -100,6 +100,16 @@ describe('DexieNotesRepository', () => {
     expect((await repository.getAll()).map((note) => note.id).sort()).toEqual(['active', 'recent']);
   });
 
+  it('returns ids of notes deleted before a date', async () => {
+    await repository.bulkPut([
+      createNote('expired', { deletedAt: '2026-09-01T10:00:00.000Z' }),
+      createNote('recent', { deletedAt: '2026-10-14T10:00:00.000Z' }),
+      createNote('active'),
+    ]);
+
+    expect(await repository.getTrashedIdsBefore('2026-10-01T00:00:00.000Z')).toEqual(['expired']);
+  });
+
   it('stores multiple notes at once', async () => {
     await repository.bulkPut([createNote('1'), createNote('2')]);
 

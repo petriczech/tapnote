@@ -10,6 +10,8 @@ export abstract class NotesRepository {
   // Změní se jen uvedená pole, pole s undefined se odstraní
   abstract update(id: string, changes: Partial<Omit<Note, 'id'>>): Promise<void>;
   abstract delete(id: string): Promise<void>;
+  // Id poznámek přesunutých do koše před `before`
+  abstract getTrashedIdsBefore(before: string): Promise<string[]>;
   // Trvalé smazání poznámek přesunutých do koše před `before`
   abstract purgeTrash(before: string): Promise<number>;
   abstract replaceAll(notes: Note[]): Promise<void>;
