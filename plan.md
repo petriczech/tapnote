@@ -28,7 +28,7 @@ Osobní mobilní aplikace na poznámky. Offline, bez serveru, bez účtu. Priori
 ### Fáze 2
 - [x] **Šablony:** poznámka s `isTemplate: true`; výběr u „+“; proměnné `{{date}}`, `{{time}}`, `{{weekday}}`, `{{cursor}}`; výchozí tagy a barva
 - [x] Barvy poznámek + přepínač grid/list
-- [ ] Historie verzí (snapshot po pauze v psaní, posledních ~20)
+- [x] Historie verzí (snapshot po pauze v psaní, posledních ~20)
 - [ ] **Quick Settings tile** (nativní `TileService`) → otevře editor
 
 ### Fáze 2b (úkoly, kategorie, design)
@@ -224,6 +224,18 @@ Pravidla:
 - Úkoly: pohledy Můj den, Důležité, Naplánované, Vše
 - Kategorie: jedna kategorie na položku, tagy zůstávají volné vedle kategorií
 - Historie verzí: jen v zařízení, do zálohy nejde
+
+## Plán na zítra
+Pořadí dalších kroků, každý zvlášť s plným lifecyclem a commitem:
+1. **Denní poznámka:** jedním ťuknutím otevřít nebo založit poznámku s dnešním datem (název `RRRR-MM-DD` nebo „Úterý 22. 10.“), z lišty Poznámek a zkratkou; existující dnešní se jen otevře
+2. **`[[odkazy]]` a backlinky:** `[[Název]]` v textu jako odkaz na poznámku (v náhledu klikatelný), dole v editoru seznam „Odkazuje sem“; přejmenování poznámky odkazy neopravuje (zatím)
+3. **Drobnosti z review (odloženo):**
+   - pauza pro verzi se měří od `updatedAt`, které mění i připnutí nebo barva; zvážit zvláštní čas poslední úpravy textu
+   - zaškrtnutí úkolu se při chybě uložení nevrátí; tlačítko „Nový“ v Úkolech a pole mají podobný název
+   - `purgeTrash` čte při startu všechny poznámky; nahradit dotazem přes index `deletedAt`
+   - náhledy `theme-color` (stavový řádek) jsou pro všechny vzhledy barvy Konfet
+4. **Android:** sestavit APK (`npm run sync:android`) s novými ikonami a ověřit na telefonu klávesnici u tlačítka „Nový“, konfety a historii
+5. **Nativní doplňky (fáze 2/3):** Quick Settings tile a widget až po ověření APK
 
 ## Otevřené
 - Úkoly: má `/` (jedno tapnutí) otevírat nový úkol, nebo dál novou poznámku? (zatím poznámka)
