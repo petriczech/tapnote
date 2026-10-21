@@ -46,13 +46,13 @@ ng test
 
 ## Running end-to-end tests
 
-For end-to-end (e2e) testing, run:
+For the Playwright smoke suite in `e2e/` (light and dark, with axe checks), run:
 
 ```bash
-ng e2e
+npm run e2e
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+Playwright starts `ng serve` on port 4250 and stops it when the run finishes.
 
 ## Additional Resources
 
