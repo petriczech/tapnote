@@ -17,13 +17,14 @@ import { NotesRepository } from '../../core/storage/notes-repository';
 import { TasksRepository } from '../../core/storage/tasks-repository';
 import { applyTheme, readTheme, ThemeId, THEMES } from '../../core/theme/theme';
 import { BottomNav } from '../list/bottom-nav';
+import { CategoriesSection } from './categories-section';
 
 export const MAX_IMPORT_BYTES = 50 * 1024 * 1024;
 const REVOKE_DELAY_MS = 60_000;
 
 @Component({
   selector: 'tn-settings',
-  imports: [BottomNav, RouterLink],
+  imports: [BottomNav, CategoriesSection, RouterLink],
   template: `
     <h1>Nastavení</h1>
 
@@ -52,6 +53,8 @@ const REVOKE_DELAY_MS = 60_000;
         </div>
       </fieldset>
     </section>
+
+    <tn-categories-section />
 
     <section aria-labelledby="shortcuts-heading">
       <h2 id="shortcuts-heading" tabindex="-1">Klávesové zkratky</h2>

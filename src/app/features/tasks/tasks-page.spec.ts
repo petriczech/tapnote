@@ -153,6 +153,22 @@ describe('TasksPage', () => {
     expect(root.querySelector('[aria-live="polite"]')?.textContent).toBe('Úkol Úkol eeeee hotov');
   });
 
+  it('filters by category and adds new tasks to the filtered category', async () => {
+    fixture = TestBed.createComponent(TasksPage);
+    root = fixture.nativeElement;
+    fixture.componentRef.setInput('view', 'all');
+    fixture.componentRef.setInput('category', 'work');
+    await fixture.whenStable();
+    await vi.waitFor(() => expect(root.querySelector('.tasks')).not.toBeNull());
+
+    expect(titles()).toEqual(['Úkol bb']);
+    expect(root.querySelector('.filters [aria-current]')?.textContent?.trim()).toBe('Práce');
+
+    await type('Připravit poradu');
+
+    expect([...repository.tasks.values()].find((item) => item.title === 'Připravit poradu')?.categoryId).toBe('work');
+  });
+
   it('ignores an empty title', async () => {
     await render();
 

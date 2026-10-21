@@ -1,0 +1,204 @@
+section {
+  margin: 8px 16px 24px;
+}
+
+h2 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+h2:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.info {
+  margin: 0 0 12px;
+  color: var(--on-surface-variant);
+}
+
+.categories {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.categories li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  padding: 6px 4px 6px 8px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
+}
+
+// Ikona na syté barvě kategorie
+.badge {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--cat);
+  color: var(--on-cat);
+}
+
+.badge .icon {
+  width: 22px;
+  height: 22px;
+}
+
+.item-name {
+  flex: 1;
+  min-width: 6rem;
+  font-weight: 700;
+}
+
+.icon-btn[aria-disabled='true'] {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.text-btn {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-l);
+  background: none;
+  color: var(--primary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.text-btn.danger {
+  margin-right: auto;
+  color: var(--error);
+}
+
+.filled,
+.outlined {
+  min-height: 48px;
+  padding: 0 24px;
+  border-radius: var(--radius-l);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.filled {
+  border: 0;
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.filled[aria-disabled='true'] {
+  opacity: 0.5;
+}
+
+.outlined {
+  border: 1px solid var(--outline);
+  background: none;
+  color: var(--primary);
+}
+
+.form {
+  flex: 1 1 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 4px;
+}
+
+.name {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--on-surface-variant);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.name input {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--outline);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+  color: var(--on-surface);
+  font: inherit;
+  font-size: 1rem;
+}
+
+fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+legend {
+  margin-bottom: 6px;
+  padding: 0;
+  color: var(--on-surface-variant);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tile {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 12px;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+}
+
+.tile:has(input:checked) {
+  border: 2px solid var(--on-surface);
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+}
+
+.tile:has(input:focus-visible) {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.swatch {
+  border-radius: 50%;
+  background: var(--cat);
+}
+
+.swatch:has(input:checked) {
+  background: var(--cat);
+  box-shadow: inset 0 0 0 3px var(--surface);
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.status {
+  margin: 8px 0 0;
+}
+
+.status.error {
+  color: var(--error);
+}

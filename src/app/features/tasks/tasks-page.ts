@@ -2,6 +2,7 @@ import { afterNextRender, Component, computed, ElementRef, inject, Injector, inp
 import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Category } from '../../core/model/category';
+import { categoryIconPath } from '../../core/model/category-icons';
 import { Task } from '../../core/model/task';
 import { addDays, dueLabel, isTasksView, localDate, queryTasks, TASK_VIEWS, TasksView } from '../../core/model/task-query';
 import { CategoriesRepository } from '../../core/storage/categories-repository';
@@ -31,6 +32,7 @@ import { BottomNav } from '../list/bottom-nav';
         @for (item of views; track item.view) {
           <a
             routerLink="/tasks"
+            queryParamsHandling="merge"
             [queryParams]="{ view: item.view === 'today' ? null : item.view }"
             [attr.aria-current]="item.view === current().view ? 'page' : null"
           >
@@ -38,6 +40,29 @@ import { BottomNav } from '../list/bottom-nav';
           </a>
         }
       </nav>
+      @if (categories().length > 0) {
+        <nav class="filters" aria-label="Kategorie">
+          <a
+            routerLink="/tasks"
+            queryParamsHandling="merge"
+            [queryParams]="{ category: null }"
+            [attr.aria-current]="filter() === undefined ? 'true' : null"
+            >Vše</a
+          >
+          @for (item of categories(); track item.id) {
+            <a
+              routerLink="/tasks"
+              queryParamsHandling="merge"
+              [queryParams]="{ category: item.id }"
+              [style.--cat]="catVar(item)"
+              [attr.aria-current]="filter()?.id === item.id ? 'true' : null"
+            >
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconPath(item.icon)" /></svg>
+              {{ item.name }}
+            </a>
+          }
+        </nav>
+      }
     </header>
 
     <form class="add" (submit)="add($event, title)">
@@ -71,19 +96,22 @@ import { BottomNav } from '../list/bottom-nav';
           <button type="button" (click)="setDue(undefined, dueMenu)">Bez termínu</button>
         }
       </div>
-      <button type="button" class="chip" popovertarget="category-menu" [class.set]="category() !== undefined">
+      <button type="button" class="chip" popovertarget="category-menu" [class.set]="chosenCategory() !== undefined">
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="tagIcon" /></svg>
-        {{ category()?.name ?? 'Kategorie' }}
+        {{ chosenCategory()?.name ?? 'Kategorie' }}
       </button>
       <div id="category-menu" class="menu" popover (toggle)="onMenuToggle($event)">
         @for (item of categories(); track item.id) {
           <button type="button" (click)="setCategory(item, categoryMenu)">
-            <span class="dot" [style.--cat]="catVar(item)"></span>{{ item.name }}
+            <svg class="icon cat-icon" viewBox="0 0 24 24" aria-hidden="true" [style.--cat]="catVar(item)">
+              <path [attr.d]="iconPath(item.icon)" />
+            </svg>
+            {{ item.name }}
           </button>
         } @empty {
           <p class="none" tabindex="-1">Zatím žádné kategorie</p>
         }
-        @if (category() !== undefined) {
+        @if (chosenCategory() !== undefined) {
           <button type="button" (click)="setCategory(undefined, categoryMenu)">Bez kategorie</button>
         }
       </div>
@@ -162,6 +190,8 @@ import { BottomNav } from '../list/bottom-nav';
 })
 export class TasksPage implements OnInit {
   readonly view = input<string>();
+  // Filtr podle kategorie z ?category=
+  readonly category = input<string>();
 
   private readonly repository = inject(TasksRepository);
   private readonly categoriesRepository = inject(CategoriesRepository);
@@ -191,18 +221,24 @@ export class TasksPage implements OnInit {
   // Rozepsaný úkol a vlastnosti z čipů
   protected readonly draft = signal('');
   protected readonly due = signal<string | undefined>(undefined);
-  protected readonly category = signal<Category | undefined>(undefined);
+  protected readonly chosenCategory = signal<Category | undefined>(undefined);
   protected readonly important = signal(false);
 
   protected readonly current = computed(() => {
     const view = this.view();
     return TASK_VIEWS.find((item) => item.view === (isTasksView(view) ? view : 'today')) ?? TASK_VIEWS[0];
   });
-  protected readonly list = computed(() => queryTasks(this.tasks(), this.current().view, this.today()));
+  protected readonly iconPath = categoryIconPath;
+  protected readonly filter = computed(() => this.categories().find((item) => item.id === this.category()));
+  private readonly filtered = computed(() => {
+    const filter = this.filter();
+    return filter ? this.tasks().filter((task) => task.categoryId === filter.id) : this.tasks();
+  });
+  protected readonly list = computed(() => queryTasks(this.filtered(), this.current().view, this.today()));
   protected readonly counts = computed(
     () =>
       Object.fromEntries(
-        TASK_VIEWS.map((item) => [item.view, queryTasks(this.tasks(), item.view, this.today()).open.length]),
+        TASK_VIEWS.map((item) => [item.view, queryTasks(this.filtered(), item.view, this.today()).open.length]),
       ) as Record<TasksView, number>,
   );
   protected readonly progress = computed(() => {
@@ -256,7 +292,7 @@ export class TasksPage implements OnInit {
   }
 
   protected setCategory(category: Category | undefined, menu: HTMLElement): void {
-    this.category.set(category);
+    this.chosenCategory.set(category);
     menu.hidePopover?.();
   }
 
@@ -270,18 +306,20 @@ export class TasksPage implements OnInit {
     this.refreshToday();
     const view = this.current().view;
     const dueDate = this.due() ?? (view === 'planned' ? this.today() : undefined);
+    // Bez čipu dostane úkol kategorii z filtru
+    const category = this.chosenCategory() ?? this.filter();
     const fields: NewTaskFields = {
       ...(view === 'today' ? { myDay: this.today() } : {}),
       ...(dueDate ? { dueDate } : {}),
       ...(this.important() || view === 'important' ? { important: true } : {}),
-      ...(this.category() ? { categoryId: this.category()!.id } : {}),
+      ...(category ? { categoryId: category.id } : {}),
     };
     // Pole se vyprázdní hned (druhý Enter nic nepřidá); přímo, protože draft se mohl změnit tam a zpět bez detekce změn
     input.value = '';
     this.draft.set('');
     if (await this.run(() => this.actions.add(title, fields))) {
       this.due.set(undefined);
-      this.category.set(undefined);
+      this.chosenCategory.set(undefined);
       this.important.set(false);
       this.announcement.set(`Úkol ${title} přidán`);
     } else {

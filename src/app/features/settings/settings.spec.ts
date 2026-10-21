@@ -27,7 +27,7 @@ describe('Settings', () => {
 
   const button = (text: string) =>
     [...root.querySelectorAll('button')].find((item) => item.textContent?.trim() === text) as HTMLButtonElement;
-  const status = () => root.querySelector('[aria-live="polite"]')?.textContent?.trim();
+  const status = () => root.querySelector(':scope > [aria-live="polite"]')?.textContent?.trim();
   const radio = (value: string) => root.querySelector<HTMLInputElement>(`input[value="${value}"]`) as HTMLInputElement;
 
   async function render(): Promise<void> {
@@ -262,7 +262,7 @@ describe('Settings', () => {
     await chooseFile(content);
 
     expect(status()).toBe(message);
-    expect(root.querySelector('.status')?.classList).toContain('error');
+    expect(root.querySelector(':scope > .status')?.classList).toContain('error');
     expect(repository.notes.size).toBe(2);
   });
 

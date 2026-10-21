@@ -83,6 +83,51 @@ h1:focus:not(:focus-visible) {
   color: var(--on-primary);
 }
 
+.filters {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 16px 12px;
+  scrollbar-width: none;
+}
+
+.filters a {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--chip-radius);
+  color: var(--on-surface-variant);
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.filters .icon {
+  width: 18px;
+  height: 18px;
+  color: var(--cat, currentColor);
+}
+
+.filters a[aria-current] {
+  border-color: transparent;
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+  font-weight: 700;
+}
+
+.filters a[aria-current] .icon {
+  color: inherit;
+}
+
+.cat-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--cat);
+}
+
 .count {
   color: inherit;
   font-size: 0.8125rem;
