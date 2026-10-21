@@ -7,11 +7,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
     <link rel="manifest" href="manifest.webmanifest" />
-    <meta name="theme-color" content="#fff8f1" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#17121f" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f6f6fa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b0b10" media="(prefers-color-scheme: dark)" />
     <script>
       // Vzhled před prvním vykreslením (klíč a hodnoty jako core/theme/theme.ts)
-      // Barvy stavového řádku pro světlý a tmavý režim jako bar v THEMES; Konfety jsou výchozí v metách výše
+      // Barvy stavového řádku pro světlý a tmavý režim jako bar v THEMES; Noir je výchozí v metách výše
+      // Uložené noir, zrušené konfety i neznámá hodnota zůstávají bez atributu, tedy Noir
       var bars = {
         blue: ['#fbf9ff', '#121318'],
         paper: ['#f7f1e3', '#1d1a16'],
@@ -19,7 +20,6 @@
         white: ['#ffffff', '#0f0f11'],
         airy: ['#f7f8fb', '#111318'],
         notebook: ['#f5f0e6', '#1c1a17'],
-        noir: ['#f6f6fa', '#0b0b10'],
       };
       try {
         var theme = localStorage.getItem('tapnote.theme');

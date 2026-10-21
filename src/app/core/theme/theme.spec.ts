@@ -6,11 +6,17 @@ describe('theme', () => {
     delete document.documentElement.dataset['theme'];
   });
 
-  it('defaults to konfety', () => {
-    expect(readTheme()).toBe('konfety');
+  it('defaults to noir', () => {
+    expect(readTheme()).toBe('noir');
 
     localStorage.setItem(THEME_KEY, 'neon');
-    expect(readTheme()).toBe('konfety');
+    expect(readTheme()).toBe('noir');
+  });
+
+  it('maps the removed konfety theme to noir', () => {
+    localStorage.setItem(THEME_KEY, 'konfety');
+
+    expect(readTheme()).toBe('noir');
   });
 
   it('applies and remembers a theme', () => {
@@ -20,12 +26,12 @@ describe('theme', () => {
     expect(readTheme()).toBe('paper');
   });
 
-  it('uses no attribute for konfety', () => {
+  it('uses no attribute for noir', () => {
     applyTheme('white');
-    applyTheme('konfety');
+    applyTheme('noir');
 
     expect(document.documentElement.hasAttribute('data-theme')).toBe(false);
-    expect(localStorage.getItem(THEME_KEY)).toBe('konfety');
+    expect(localStorage.getItem(THEME_KEY)).toBe('noir');
   });
 
   it('sets the status bar colours of the theme', () => {
@@ -41,8 +47,8 @@ describe('theme', () => {
     applyTheme('paper');
     expect(metas.map((meta) => meta.content)).toEqual(['#f7f1e3', '#1d1a16']);
 
-    applyTheme('konfety');
-    expect(metas.map((meta) => meta.content)).toEqual(['#fff8f1', '#17121f']);
+    applyTheme('noir');
+    expect(metas.map((meta) => meta.content)).toEqual(['#f6f6fa', '#0b0b10']);
   });
 
   it('applies blue as an attribute', () => {

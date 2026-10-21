@@ -6,7 +6,7 @@ const meta = (scheme: 'light' | 'dark') => `meta[name="theme-color"][media*="${s
 test('nastavení: vzhled se uloží a theme-color ho následuje', async ({ page, axe }) => {
   await page.goto('/settings');
   await expect(page.getByRole('heading', { level: 1, name: 'Nastavení' })).toBeVisible();
-  await expect(page.getByRole('radio', { name: 'Konfety' })).toBeChecked();
+  await expect(page.getByRole('radio', { name: 'Noir' })).toBeChecked();
   await axe('nastavení');
 
   await page.getByRole('radio', { name: 'Papír' }).check();

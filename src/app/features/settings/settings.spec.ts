@@ -132,7 +132,7 @@ describe('Settings', () => {
 
   it('switches the theme', async () => {
     await render();
-    expect(radio('konfety').checked).toBe(true);
+    expect(radio('noir').checked).toBe(true);
 
     radio('graphite').click();
     await fixture.whenStable();
@@ -141,7 +141,7 @@ describe('Settings', () => {
     expect(localStorage.getItem(THEME_KEY)).toBe('graphite');
     expect(radio('graphite').checked).toBe(true);
 
-    radio('konfety').click();
+    radio('noir').click();
     expect(document.documentElement.hasAttribute('data-theme')).toBe(false);
     localStorage.removeItem(THEME_KEY);
   });

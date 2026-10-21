@@ -253,7 +253,7 @@ Hlavní vzhled je návrh D „Tapnote Noir“ (`.tmp/mockup/soutez/D-dark.png`, 
 
 ### Kroky (každý s plným lifecyclem a vlastním commitem)
 0. ✅ **Smoke sada `e2e/`** před prvním zásahem (po schválení bodu 7); specy se přepisují na role a přístupná jména vždy v kroku, který mění šablonu
-1. **Tokeny Noir jako výchozí:** písma Geist a Geist Mono (OFL, latin-ext, licence do `public/licenses`), sklo (`--glass*`), přechody (`--grad`, tmavý začíná na `#6d4aff`), záře jako jedna pevná vrstva `radial-gradient`, poloměry; blur jen na pevných vrstvách (lišta, panel nástrojů, spodní panel); fallback pro `prefers-reduced-transparency`, `prefers-contrast: more` a bez `backdrop-filter`
+1. ✅ **Tokeny Noir jako výchozí:** písma Geist a Geist Mono (OFL, latin-ext, licence do `public/licenses`), sklo (`--glass*`), přechody (`--grad`, tmavý začíná na `#6d4aff`), záře jako jedna pevná vrstva `radial-gradient`, poloměry; blur jen na pevných vrstvách (lišta, panel nástrojů, spodní panel); fallback pro `prefers-reduced-transparency`, `prefers-contrast: more` a bez `backdrop-filter`
 2. **Režim světlý/tmavý/systém:** nový atribut `data-scheme` vedle `data-theme`, tmavé tokeny platí pro media query i atribut, inline skript v `index.html` a `theme-color`; přepínač v Nastavení
 3. **Vzhledy:** převod uložených voleb, dlaždice motivů jako v D, přepínač „Ambientní přechody“ (`data-ambient`, jen Noir)
 4. **Shell:** plovoucí skleněná spodní lišta (radius 24, `env(safe-area-inset-bottom)`), ikony Phosphor Regular v liště a panelu nástrojů (Fill jen hvězda a špendlík), FAB „Nová“ s `--grad` místo `--grad-warm` (kontrast)

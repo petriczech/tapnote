@@ -53,6 +53,7 @@ import { ICONS, ICONS_FILL } from '../../core/icons/icons';
       padding: 12px 0 env(safe-area-inset-bottom);
       border-top: 1px solid var(--nav-border);
       background: var(--nav-bg);
+      backdrop-filter: var(--glass-blur);
     }
 
     a {

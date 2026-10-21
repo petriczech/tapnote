@@ -1,5 +1,42 @@
-/* Barvy a tvary jako proměnné; vzhled podle data-theme na <html> (výchozí Konfety bez atributu), světlý i tmavý režim podle systému */
+/* Barvy a tvary jako proměnné; vzhled podle data-theme na <html> (výchozí Noir bez atributu), světlý i tmavý režim podle systému */
 // Písma přibalená v aplikaci (offline, licence OFL v public/licenses)
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('./fonts/geist-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('./fonts/geist-latin-ext-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('./fonts/geist-mono-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('./fonts/geist-mono-latin-ext-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+
+// Nunito a Bricolage zatím používají Modrá, Bílá, Vzdušná a Zápisník
 @font-face {
   font-family: 'Nunito';
   font-style: normal;
@@ -36,28 +73,34 @@
   unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
 }
 
-// Konfety: krémová, fialová, slunečnicová; výchozí vzhled
+// Noir (návrh D): výchozí vzhled; světlá varianta Porcelán, tmavá Noir, fialovo-malinový přechod
 :root {
   color-scheme: light dark;
-  --primary: #5b2ee8;
+  --primary: #5a32e0;
   --on-primary: #ffffff;
-  --primary-container: #ece4ff;
-  --on-primary-container: #3a1a9e;
-  --surface: #fff8f1;
-  --surface-low: #f7ebdd;
+  --primary-container: #ece6ff;
+  --on-primary-container: #3a1fa0;
+  --surface: #f6f6fa;
+  --surface-low: #ededf4;
   --surface-high: #ffffff;
-  --on-surface: #1e1533;
-  --on-surface-variant: #554a63;
-  --outline: #6a5f7b;
-  --outline-variant: #ead9c4;
-  --pin: #c2410c;
-  --error: #c21f3a;
-  --radius-s: 8px;
+  --on-surface: #0d0d14;
+  --on-surface-variant: #43435a;
+  --outline: #575770;
+  // Průhledná linka sedí i na skle
+  --outline-variant: rgb(20 20 40 / 8%);
+  --pin: #b4530a;
+  --error: #b3261e;
+  --radius-s: 12px;
   --radius-m: 16px;
-  --radius-l: 28px;
+  --radius-l: 24px;
+  // Obrys fokusu; Noir ho má sytější než primary
+  --ring: var(--primary);
+  // Rozostření pod pevnými vrstvami (lišta); jen Noir, ostatní vzhledy mají plné plochy
+  --glass-blur: none;
 
   // Písmo a tvary, které se mezi vzhledy liší
-  --font: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font: 'Geist', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --mono: 'Geist Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
   --title-font: var(--font);
   --editor-font: var(--font);
   --title-size: 1.375rem;
@@ -83,12 +126,12 @@
   --editor-lines: none;
 
   // Barvy poznámek
-  --note-yellow: #fff0b0;
-  --note-blue: #e1e9ff;
-  --note-green: #dcf5e5;
-  --note-red: #ffe0ec;
-  --note-purple: #ece4ff;
-  --note-gray: #efe7dc;
+  --note-yellow: #fff0d6;
+  --note-blue: #dcefff;
+  --note-green: #dcf5ea;
+  --note-red: #ffe3ee;
+  --note-purple: #ece6ff;
+  --note-gray: #eeeef3;
 
   // Barvy kategorií (sytá barva a světlý podklad) pro všechny vzhledy
   --c-green: #0b7a45;
@@ -112,25 +155,25 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --primary: #b9a0ff;
-    --on-primary: #1a0b3d;
-    --primary-container: #3a2b66;
-    --on-primary-container: #e6dcff;
-    --surface: #17121f;
-    --surface-low: #1f1829;
-    --surface-high: #2a2138;
-    --on-surface: #f6f0ff;
-    --on-surface-variant: #d0c6e0;
-    --outline: #a497b8;
-    --outline-variant: #3c3250;
-    --pin: #ff9a5c;
-    --error: #ff8a9a;
-    --note-yellow: #574414;
-    --note-blue: #1d2a52;
-    --note-green: #15352a;
-    --note-red: #45182f;
-    --note-purple: #2f2357;
-    --note-gray: #2e2838;
+    --primary: #b7a6ff;
+    --on-primary: #1a0f40;
+    --primary-container: #2a2150;
+    --on-primary-container: #ddd4ff;
+    --surface: #0b0b10;
+    --surface-low: #101017;
+    --surface-high: #13131b;
+    --on-surface: #f4f4fa;
+    --on-surface-variant: #b4b4c8;
+    --outline: #9a9ab2;
+    --outline-variant: rgb(255 255 255 / 7%);
+    --pin: #ffb547;
+    --error: #ff8a80;
+    --note-yellow: #2e2414;
+    --note-blue: #0f2335;
+    --note-green: #112a22;
+    --note-red: #33172a;
+    --note-purple: #1f1a3a;
+    --note-gray: #1c1c26;
     --c-green: #4ade80;
     --c-blue: #85a8ff;
     --c-orange: #ff9a5c;
@@ -151,8 +194,86 @@
   }
 }
 
-// Tvar Konfety (písma, zaoblení, stíny, slunečnicové „Nová“) pro Konfety, Modrou a Bílou; Papír a Grafit mají vlastní
-:root:not([data-theme='paper'], [data-theme='graphite']) {
+// Tvar Noir (sklo, přechod, záře); platí jen bez atributu, ostatní vzhledy dědí obecné tvary z :root
+:root:not([data-theme]) {
+  --glass: rgb(255 255 255 / 66%);
+  --glass-strong: rgb(255 255 255 / 86%);
+  --glass-border: rgb(20 20 40 / 9%);
+  --glass-blur: blur(22px) saturate(160%);
+  // Bílý text má kontrast v celém přechodu; oranžový konec se pod text nedává
+  --grad: linear-gradient(120deg, #6d4aff, #9a35d6 50%, #c81e6a);
+  --on-grad: #ffffff;
+  --ring: #6d4aff;
+  --blob-1: rgb(109 74 255 / 22%);
+  --blob-2: rgb(200 30 106 / 16%);
+  --blob-3: rgb(232 116 12 / 14%);
+  --title-size: 2.125rem;
+  --title-weight: 800;
+  --title-spacing: -0.04em;
+  --search-bg: var(--glass);
+  // Okraj pole má kontrast 3 : 1 (sklo by mělo jen 1,2 : 1)
+  --search-border: var(--outline);
+  --search-radius: 16px;
+  --chip-radius: 999px;
+  --card-bg: #ffffff;
+  --card-border: var(--glass-border);
+  --card-radius: 20px;
+  --card-shadow: 0 1px 2px rgb(15 15 35 / 6%), 0 8px 24px -8px rgb(15 15 35 / 14%);
+  --card-gap: 10px;
+  --card-pinned-bg: var(--card-bg);
+  --card-pinned-border: transparent;
+  --fab-bg: var(--grad);
+  --fab-text: var(--on-grad);
+  --fab-radius: 20px;
+  --nav-bg: var(--glass-strong);
+  --nav-border: var(--glass-border);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --glass: rgb(30 30 42 / 55%);
+    --glass-strong: rgb(26 26 36 / 82%);
+    --glass-border: rgb(255 255 255 / 9%);
+    --ring: #b7a6ff;
+    --blob-1: rgb(124 92 255 / 34%);
+    --blob-2: rgb(209 38 115 / 24%);
+    --blob-3: rgb(240 138 36 / 16%);
+    --card-bg: #17171f;
+    --card-shadow: 0 1px 0 rgb(255 255 255 / 4%) inset, 0 10px 30px -12px rgb(0 0 0 / 70%);
+  }
+}
+
+// Bez podpory rozostření, s omezenou průhledností nebo vyšším kontrastem jsou panely plné
+@supports not (backdrop-filter: blur(1px)) {
+  :root:not([data-theme]) {
+    --glass: var(--surface-high);
+    --glass-strong: var(--surface-high);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root:not([data-theme]) {
+    --glass: var(--surface-high);
+    --glass-strong: var(--surface-high);
+    --glass-blur: none;
+    --blob-1: transparent;
+    --blob-2: transparent;
+    --blob-3: transparent;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root:not([data-theme]) {
+    --glass: var(--surface-high);
+    --glass-strong: var(--surface-high);
+    --glass-border: var(--outline);
+    --glass-blur: none;
+  }
+}
+
+// Tvar Nunito (písma, zaoblení, stíny, slunečnicové „Nová“) pro Modrou, Bílou, Vzdušnou a Zápisník; Papír a Grafit mají vlastní
+// :where() drží přednost na úrovni bloků vzhledů, takže je ty dál přepisují
+:root:where([data-theme]):not([data-theme='paper'], [data-theme='graphite']) {
   --font: 'Nunito', system-ui, 'Segoe UI', Roboto, sans-serif;
   --title-font: 'Bricolage Grotesque', var(--font);
   --title-size: 1.75rem;
@@ -177,7 +298,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme='paper'], [data-theme='graphite']) {
+  :root:where([data-theme]):not([data-theme='paper'], [data-theme='graphite']) {
     --card-border: var(--outline-variant);
     --card-shadow: 0 10px 22px -12px rgb(0 0 0 / 70%);
   }
@@ -257,6 +378,12 @@
   --fab-text: var(--on-primary);
   --nav-bg: #ffffff;
   --nav-border: var(--outline-variant);
+  --note-yellow: #fff0b0;
+  --note-blue: #e1e9ff;
+  --note-green: #dcf5e5;
+  --note-red: #ffe0ec;
+  --note-purple: #ece4ff;
+  --note-gray: #efe7dc;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -278,6 +405,12 @@
     --card-border: var(--outline-variant);
     --card-shadow: none;
     --nav-bg: #0f0f11;
+    --note-yellow: #574414;
+    --note-blue: #1d2a52;
+    --note-green: #15352a;
+    --note-red: #45182f;
+    --note-purple: #2f2357;
+    --note-gray: #2e2838;
   }
 }
 
@@ -540,68 +673,24 @@
   }
 }
 
-// Noir (návrh D): tmavý, prémiový, fialovo-malinový přechod; světlá varianta Porcelán
-:root[data-theme='noir'] {
-  --primary: #5a32e0;
-  --on-primary: #ffffff;
-  --primary-container: #ece6ff;
-  --on-primary-container: #3a1fa0;
-  --surface: #f6f6fa;
-  --surface-low: #ededf4;
-  --surface-high: #ffffff;
-  --on-surface: #0d0d14;
-  --on-surface-variant: #43435a;
-  --outline: #575770;
-  --outline-variant: #e1e1ea;
-  --pin: #b4530a;
-  --error: #b3261e;
-  --font: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --title-font: var(--font);
-  --title-spacing: -0.03em;
-  --card-radius: 16px;
-  --card-shadow: 0 1px 2px rgb(15 15 35 / 6%), 0 8px 24px -8px rgb(15 15 35 / 14%);
-  // Bílý text má kontrast na obou koncích přechodu
-  --fab-bg: linear-gradient(120deg, #6d4aff, #c81e6a);
-  --fab-text: #ffffff;
-  --note-yellow: #fff0d6;
-  --note-blue: #dcefff;
-  --note-green: #dcf5ea;
-  --note-red: #ffe3ee;
-  --note-purple: #ece6ff;
-  --note-gray: #eeeef3;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root[data-theme='noir'] {
-    --primary: #b7a6ff;
-    --on-primary: #1a0f40;
-    --primary-container: #2a2150;
-    --on-primary-container: #ddd4ff;
-    --surface: #0b0b10;
-    --surface-low: #101017;
-    --surface-high: #13131b;
-    --on-surface: #f4f4fa;
-    --on-surface-variant: #b4b4c8;
-    --outline: #9a9ab2;
-    --outline-variant: #26262f;
-    --pin: #ffb547;
-    --error: #ff8a80;
-    --card-shadow: 0 1px 0 rgb(255 255 255 / 4%) inset, 0 10px 30px -12px rgb(0 0 0 / 70%);
-    --nav-bg: #101017;
-    --note-yellow: #3a2a10;
-    --note-blue: #0f2a40;
-    --note-green: #0f3326;
-    --note-red: #3a1426;
-    --note-purple: #241d45;
-    --note-gray: #1c1c26;
-  }
-}
-
 body {
   margin: 0;
   background: var(--surface);
   color: var(--on-surface);
   font-family: var(--font);
+}
+
+// Ambientní záře Noiru: jedna pevná vrstva za obsahem, bez filter: blur
+:root:not([data-theme]) body::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(circle 340px at 100% 0%, var(--blob-1), transparent),
+    radial-gradient(circle 280px at 0% 45%, var(--blob-2), transparent),
+    radial-gradient(circle 300px at 100% 100%, var(--blob-3), transparent);
+  content: '';
+  pointer-events: none;
 }
 
 // Logo aplikace v nadpisu seznamů (dekorace, název nese text nadpisu)
@@ -642,7 +731,7 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
 
