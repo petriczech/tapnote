@@ -189,6 +189,33 @@ describe('TasksPage', () => {
     expect(root.querySelector('summary')?.textContent?.trim()).toBe('Hotové (2)');
   });
 
+  it('shows confetti briefly after completing a task', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
+    await render();
+
+    root.querySelector<HTMLInputElement>('li[data-id="a"] .check')?.click();
+    await vi.waitFor(() => expect(root.querySelector('tn-confetti')).not.toBeNull());
+    expect(root.querySelector('tn-confetti')?.getAttribute('aria-hidden')).toBe('true');
+
+    vi.advanceTimersByTime(800);
+    await fixture.whenStable();
+    expect(root.querySelector('tn-confetti')).toBeNull();
+  });
+
+  it('shows no confetti when reopening a done task', async () => {
+    await render();
+    root.querySelector('details')?.setAttribute('open', '');
+
+    root.querySelector<HTMLInputElement>('li[data-id="ccc"] .check')?.click();
+    await vi.waitFor(() => expect(repository.tasks.get('ccc')?.done).toBe(false));
+    await fixture.whenStable();
+
+    expect(root.querySelector('tn-confetti')).toBeNull();
+  });
+
   it('toggles importance', async () => {
     await render('all');
 

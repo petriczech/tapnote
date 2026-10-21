@@ -1,4 +1,4 @@
-import { afterNextRender, Component, computed, ElementRef, inject, Injector, input, OnInit, signal } from '@angular/core';
+import { afterNextRender, Component, computed, DestroyRef, ElementRef, inject, Injector, input, OnInit, signal } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Category } from '../../core/model/category';
@@ -9,10 +9,14 @@ import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { TasksRepository } from '../../core/storage/tasks-repository';
 import { NewTaskFields, TaskActions } from '../../core/tasks/task-actions';
 import { BottomNav } from '../list/bottom-nav';
+import { Confetti } from './confetti';
+
+// Délka animace konfet (tn-confetti), pak se prvek odstraní
+const CONFETTI_MS = 800;
 
 @Component({
   selector: 'tn-tasks-page',
-  imports: [BottomNav, NgTemplateOutlet, RouterLink],
+  imports: [BottomNav, Confetti, NgTemplateOutlet, RouterLink],
   host: { '(document:visibilitychange)': 'refreshToday()' },
   template: `
     <header class="header">
@@ -131,7 +135,7 @@ import { BottomNav } from '../list/bottom-nav';
 
     <ng-template #row let-task>
       <li [attr.data-id]="task.id" [class.done]="task.done" [style.--cat]="catVar(categoryOf(task))">
-        <input type="checkbox" class="check" [checked]="task.done" [attr.aria-label]="'Hotovo: ' + task.title" (change)="toggleDone(task)" />
+        <input type="checkbox" class="check" [checked]="task.done" [attr.aria-label]="'Hotovo: ' + task.title" (change)="toggleDone(task, $event)" />
         <div class="body">
           <a class="title" [routerLink]="['/task', task.id]">{{ task.title }}</a>
           @if (meta(task)) {
@@ -184,6 +188,10 @@ import { BottomNav } from '../list/bottom-nav';
       </details>
     }
 
+    @if (burst(); as burst) {
+      <tn-confetti [x]="burst.x" [y]="burst.y" />
+    }
+
     <tn-bottom-nav current="tasks" />
   `,
   styleUrl: './tasks-page.scss',
@@ -214,6 +222,13 @@ export class TasksPage implements OnInit {
   protected readonly loadFailed = signal(false);
   protected readonly actionFailed = signal(false);
   protected readonly announcement = signal('');
+  // Místo konfet po dokončení úkolu
+  protected readonly burst = signal<{ x: number; y: number } | undefined>(undefined);
+  private burstTimer?: ReturnType<typeof setTimeout>;
+
+  constructor() {
+    inject(DestroyRef).onDestroy(() => clearTimeout(this.burstTimer));
+  }
   protected readonly today = signal(localDate(new Date()));
   protected readonly tomorrow = computed(() => addDays(this.today(), 1));
   protected readonly nextWeek = computed(() => addDays(this.today(), 7));
@@ -328,10 +343,15 @@ export class TasksPage implements OnInit {
     }
   }
 
-  protected async toggleDone(task: Task): Promise<void> {
+  protected async toggleDone(task: Task, event?: Event): Promise<void> {
     const index = this.list().open.findIndex((item) => item.id === task.id);
+    // Konfety ze středu kroužku jen při dokončení
+    const rect = event?.target instanceof HTMLElement ? event.target.getBoundingClientRect() : undefined;
     if (await this.run(() => this.actions.toggleDone(task))) {
       this.announcement.set(task.done ? `Úkol ${task.title} znovu otevřen` : `Úkol ${task.title} hotov`);
+      if (!task.done && rect) {
+        this.celebrate(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      }
     }
     this.focusTask(task.id, '.check', index);
   }
@@ -342,6 +362,12 @@ export class TasksPage implements OnInit {
       this.announcement.set(task.important ? `Úkol ${task.title} už není důležitý` : `Úkol ${task.title} je důležitý`);
     }
     this.focusTask(task.id, '.star', index);
+  }
+
+  private celebrate(x: number, y: number): void {
+    clearTimeout(this.burstTimer);
+    this.burst.set({ x, y });
+    this.burstTimer = setTimeout(() => this.burst.set(undefined), CONFETTI_MS);
   }
 
   // Po návratu do aplikace (třeba druhý den) se přepočítá dnešek
