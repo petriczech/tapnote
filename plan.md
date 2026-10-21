@@ -103,7 +103,7 @@ Vítěz soutěže je návrh B „Konfety“ (`.tmp/mockup/soutez/B.html`, 39,6 b
 ### Fáze 3 (nativní doplňky)
 - [ ] **Widget** (Glance): připnutá poznámka / checklist s odškrtáváním + tlačítko „+“
 - [ ] `[[odkazy]]` + backlinky (seznam „odkazuje sem“, bez grafu)
-- [ ] Denní poznámka (jedno tapnutí na dnešní datum)
+- [x] Denní poznámka (jedno tapnutí na dnešní datum)
 
 ### Mimo scope
 Sync, účty, cloud AI, OCR, hlasové poznámky, připomínky, share target, zámek, kolaborace, databáze à la Notion.

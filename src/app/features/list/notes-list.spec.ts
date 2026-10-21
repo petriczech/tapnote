@@ -637,9 +637,11 @@ describe('NotesList', () => {
       await render();
 
       press('n', document.body);
+      press('d', document.body);
       press('?', document.body);
 
       expect(navigate).toHaveBeenCalledWith(['/new']);
+      expect(navigate).toHaveBeenCalledWith(['/today']);
       expect(navigate).toHaveBeenCalledWith(['/settings'], { fragment: 'shortcuts' });
     });
 

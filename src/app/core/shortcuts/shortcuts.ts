@@ -3,6 +3,7 @@ export const SHORTCUTS_KEY = 'tapnote.shortcuts';
 
 export const SHORTCUTS = [
   { place: 'Seznam', keys: 'N', label: 'Nová poznámka' },
+  { place: 'Seznam', keys: 'D', label: 'Dnešní poznámka' },
   { place: 'Seznam', keys: '/ nebo Ctrl + F', label: 'Hledat' },
   { place: 'Seznam', keys: '↓ / ↑', label: 'Další / předchozí poznámka, Enter ji otevře' },
   { place: 'Seznam', keys: 'P', label: 'Připnout nebo odepnout vybranou poznámku' },

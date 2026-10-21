@@ -62,6 +62,10 @@ function readLayout(): string | null {
             {{ current().label }}
           }
         </h1>
+        <a class="icon-btn" routerLink="/today" title="Dnešní poznámka" (click)="flushQuery()">
+          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.calendar" /></svg>
+          <span class="visually-hidden">Dnešní poznámka</span>
+        </a>
         <button
           type="button"
           class="icon-btn"
@@ -876,6 +880,10 @@ export class NotesList implements OnInit {
       case 'n':
         this.flushQuery();
         void this.router.navigate(['/new']);
+        break;
+      case 'd':
+        this.flushQuery();
+        void this.router.navigate(['/today']);
         break;
       case '/':
         this.field().nativeElement.focus();
