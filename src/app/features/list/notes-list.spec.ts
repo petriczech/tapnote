@@ -111,6 +111,22 @@ describe('NotesList', () => {
     await vi.waitFor(() => expect(tasks.tasks.has('t2')).toBe(false));
   });
 
+  it.each([
+    ['instalaterovi', ['Zavolat instalatérovi']],
+    ['inst zav', ['Zavolat instalatérovi']],
+    ['kohout', []],
+    ['#domov', []],
+  ])('searches trashed tasks for %s like notes', async (q, expected) => {
+    await tasks.bulkPut([
+      { ...createTask('t1', 'Zavolat instalatérovi', '2026-10-15T10:00:00.000Z'), deletedAt: '2026-10-16T10:00:00.000Z' },
+      { ...createTask('t2', 'Nakoupit', '2026-10-15T10:00:00.000Z'), deletedAt: '2026-10-17T10:00:00.000Z' },
+    ]);
+    await render({ view: 'trash', q });
+    await fixture.whenStable();
+
+    expect([...root.querySelectorAll('li[data-task] .title')].map((title) => title.textContent?.trim())).toEqual(expected);
+  });
+
   it('does not show tasks outside the trash', async () => {
     await tasks.put({ ...createTask('t1', 'Zavolat', '2026-10-15T10:00:00.000Z'), deletedAt: '2026-10-16T10:00:00.000Z' });
     await render();

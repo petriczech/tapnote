@@ -18,7 +18,7 @@ import { daysWithoutBackup, readLastBackup } from '../../core/backup/notes-backu
 import { Note } from '../../core/model/note';
 import { collectTags, isNotesView, queryNotes, snippet, templatesOf } from '../../core/model/note-query';
 import { NoteActions } from '../../core/notes/note-actions';
-import { createNoteSearch } from '../../core/search/note-search';
+import { createNoteSearch, normalizeTerm, parseQuery } from '../../core/search/note-search';
 import { NOTE_COLORS, NoteColor, noteColorVar } from '../../core/model/note-colors';
 import { isPlainKey, readShortcutsEnabled } from '../../core/shortcuts/shortcuts';
 import { NotesRepository } from '../../core/storage/notes-repository';
@@ -876,14 +876,20 @@ export class NotesList implements OnInit {
     this.tasks.set(await this.tasksRepository.getAll().catch(() => this.tasks()));
   }
 
-  // Smazané úkoly v koši, poslední smazaný nahoře; hledá se v názvu, s tagem se nezobrazí (úkoly tagy nemají)
+  // Smazané úkoly v koši, poslední smazaný nahoře; hledá se jako u poznámek (bez diakritiky, všechna slova
+  // jako začátky slov v názvu), s tagem se nezobrazí (úkoly tagy nemají)
   protected readonly trashedTasks = computed(() => {
-    const query = this.queryParam()?.trim().toLocaleLowerCase('cs');
-    if (this.current().view !== 'trash' || this.tag()) {
+    const { text, tags } = parseQuery(this.queryParam() ?? '');
+    if (this.current().view !== 'trash' || this.tag() || tags.length > 0) {
       return [];
     }
+    const words = normalizeTerm(text).split(/\s+/).filter(Boolean);
+    const matches = (title: string) => {
+      const titleWords = normalizeTerm(title).split(/[^\p{L}\p{N}]+/u);
+      return words.every((word) => titleWords.some((titleWord) => titleWord.startsWith(word)));
+    };
     return this.tasks()
-      .filter((task) => task.deletedAt && (!query || task.title.toLocaleLowerCase('cs').includes(query)))
+      .filter((task) => task.deletedAt && matches(task.title))
       .sort((a, b) => (b.deletedAt ?? '').localeCompare(a.deletedAt ?? ''));
   });
 
