@@ -17,7 +17,19 @@ import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { NotesRepository } from '../../core/storage/notes-repository';
 import { TasksRepository } from '../../core/storage/tasks-repository';
 import { VersionsRepository } from '../../core/storage/versions-repository';
-import { applyScheme, applyTheme, readScheme, readTheme, SchemeId, SCHEMES, ThemeId, THEMES } from '../../core/theme/theme';
+import { ICONS } from '../../core/icons/icons';
+import {
+  applyAmbient,
+  applyScheme,
+  applyTheme,
+  readAmbient,
+  readScheme,
+  readTheme,
+  SchemeId,
+  SCHEMES,
+  ThemeId,
+  THEMES,
+} from '../../core/theme/theme';
 import { BottomNav } from '../list/bottom-nav';
 import { CategoriesSection } from './categories-section';
 
@@ -48,6 +60,13 @@ const REVOKE_DELAY_MS = 60_000;
         <div class="themes">
           @for (item of themes; track item.id) {
             <label class="theme">
+              <input
+                type="radio"
+                name="theme"
+                [value]="item.id"
+                [checked]="theme() === item.id"
+                (change)="setTheme(item.id)"
+              />
               <span
                 class="preview"
                 aria-hidden="true"
@@ -55,17 +74,38 @@ const REVOKE_DELAY_MS = 60_000;
                 [style.--card]="item.preview[1]"
                 [style.--accent]="item.preview[2]"
               >
-                <span class="bar"></span>
-                <span class="dot"></span>
+                <span class="pt"></span>
+                <span class="pr"></span>
+                <span class="pr"></span>
+                <span class="pf"></span>
               </span>
               <span class="theme-name">
-                <input type="radio" name="theme" [value]="item.id" [checked]="theme() === item.id" (change)="setTheme(item.id)" />
                 {{ item.label }}
+                @if (theme() === item.id) {
+                  <svg class="tick" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="checkIcon" /></svg>
+                }
               </span>
             </label>
           }
         </div>
       </fieldset>
+
+      <!-- Záře je jen v Noiru, proto se přepínač ukazuje jen tam -->
+      @if (theme() === 'noir') {
+        <label class="check switch-row">
+          Ambientní přechody
+          <input
+            #ambientBox
+            class="switch"
+            type="checkbox"
+            role="switch"
+            aria-describedby="ambient-hint"
+            [checked]="ambient()"
+            (change)="setAmbient(ambientBox.checked)"
+          />
+        </label>
+        <p id="ambient-hint" class="info">Barevná záře za skleněnými panely</p>
+      }
     </section>
 
     <tn-categories-section />
@@ -286,67 +326,150 @@ const REVOKE_DELAY_MS = 60_000;
 
     .themes {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 10px;
     }
 
-    /* .themes kvůli přednosti před obecným fieldset label */
+    /* .themes kvůli přednosti před obecným fieldset label; dlaždice s náhledem z barev preview */
     .themes .theme {
-      display: flex;
+      position: relative;
       flex-direction: column;
       align-items: stretch;
-      gap: 4px;
-      padding: 8px;
+      gap: 6px;
+      padding: 7px;
       border: 1px solid var(--outline-variant);
-      border-radius: var(--card-radius);
+      border-radius: 20px;
       background: var(--card-bg);
+      cursor: pointer;
+    }
+
+    /* Neviditelné radio přes celou dlaždici: klik i fokus jdou přímo na něj */
+    .themes input {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
       cursor: pointer;
     }
 
     .themes .theme:has(input:checked) {
       border: 2px solid var(--primary);
-      padding: 7px;
+      padding: 6px;
     }
 
     .themes .theme:has(input:focus-visible) {
-      outline: 2px solid var(--primary);
+      outline: 2px solid var(--ring);
       outline-offset: 2px;
     }
 
     .preview {
       position: relative;
-      display: block;
-      height: 64px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      height: 72px;
+      padding: 9px;
       border: 1px solid rgb(0 0 0 / 8%);
-      border-radius: 10px;
+      border-radius: 14px;
       background: var(--bg);
+      box-sizing: border-box;
     }
 
-    .preview .bar {
-      position: absolute;
-      inset: 12px 12px auto;
-      height: 22px;
+    .pt {
+      width: 55%;
+      height: 8px;
+      border-radius: 4px;
+      background: var(--accent);
+    }
+
+    .pr {
+      height: 18px;
       border-radius: 6px;
       background: var(--card);
       box-shadow: 0 1px 3px rgb(0 0 0 / 12%);
     }
 
-    .preview .dot {
+    .pf {
       position: absolute;
-      right: 12px;
-      bottom: 8px;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
+      right: 7px;
+      bottom: 7px;
+      width: 22px;
+      height: 22px;
+      border-radius: 8px;
       background: var(--accent);
     }
 
     .theme-name {
       display: flex;
       align-items: center;
-      gap: 10px;
-      min-height: 32px;
+      justify-content: space-between;
+      min-height: 24px;
+      padding: 0 2px;
       font-weight: 600;
+    }
+
+    .tick {
+      width: 22px;
+      height: 22px;
+      padding: 4px;
+      box-sizing: border-box;
+      border-radius: 50%;
+      background: var(--primary);
+      fill: var(--on-primary);
+    }
+
+    .switch-row {
+      justify-content: space-between;
+    }
+
+    /* Nativní checkbox jako přepínač; stav nese i poloha jezdce, nejen barva */
+    .check .switch {
+      position: relative;
+      width: 52px;
+      height: 32px;
+      border-radius: 999px;
+      background: var(--outline);
+      appearance: none;
+      cursor: pointer;
+    }
+
+    .switch::before {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--surface);
+      content: '';
+    }
+
+    .check .switch:checked {
+      background: var(--primary);
+    }
+
+    .switch:checked::before {
+      left: 24px;
+    }
+
+    /* Vysoký kontrast: obrys dráhy a jezdec v systémové barvě */
+    @media (forced-colors: active) {
+      .check .switch {
+        border: 1px solid CanvasText;
+      }
+
+      .switch::before {
+        top: 3px;
+        left: 3px;
+        background: CanvasText;
+        forced-color-adjust: none;
+      }
+
+      .switch:checked::before {
+        left: 23px;
+      }
     }
 
     .file input {
@@ -514,6 +637,8 @@ export class Settings implements OnInit {
   protected readonly theme = signal(readTheme());
   protected readonly schemes = SCHEMES;
   protected readonly scheme = signal(readScheme());
+  protected readonly ambient = signal(readAmbient());
+  protected readonly checkIcon = ICONS.check;
   private readonly lastBackup = signal(readLastBackup());
   protected readonly lastBackupText = computed(() => {
     const iso = this.lastBackup();
@@ -535,6 +660,11 @@ export class Settings implements OnInit {
   protected setTheme(theme: ThemeId): void {
     applyTheme(theme);
     this.theme.set(theme);
+  }
+
+  protected setAmbient(on: boolean): void {
+    applyAmbient(on);
+    this.ambient.set(on);
   }
 
   protected setScheme(scheme: SchemeId): void {

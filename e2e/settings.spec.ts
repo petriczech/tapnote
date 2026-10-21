@@ -59,3 +59,23 @@ test('nastavení: režim Tmavý se uloží a Systém ho vrátí', async ({ page,
   await expect.poll(() => surface(page)).toBe('#f6f6fa');
   await expect(page.locator(meta('dark'))).toHaveAttribute('content', '#f6f6fa');
 });
+
+// Přepínač záře v Noiru: vypnutí nastaví atribut a skryje záři, volba přežije reload; v jiném vzhledu přepínač není
+test('nastavení: ambientní přechody se vypnou a přežijí reload', async ({ page, axe }) => {
+  await page.goto('/settings');
+  const toggle = page.getByRole('switch', { name: 'Ambientní přechody' });
+  await expect(toggle).toBeChecked();
+  await expect(page.locator('html')).not.toHaveAttribute('data-ambient');
+
+  await toggle.uncheck();
+  await expect(page.locator('html')).toHaveAttribute('data-ambient', 'off');
+  await expect.poll(() => page.evaluate(() => getComputedStyle(document.body, '::before').content)).toBe('none');
+
+  await page.reload();
+  await expect(page.getByRole('switch', { name: 'Ambientní přechody' })).not.toBeChecked();
+  await expect(page.locator('html')).toHaveAttribute('data-ambient', 'off');
+  await axe('nastavení s vypnutými ambientními přechody');
+
+  await page.getByRole('radio', { name: 'Papír' }).check();
+  await expect(page.getByRole('switch', { name: 'Ambientní přechody' })).toHaveCount(0);
+});

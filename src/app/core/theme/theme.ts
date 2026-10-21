@@ -8,9 +8,7 @@ export const THEMES = [
   { id: 'blue', label: 'Modrá', preview: ['#fbf9ff', '#ffffff', '#1a56b8'], bar: ['#fbf9ff', '#121318'] },
   { id: 'paper', label: 'Papír', preview: ['#f7f1e3', '#fffaf0', '#b4441c'], bar: ['#f7f1e3', '#1d1a16'] },
   { id: 'graphite', label: 'Grafit', preview: ['#f0f0f0', '#ffffff', '#0d7a5f'], bar: ['#ffffff', '#0b0b0b'] },
-  { id: 'white', label: 'Bílá', preview: ['#ffffff', '#f4f4f5', '#5b2ee8'], bar: ['#ffffff', '#0f0f11'] },
-  { id: 'airy', label: 'Vzdušná', preview: ['#f7f8fb', '#ffffff', '#2457c5'], bar: ['#f7f8fb', '#111318'] },
-  { id: 'notebook', label: 'Zápisník', preview: ['#f5f0e6', '#fbf8f1', '#a3301a'], bar: ['#f5f0e6', '#1c1a17'] },
+  { id: 'white', label: 'Bílá', preview: ['#ffffff', '#f4f4f5', '#111111'], bar: ['#ffffff', '#0f0f11'] },
 ] as const;
 
 export type ThemeId = (typeof THEMES)[number]['id'];
@@ -30,10 +28,11 @@ function isThemeId(value: unknown): value is ThemeId {
   return THEMES.some((theme) => theme.id === value);
 }
 
-// Zrušené Konfety i neznámá hodnota vedou na výchozí Noir
+// Zrušená Vzdušná vede na Modrou a Zápisník na Papír (stejně ve skriptu v index.html); zrušené Konfety i neznámá hodnota na výchozí Noir
 export function readTheme(): ThemeId {
   try {
-    const value = localStorage.getItem(THEME_KEY);
+    const stored = localStorage.getItem(THEME_KEY);
+    const value = stored === 'airy' ? 'blue' : stored === 'notebook' ? 'paper' : stored;
     return isThemeId(value) ? value : 'noir';
   } catch {
     return 'noir';
@@ -52,6 +51,30 @@ export function applyTheme(theme: ThemeId): void {
     localStorage.setItem(THEME_KEY, theme);
   } catch {
     // Bez úložiště platí vzhled jen do zavření
+  }
+}
+
+// Ambientní záře Noiru; výchozí zapnutá bez atributu, vypnutá jako data-ambient="off" (stejně ve skriptu v index.html)
+export const AMBIENT_KEY = 'tapnote.ambient';
+
+export function readAmbient(): boolean {
+  try {
+    return localStorage.getItem(AMBIENT_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+}
+
+export function applyAmbient(on: boolean): void {
+  if (on) {
+    delete document.documentElement.dataset['ambient'];
+  } else {
+    document.documentElement.dataset['ambient'] = 'off';
+  }
+  try {
+    localStorage.setItem(AMBIENT_KEY, on ? 'on' : 'off');
+  } catch {
+    // Bez úložiště platí volba jen do zavření
   }
 }
 

@@ -12,20 +12,20 @@
     <script>
       // Vzhled před prvním vykreslením (klíč a hodnoty jako core/theme/theme.ts)
       // Barvy stavového řádku pro světlý a tmavý režim jako bar v THEMES; Noir je výchozí v metách výše
-      // Uložené noir, zrušené konfety i neznámá hodnota zůstávají bez atributu, tedy Noir
+      // Uložené noir, zrušené konfety i neznámá hodnota zůstávají bez atributu, tedy Noir; zrušená airy vede na blue, notebook na paper
       // Režim (klíč a hodnoty jako SCHEMES): vynucený světlý nebo tmavý dává oběma metám barvu svého režimu, jinak rozhoduje systém
+      // Vypnutá ambientní záře (klíč jako AMBIENT_KEY) se značí data-ambient="off"
       var bars = {
         noir: ['#f6f6fa', '#0b0b10'],
         blue: ['#fbf9ff', '#121318'],
         paper: ['#f7f1e3', '#1d1a16'],
         graphite: ['#ffffff', '#0b0b0b'],
         white: ['#ffffff', '#0f0f11'],
-        airy: ['#f7f8fb', '#111318'],
-        notebook: ['#f5f0e6', '#1c1a17'],
       };
       var schemes = { light: 0, dark: 1 };
       try {
         var theme = localStorage.getItem('tapnote.theme');
+        theme = theme === 'airy' ? 'blue' : theme === 'notebook' ? 'paper' : theme;
         var scheme = localStorage.getItem('tapnote.scheme');
         var bar = bars.noir;
         if (theme !== 'noir' && Object.prototype.hasOwnProperty.call(bars, theme)) {
@@ -35,6 +35,9 @@
         if (Object.prototype.hasOwnProperty.call(schemes, scheme)) {
           document.documentElement.dataset.scheme = scheme;
           bar = [bar[schemes[scheme]], bar[schemes[scheme]]];
+        }
+        if (localStorage.getItem('tapnote.ambient') === 'off') {
+          document.documentElement.dataset.ambient = 'off';
         }
         document.querySelector('meta[name="theme-color"][media*="light"]').content = bar[0];
         document.querySelector('meta[name="theme-color"][media*="dark"]').content = bar[1];

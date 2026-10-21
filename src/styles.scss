@@ -51,43 +51,6 @@
   unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
 }
 
-// Nunito a Bricolage zatím používají Modrá, Bílá, Vzdušná a Zápisník
-@font-face {
-  font-family: 'Nunito';
-  font-style: normal;
-  font-display: swap;
-  font-weight: 200 1000;
-  src: url('./fonts/nunito-latin-wght-normal.woff2') format('woff2-variations');
-  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
-}
-
-@font-face {
-  font-family: 'Nunito';
-  font-style: normal;
-  font-display: swap;
-  font-weight: 200 1000;
-  src: url('./fonts/nunito-latin-ext-wght-normal.woff2') format('woff2-variations');
-  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
-}
-
-@font-face {
-  font-family: 'Bricolage Grotesque';
-  font-style: normal;
-  font-display: swap;
-  font-weight: 200 800;
-  src: url('./fonts/bricolage-grotesque-latin-wght-normal.woff2') format('woff2-variations');
-  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
-}
-
-@font-face {
-  font-family: 'Bricolage Grotesque';
-  font-style: normal;
-  font-display: swap;
-  font-weight: 200 800;
-  src: url('./fonts/bricolage-grotesque-latin-ext-wght-normal.woff2') format('woff2-variations');
-  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
-}
-
 // Noir (návrh D): výchozí vzhled; světlá varianta Porcelán, tmavá Noir, fialovo-malinový přechod
 :root {
   color-scheme: light dark;
@@ -295,11 +258,9 @@
   }
 }
 
-// Tvar Nunito (písma, zaoblení, stíny, slunečnicové „Nová“) pro Modrou, Bílou, Vzdušnou a Zápisník; Papír a Grafit mají vlastní
+// Společný tvar (zaoblení, stíny, slunečnicové „Nová“) pro Modrou a Bílou s písmem Geist z :root; Papír a Grafit mají vlastní
 // :where() drží přednost na úrovni bloků vzhledů, takže je ty dál přepisují
 :root:where([data-theme]):not([data-theme='paper'], [data-theme='graphite']) {
-  --font: 'Nunito', system-ui, 'Segoe UI', Roboto, sans-serif;
-  --title-font: 'Bricolage Grotesque', var(--font);
   --title-size: 1.75rem;
   --title-weight: 800;
   --title-spacing: -0.02em;
@@ -380,12 +341,12 @@
   }
 }
 
-// Bílá: čistě bílé plochy bez barevného nádechu, fialový akcent, jemné stíny
+// Bílá: čistě bílé plochy bez barevného nádechu, černý akcent, jemné stíny
 :root[data-theme='white'] {
-  --primary: #5b2ee8;
+  --primary: #111111;
   --on-primary: #ffffff;
-  --primary-container: #ece4ff;
-  --on-primary-container: #3a1a9e;
+  --primary-container: #e4e4e7;
+  --on-primary-container: #18181b;
   --surface: #ffffff;
   --surface-low: #f6f6f8;
   --surface-high: #ffffff;
@@ -393,7 +354,7 @@
   --on-surface-variant: #52525b;
   --outline: #71717a;
   --outline-variant: #e4e4e7;
-  --pin: #5b2ee8;
+  --pin: #111111;
   --error: #b00020;
   --search-bg: #f4f4f5;
   --search-border: transparent;
@@ -412,10 +373,10 @@
 
 :root[data-theme='white'] {
   @include dark {
-    --primary: #b9a0ff;
-    --on-primary: #1a0b3d;
-    --primary-container: #2e2457;
-    --on-primary-container: #e6dcff;
+    --primary: #f4f4f5;
+    --on-primary: #111111;
+    --primary-container: #2c2c30;
+    --on-primary-container: #f4f4f5;
     --surface: #0f0f11;
     --surface-low: #18181b;
     --surface-high: #1c1c1f;
@@ -423,7 +384,7 @@
     --on-surface-variant: #b4b4bc;
     --outline: #8b8b94;
     --outline-variant: #2c2c30;
-    --pin: #b9a0ff;
+    --pin: #f4f4f5;
     --error: #ffb4ab;
     --search-bg: #1c1c1f;
     --card-border: var(--outline-variant);
@@ -528,7 +489,7 @@
   --error: #b00020;
 
   --font: Inter, system-ui, 'Segoe UI', Roboto, sans-serif;
-  --editor-font: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  --editor-font: var(--mono);
   --title-size: 1.875rem;
   --title-weight: 800;
   --title-spacing: -0.03em;
@@ -575,128 +536,6 @@
   }
 }
 
-// Vzdušná (návrh A): klidná, hodně bílého prostoru, jeden modrý akcent
-:root[data-theme='airy'] {
-  --primary: #2457c5;
-  --on-primary: #ffffff;
-  --primary-container: #e6edfc;
-  --on-primary-container: #1b45a2;
-  --surface: #f7f8fb;
-  --surface-low: #f0f2f6;
-  --surface-high: #ffffff;
-  --on-surface: #191c23;
-  --on-surface-variant: #4f5665;
-  --outline: #5f6676;
-  --outline-variant: #e2e5ec;
-  --pin: #b4530b;
-  --error: #b3261e;
-  --title-font: var(--font);
-  --search-radius: 14px;
-  --card-radius: 16px;
-  --card-shadow: 0 1px 2px rgb(22 34 64 / 5%), 0 2px 10px rgb(22 34 64 / 5%);
-  --fab-bg: var(--primary);
-  --fab-text: var(--on-primary);
-  --fab-radius: 16px;
-  --nav-bg: #ffffff;
-  --note-yellow: #fff4c7;
-  --note-blue: #e1ebff;
-  --note-green: #dff3e2;
-  --note-red: #fde4e6;
-  --note-purple: #ece5ff;
-  --note-gray: #eceef2;
-}
-
-:root[data-theme='airy'] {
-  @include dark {
-    --primary: #8fb2ff;
-    --on-primary: #0a1633;
-    --primary-container: #1e2b47;
-    --on-primary-container: #aec7ff;
-    --surface: #111318;
-    --surface-low: #16191f;
-    --surface-high: #1a1d24;
-    --on-surface: #eceef3;
-    --on-surface-variant: #b0b6c3;
-    --outline: #8d94a3;
-    --outline-variant: #2b303a;
-    --pin: #ffb366;
-    --error: #ffb4ab;
-    --card-shadow: 0 1px 2px rgb(0 0 0 / 40%);
-    --nav-bg: #16191f;
-    --note-yellow: #3b3418;
-    --note-blue: #1e2b47;
-    --note-green: #16301f;
-    --note-red: #3a1828;
-    --note-purple: #29213f;
-    --note-gray: #232731;
-  }
-}
-
-// Zápisník (návrh C): papír a inkoust, patkové titulky, linkovaný editor, rumělkový akcent
-:root[data-theme='notebook'] {
-  --primary: #a3301a;
-  --on-primary: #fff8ef;
-  --primary-container: #f3dbd0;
-  --on-primary-container: #5a1a0c;
-  --surface: #f5f0e6;
-  --surface-low: #ebe4d5;
-  --surface-high: #fbf8f1;
-  --on-surface: #1e1a15;
-  --on-surface-variant: #4a4237;
-  --outline: #675d4f;
-  --outline-variant: #ddd3c1;
-  --pin: #a3301a;
-  --error: #b3261e;
-  --title-font: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
-  --editor-font: var(--title-font);
-  --title-weight: 500;
-  --title-spacing: -0.01em;
-  --search-radius: 10px;
-  --card-radius: 6px;
-  --card-shadow: 0 1px 0 rgb(60 45 20 / 8%), 0 6px 16px -10px rgb(60 45 20 / 35%);
-  --fab-bg: #1e1a15;
-  --fab-text: #f5f0e6;
-  --editor-bg: var(--surface-high);
-  --editor-lines: repeating-linear-gradient(
-    to bottom,
-    transparent 0 calc(1.55em - 1px),
-    var(--outline-variant) calc(1.55em - 1px) 1.55em
-  );
-  --note-yellow: #f4e7b6;
-  --note-blue: #dde5ef;
-  --note-green: #e0e8d0;
-  --note-red: #f3dbd0;
-  --note-purple: #e7ddeb;
-  --note-gray: #e8e2d6;
-}
-
-:root[data-theme='notebook'] {
-  @include dark {
-    --primary: #ee8d70;
-    --on-primary: #1c1a17;
-    --primary-container: #4a2a20;
-    --on-primary-container: #ffd9cc;
-    --surface: #1c1a17;
-    --surface-low: #151310;
-    --surface-high: #25221d;
-    --on-surface: #efe7d8;
-    --on-surface-variant: #cdc3b1;
-    --outline: #a69b89;
-    --outline-variant: #38332b;
-    --pin: #ee8d70;
-    --error: #ffb4ab;
-    --card-shadow: 0 1px 0 rgb(0 0 0 / 40%), 0 8px 18px -12px rgb(0 0 0 / 80%);
-    --fab-bg: #efe7d8;
-    --fab-text: #1c1a17;
-    --note-yellow: #39321f;
-    --note-blue: #232b36;
-    --note-green: #293020;
-    --note-red: #3a2620;
-    --note-purple: #312838;
-    --note-gray: #2b2823;
-  }
-}
-
 body {
   margin: 0;
   background: var(--surface);
@@ -704,8 +543,8 @@ body {
   font-family: var(--font);
 }
 
-// Ambientní záře Noiru: jedna pevná vrstva za obsahem, bez filter: blur
-:root:not([data-theme]) body::before {
+// Ambientní záře Noiru: jedna pevná vrstva za obsahem, bez filter: blur; přepínač „Ambientní přechody“ ji vypíná přes data-ambient
+:root:not([data-theme], [data-ambient='off']) body::before {
   position: fixed;
   inset: 0;
   z-index: -1;

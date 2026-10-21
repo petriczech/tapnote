@@ -1,11 +1,13 @@
-import { applyScheme, applyTheme, readScheme, readTheme, SCHEME_KEY, THEME_KEY } from './theme';
+import { AMBIENT_KEY, applyAmbient, applyScheme, applyTheme, readAmbient, readScheme, readTheme, SCHEME_KEY, THEME_KEY } from './theme';
 
 describe('theme', () => {
   afterEach(() => {
     localStorage.removeItem(THEME_KEY);
     localStorage.removeItem(SCHEME_KEY);
+    localStorage.removeItem(AMBIENT_KEY);
     delete document.documentElement.dataset['theme'];
     delete document.documentElement.dataset['scheme'];
+    delete document.documentElement.dataset['ambient'];
   });
 
   it('defaults to noir', () => {
@@ -19,6 +21,34 @@ describe('theme', () => {
     localStorage.setItem(THEME_KEY, 'konfety');
 
     expect(readTheme()).toBe('noir');
+  });
+
+  it('maps the removed airy theme to blue and notebook to paper', () => {
+    localStorage.setItem(THEME_KEY, 'airy');
+    expect(readTheme()).toBe('blue');
+
+    localStorage.setItem(THEME_KEY, 'notebook');
+    expect(readTheme()).toBe('paper');
+  });
+
+  it('keeps the ambient glow on by default', () => {
+    expect(readAmbient()).toBe(true);
+
+    localStorage.setItem(AMBIENT_KEY, 'nonsense');
+    expect(readAmbient()).toBe(true);
+  });
+
+  it('turns the ambient glow off with an attribute and remembers it', () => {
+    applyAmbient(false);
+
+    expect(document.documentElement.dataset['ambient']).toBe('off');
+    expect(readAmbient()).toBe(false);
+
+    applyAmbient(true);
+
+    expect(document.documentElement.hasAttribute('data-ambient')).toBe(false);
+    expect(localStorage.getItem(AMBIENT_KEY)).toBe('on');
+    expect(readAmbient()).toBe(true);
   });
 
   it('applies and remembers a theme', () => {
