@@ -43,6 +43,12 @@ import { ICONS } from '../../core/icons/icons';
           Uloženo
         </span>
       }
+      @if (draft.noteId(); as noteId) {
+        <a class="icon-btn" [routerLink]="['/note', noteId, 'history']" title="Historie">
+          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.history" /></svg>
+          <span class="visually-hidden">Historie</span>
+        </a>
+      }
       @if (mode() === 'edit') {
         <button
           type="button"

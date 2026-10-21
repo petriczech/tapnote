@@ -7,6 +7,8 @@ import { InMemoryNotesRepository } from '../../core/storage/testing/in-memory-no
 import { ParamsRouteReuseStrategy } from '../../params-route-reuse-strategy';
 import { NoteDraft } from './note-draft';
 import { NoteEditor } from './note-editor';
+import { VersionsRepository } from '../../core/storage/versions-repository';
+import { InMemoryVersionsRepository } from '../../core/storage/testing/in-memory-versions-repository';
 
 describe('NoteEditor', () => {
   let repository: InMemoryNotesRepository;
@@ -18,7 +20,7 @@ describe('NoteEditor', () => {
       providers: [
         provideRouter([{ path: 'note/:id', component: NoteEditor }], withComponentInputBinding()),
         { provide: RouteReuseStrategy, useClass: ParamsRouteReuseStrategy },
-        { provide: NotesRepository, useValue: repository },
+        { provide: NotesRepository, useValue: repository }, { provide: VersionsRepository, useClass: InMemoryVersionsRepository },
       ],
     });
   });

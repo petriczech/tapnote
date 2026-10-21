@@ -12,6 +12,8 @@ import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { InMemoryCategoriesRepository } from '../../core/storage/testing/in-memory-categories-repository';
 import { InMemoryTasksRepository } from '../../core/storage/testing/in-memory-tasks-repository';
 import { LAYOUT_KEY, NotesList, URL_DEBOUNCE_MS } from './notes-list';
+import { VersionsRepository } from '../../core/storage/versions-repository';
+import { InMemoryVersionsRepository } from '../../core/storage/testing/in-memory-versions-repository';
 
 function note(id: string, overrides: Partial<Note> = {}): Note {
   return { ...createNote(id, '2026-10-15T10:00:00.000Z'), title: `Poznámka ${id}`, ...overrides };
@@ -56,7 +58,7 @@ describe('NotesList', () => {
       imports: [NotesList],
       providers: [
         provideRouter([]),
-        { provide: NotesRepository, useValue: repository },
+        { provide: NotesRepository, useValue: repository }, { provide: VersionsRepository, useClass: InMemoryVersionsRepository },
         { provide: TasksRepository, useValue: tasks },
         { provide: CategoriesRepository, useValue: categories },
       ],

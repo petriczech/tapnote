@@ -12,6 +12,8 @@ import { DexieTasksRepository } from './dexie-tasks-repository';
 import { NotesRepository } from './notes-repository';
 import { TapnoteDb } from './tapnote-db';
 import { TasksRepository } from './tasks-repository';
+import { DexieVersionsRepository } from './dexie-versions-repository';
+import { VersionsRepository } from './versions-repository';
 
 function createNote(id: string, overrides: Partial<Note> = {}): Note {
   return {
@@ -181,5 +183,27 @@ describe('Dexie tasks and categories', () => {
     await repository.delete('b');
 
     expect((await repository.getAll()).map((item) => item.id)).toEqual(['c', 'a']);
+  });
+});
+
+describe('Dexie versions', () => {
+  beforeEach(() => {
+    TestBed.configureTestingModule({ providers: [{ provide: VersionsRepository, useClass: DexieVersionsRepository }] });
+  });
+
+  afterEach(() => TestBed.inject(TapnoteDb).close());
+
+  it('keeps the newest versions per note and deletes them with the note', async () => {
+    const repository = TestBed.inject(VersionsRepository);
+    await repository.deleteForNotes(['a', 'b']);
+    for (let i = 0; i < 4; i++) {
+      await repository.add({ id: `a${i}`, noteId: 'a', content: `${i}`, createdAt: `2026-10-1${i}T10:00:00.000Z` }, 3);
+    }
+    await repository.add({ id: 'b0', noteId: 'b', content: 'b', createdAt: '2026-10-10T10:00:00.000Z' }, 3);
+
+    expect((await repository.getForNote('a')).map((item) => item.id)).toEqual(['a3', 'a2', 'a1']);
+    await repository.deleteForNotes(['a']);
+    expect(await repository.getForNote('a')).toEqual([]);
+    expect((await repository.getForNote('b')).length).toBe(1);
   });
 });

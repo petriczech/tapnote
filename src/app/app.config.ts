@@ -14,6 +14,8 @@ import { TasksRepository } from './core/storage/tasks-repository';
 import { DexieTasksRepository } from './core/storage/dexie-tasks-repository';
 import { CategoriesRepository } from './core/storage/categories-repository';
 import { DexieCategoriesRepository } from './core/storage/dexie-categories-repository';
+import { VersionsRepository } from './core/storage/versions-repository';
+import { DexieVersionsRepository } from './core/storage/dexie-versions-repository';
 import { NoteActions } from './core/notes/note-actions';
 import { TaskActions } from './core/tasks/task-actions';
 import { listenForAppUrls } from './core/native/app-urls';
@@ -27,6 +29,7 @@ export const appConfig: ApplicationConfig = {
     { provide: NotesRepository, useClass: DexieNotesRepository },
     { provide: TasksRepository, useClass: DexieTasksRepository },
     { provide: CategoriesRepository, useClass: DexieCategoriesRepository },
+    { provide: VersionsRepository, useClass: DexieVersionsRepository },
     // Úklid koše na pozadí
     provideAppInitializer(() => void inject(NoteActions).purgeTrash().catch(() => undefined)),
     provideAppInitializer(() => void inject(TaskActions).purgeTrash().catch(() => undefined)),

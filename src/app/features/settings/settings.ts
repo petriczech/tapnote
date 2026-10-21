@@ -15,6 +15,7 @@ import { readShortcutsEnabled, SHORTCUTS, writeShortcutsEnabled } from '../../co
 import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { NotesRepository } from '../../core/storage/notes-repository';
 import { TasksRepository } from '../../core/storage/tasks-repository';
+import { VersionsRepository } from '../../core/storage/versions-repository';
 import { applyTheme, readTheme, ThemeId, THEMES } from '../../core/theme/theme';
 import { BottomNav } from '../list/bottom-nav';
 import { CategoriesSection } from './categories-section';
@@ -414,6 +415,7 @@ export class Settings implements OnInit {
   private readonly repository = inject(NotesRepository);
   private readonly tasks = inject(TasksRepository);
   private readonly categories = inject(CategoriesRepository);
+  private readonly versions = inject(VersionsRepository);
   private readonly actions = inject(NoteActions);
   private readonly host: HTMLElement = inject(ElementRef).nativeElement;
   private readonly injector = inject(Injector);
@@ -550,7 +552,8 @@ export class Settings implements OnInit {
           this.failed.set(true);
           return 'Záloha neobsahuje žádné poznámky.';
         }
-        const current = (await this.repository.getAll()).length;
+        const currentNotes = await this.repository.getAll();
+        const current = currentNotes.length;
         const currentTasks = (await this.tasks.getAll()).length;
         const question =
           currentTasks + tasks.length > 0
@@ -565,6 +568,9 @@ export class Settings implements OnInit {
         }
         await this.tasks.replaceAll(tasks);
         await this.repository.replaceAll(notes);
+        // Historie nahrazených poznámek se smaže
+        const kept = new Set(notes.map((note) => note.id));
+        await this.versions.deleteForNotes(currentNotes.filter((note) => !kept.has(note.id)).map((note) => note.id));
         return withTasks(`Obnoveno poznámek: ${notes.length}`, tasks.length);
       }
       const changed = mergeNewer(await this.repository.getAll(), parsed.notes);

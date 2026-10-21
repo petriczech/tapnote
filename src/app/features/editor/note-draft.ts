@@ -1,7 +1,9 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { createNote, deriveTitle, extractTags, Note } from '../../core/model/note';
+import { MAX_VERSIONS, VERSION_PAUSE_MS } from '../../core/model/note-version';
 import { expandTemplate } from '../../core/model/template';
 import { NotesRepository } from '../../core/storage/notes-repository';
+import { VersionsRepository } from '../../core/storage/versions-repository';
 
 export const RESUME_WINDOW_MS = 5 * 60 * 1000;
 export const SAVE_DEBOUNCE_MS = 300;
@@ -48,6 +50,7 @@ function withColor(note: Note, color: string | undefined): Note {
 @Injectable()
 export class NoteDraft {
   private readonly repository = inject(NotesRepository);
+  private readonly versions = inject(VersionsRepository);
 
   readonly content = signal('');
   readonly loading = signal(false);
@@ -56,6 +59,8 @@ export class NoteDraft {
   readonly saved = signal(true);
   // Barva otevřené poznámky, u nové poznámky ze šablony barva šablony
   readonly color = signal<string | undefined>(undefined);
+  // Id uložené poznámky (pro odkaz na historii)
+  readonly noteId = signal<string | undefined>(undefined);
 
   private note: Note | undefined;
   // Obsah ze šablony, který se bez úpravy neukládá
@@ -121,8 +126,20 @@ export class NoteDraft {
 
   private load(note: Note): void {
     this.note = note;
+    this.noteId.set(note.id);
     this.content.set(note.content);
     this.color.set(note.color);
+  }
+
+  // Úprava po pauze v psaní uloží předchozí znění jako verzi; chyba historie ukládání nezastaví
+  private async keepVersion(now: string): Promise<void> {
+    const previous = this.note;
+    if (!previous?.content.trim() || Date.parse(now) - Date.parse(previous.updatedAt) < VERSION_PAUSE_MS) {
+      return;
+    }
+    await this.versions
+      .add({ id: crypto.randomUUID(), noteId: previous.id, content: previous.content, createdAt: previous.updatedAt }, MAX_VERSIONS)
+      .catch(() => undefined);
   }
 
   private async findResumable(): Promise<Note | undefined> {
@@ -156,12 +173,15 @@ export class NoteDraft {
         if (readLastEdit()?.id === this.note.id) {
           writeLastEdit(undefined);
         }
+        await this.versions.deleteForNotes([this.note.id]).catch(() => undefined);
         this.note = undefined;
+        this.noteId.set(undefined);
         this.createdHere = false;
       }
       return;
     }
     const now = new Date().toISOString();
+    await this.keepVersion(now);
     const note: Note = {
       ...(this.note ?? withColor(createNote(crypto.randomUUID(), now), this.color())),
       content,
@@ -173,6 +193,7 @@ export class NoteDraft {
     writeLastEdit({ id: note.id, editedAt: now });
     this.createdHere ||= !this.note;
     this.note = note;
+    this.noteId.set(note.id);
     this.prefill = '';
   }
 }

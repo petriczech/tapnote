@@ -12,6 +12,8 @@ import { InMemoryTasksRepository } from '../../core/storage/testing/in-memory-ta
 import { SHORTCUTS_KEY } from '../../core/shortcuts/shortcuts';
 import { THEME_KEY } from '../../core/theme/theme';
 import { MAX_IMPORT_BYTES, Settings } from './settings';
+import { VersionsRepository } from '../../core/storage/versions-repository';
+import { InMemoryVersionsRepository } from '../../core/storage/testing/in-memory-versions-repository';
 
 function note(id: string, updatedAt: string, content = id): Note {
   return { ...createNote(id, updatedAt), content };
@@ -54,7 +56,7 @@ describe('Settings', () => {
       imports: [Settings],
       providers: [
         provideRouter([]),
-        { provide: NotesRepository, useValue: repository },
+        { provide: NotesRepository, useValue: repository }, { provide: VersionsRepository, useClass: InMemoryVersionsRepository },
         { provide: TasksRepository, useValue: tasks },
         { provide: CategoriesRepository, useClass: InMemoryCategoriesRepository },
       ],
@@ -209,6 +211,7 @@ describe('Settings', () => {
       { id: 'c', name: 'Práce', icon: 'briefcase', color: 'blue' as const, order: 0, createdAt: '2026-10-15T10:00:00.000Z', updatedAt: '2026-10-15T10:00:00.000Z' },
     ];
     await TestBed.inject(CategoriesRepository).bulkPut(categoriesBefore);
+    await TestBed.inject(VersionsRepository).add({ id: 'v', noteId: 'a', content: 'stará', createdAt: '2026-10-01T10:00:00.000Z' }, 20);
     await chooseFile(backupOf([], [createTask('t1', 'Zavolat', '2026-10-15T10:00:00.000Z')]));
 
     expect(status()).toBe('Přidáno nebo aktualizováno poznámek: 0, úkolů: 1');
@@ -221,6 +224,7 @@ describe('Settings', () => {
       'Smazat všechny současné poznámky (2) a úkoly (1) a nahradit je zálohou (poznámky 1, úkoly 1)?',
     );
     expect([...tasks.tasks.keys()]).toEqual(['t2']);
+    expect(await TestBed.inject(VersionsRepository).getForNote('a')).toEqual([]);
     expect(await TestBed.inject(CategoriesRepository).getAll()).toEqual(categoriesBefore);
     expect(status()).toBe('Obnoveno poznámek: 1, úkolů: 1');
   });

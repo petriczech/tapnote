@@ -1,8 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { createNote, Note } from '../../core/model/note';
+import { VERSION_PAUSE_MS } from '../../core/model/note-version';
 import { NotesRepository } from '../../core/storage/notes-repository';
 import { InMemoryNotesRepository } from '../../core/storage/testing/in-memory-notes-repository';
 import { LAST_EDIT_KEY, NoteDraft, RESUME_WINDOW_MS, SAVE_DEBOUNCE_MS } from './note-draft';
+import { VersionsRepository } from '../../core/storage/versions-repository';
+import { InMemoryVersionsRepository } from '../../core/storage/testing/in-memory-versions-repository';
 
 const NOW = new Date('2026-10-15T12:00:00.000Z');
 
@@ -25,7 +28,7 @@ describe('NoteDraft', () => {
     localStorage.clear();
     repository = new InMemoryNotesRepository();
     TestBed.configureTestingModule({
-      providers: [NoteDraft, { provide: NotesRepository, useValue: repository }],
+      providers: [NoteDraft, { provide: NotesRepository, useValue: repository }, { provide: VersionsRepository, useClass: InMemoryVersionsRepository }],
     });
     draft = TestBed.inject(NoteDraft);
   });
@@ -367,5 +370,33 @@ describe('NoteDraft', () => {
 
     expect(await draft.open(undefined, true)).toBe(true);
     expect(draft.content()).toBe('');
+  });
+
+  describe('version history', () => {
+    const versionsOf = () => TestBed.inject(VersionsRepository).getForNote('v');
+
+    it('keeps the previous text when editing after a pause', async () => {
+      await repository.put(existingNote('v', 'Původní text', ago(VERSION_PAUSE_MS)));
+      await draft.open('v', false);
+
+      draft.update('Nový text');
+      await draft.flush();
+
+      expect((await versionsOf()).map((version) => [version.content, version.createdAt])).toEqual([
+        ['Původní text', ago(VERSION_PAUSE_MS).toISOString()],
+      ]);
+    });
+
+    it('does not keep a version while typing continues', async () => {
+      await repository.put(existingNote('v', 'Původní text', ago(VERSION_PAUSE_MS - 1000)));
+      await draft.open('v', false);
+
+      draft.update('Nový text');
+      await draft.flush();
+      draft.update('Nový text a ještě');
+      await draft.flush();
+
+      expect(await versionsOf()).toEqual([]);
+    });
   });
 });
