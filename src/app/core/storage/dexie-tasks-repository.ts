@@ -7,6 +7,10 @@ import { TasksRepository } from './tasks-repository';
 export class DexieTasksRepository extends TasksRepository {
   private readonly db = inject(TapnoteDb);
 
+  get(id: string): Promise<Task | undefined> {
+    return this.db.tasks.get(id);
+  }
+
   getAll(): Promise<Task[]> {
     return this.db.tasks.toArray();
   }

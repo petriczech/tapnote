@@ -243,6 +243,7 @@ h1:focus:not(:focus-visible) {
 }
 
 li {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -281,8 +282,23 @@ li {
 }
 
 .title {
+  color: inherit;
   font-weight: 600;
+  text-decoration: none;
   overflow-wrap: anywhere;
+}
+
+// Celý řádek je cíl odkazu, zaškrtnutí a hvězda nad ním
+.title::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+}
+
+.check,
+.star {
+  position: relative;
+  z-index: 1;
 }
 
 .meta {

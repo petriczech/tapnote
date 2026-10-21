@@ -5,6 +5,10 @@ import { TasksRepository } from '../tasks-repository';
 export class InMemoryTasksRepository extends TasksRepository {
   readonly tasks = new Map<string, Task>();
 
+  async get(id: string): Promise<Task | undefined> {
+    return this.tasks.get(id);
+  }
+
   async getAll(): Promise<Task[]> {
     return [...this.tasks.values()];
   }

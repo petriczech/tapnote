@@ -22,6 +22,9 @@ import { createNoteSearch } from '../../core/search/note-search';
 import { NOTE_COLORS, NoteColor, noteColorVar } from '../../core/model/note-colors';
 import { isPlainKey, readShortcutsEnabled } from '../../core/shortcuts/shortcuts';
 import { NotesRepository } from '../../core/storage/notes-repository';
+import { Task } from '../../core/model/task';
+import { TasksRepository } from '../../core/storage/tasks-repository';
+import { TaskActions } from '../../core/tasks/task-actions';
 import { BottomNav } from './bottom-nav';
 import { VIEWS } from './views';
 
@@ -117,7 +120,7 @@ function readLayout(): string | null {
       <p class="error" role="alert">Akci se nepodařilo dokončit.</p>
     }
 
-    @if (loadFailed() || items().length === 0) {
+    @if (loadFailed() || (items().length === 0 && trashedTasks().length === 0)) {
       <div class="empty-state">
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="current().icon" /></svg>
         @if (loadFailed()) {
@@ -127,7 +130,7 @@ function readLayout(): string | null {
         }
       </div>
     } @else {
-      @for (group of groups(); track group.label) {
+      @for (group of items().length > 0 ? groups() : []; track group.label) {
         @if (group.label) {
           <h2 class="label">{{ group.label }}</h2>
         }
@@ -219,6 +222,24 @@ function readLayout(): string | null {
                   </div>
                 }
               </div>
+            </li>
+          }
+        </ul>
+      }
+      @if (trashedTasks().length > 0) {
+        <h2 class="label">Úkoly</h2>
+        <ul class="notes">
+          @for (task of trashedTasks(); track task.id) {
+            <li [attr.data-task]="task.id">
+              <div class="body">
+                <span class="title">{{ task.title }}</span>
+              </div>
+              <span class="task-actions">
+                <button type="button" [attr.aria-label]="'Obnovit: ' + task.title" (click)="runTask(task, 'restore')">Obnovit</button>
+                <button type="button" [attr.aria-label]="'Smazat trvale: ' + task.title" (click)="runTask(task, 'delete')">
+                  Smazat trvale
+                </button>
+              </span>
             </li>
           }
         </ul>
@@ -515,6 +536,24 @@ function readLayout(): string | null {
       font-weight: 500;
     }
 
+    .task-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-self: center;
+    }
+
+    .task-actions button {
+      min-height: 44px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: var(--radius-l);
+      background: none;
+      color: var(--primary);
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
     .actions {
       width: 44px;
       height: 44px;
@@ -607,6 +646,8 @@ export class NotesList implements OnInit {
   readonly q = input<string>();
 
   private readonly repository = inject(NotesRepository);
+  private readonly tasksRepository = inject(TasksRepository);
+  private readonly taskActions = inject(TaskActions);
   private readonly actions = inject(NoteActions);
   private readonly host: HTMLElement = inject(ElementRef).nativeElement;
   private readonly injector = inject(Injector);
@@ -618,6 +659,7 @@ export class NotesList implements OnInit {
   private readonly field = viewChild.required<ElementRef<HTMLInputElement>>('field');
 
   protected readonly notes = signal<Note[]>([]);
+  private readonly tasks = signal<Task[]>([]);
   protected readonly loadFailed = signal(false);
   // Text pole hledání, do URL se zapisuje se zpožděním
   protected readonly query = signal('');
@@ -830,6 +872,33 @@ export class NotesList implements OnInit {
     } catch {
       this.loadFailed.set(true);
     }
+    // Úkoly jen pro koš; chyba nebrání zobrazení poznámek
+    this.tasks.set(await this.tasksRepository.getAll().catch(() => this.tasks()));
+  }
+
+  // Smazané úkoly v koši, poslední smazaný nahoře; hledá se v názvu, s tagem se nezobrazí (úkoly tagy nemají)
+  protected readonly trashedTasks = computed(() => {
+    const query = this.queryParam()?.trim().toLocaleLowerCase('cs');
+    if (this.current().view !== 'trash' || this.tag()) {
+      return [];
+    }
+    return this.tasks()
+      .filter((task) => task.deletedAt && (!query || task.title.toLocaleLowerCase('cs').includes(query)))
+      .sort((a, b) => (b.deletedAt ?? '').localeCompare(a.deletedAt ?? ''));
+  });
+
+  protected async runTask(task: Task, action: 'restore' | 'delete'): Promise<void> {
+    if (action === 'delete' && !confirm(`Smazat úkol „${task.title}“ trvale?`)) {
+      return;
+    }
+    this.actionFailed.set(false);
+    try {
+      await (action === 'restore' ? this.taskActions.restore(task) : this.taskActions.deletePermanently(task));
+    } catch {
+      this.actionFailed.set(true);
+    }
+    await this.load();
+    afterNextRender(() => this.heading().nativeElement.focus(), { injector: this.injector });
   }
 
   // Fokus na tutéž poznámku, jinak na položku na stejné pozici, jinak na nadpis

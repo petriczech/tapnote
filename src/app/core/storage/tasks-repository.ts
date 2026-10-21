@@ -1,6 +1,7 @@
 import { Task } from '../model/task';
 
 export abstract class TasksRepository {
+  abstract get(id: string): Promise<Task | undefined>;
   abstract getAll(): Promise<Task[]>;
   abstract put(task: Task): Promise<void>;
   abstract bulkPut(tasks: Task[]): Promise<void>;

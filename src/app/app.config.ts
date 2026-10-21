@@ -15,6 +15,7 @@ import { DexieTasksRepository } from './core/storage/dexie-tasks-repository';
 import { CategoriesRepository } from './core/storage/categories-repository';
 import { DexieCategoriesRepository } from './core/storage/dexie-categories-repository';
 import { NoteActions } from './core/notes/note-actions';
+import { TaskActions } from './core/tasks/task-actions';
 import { listenForAppUrls } from './core/native/app-urls';
 import { ParamsRouteReuseStrategy } from './params-route-reuse-strategy';
 
@@ -28,6 +29,7 @@ export const appConfig: ApplicationConfig = {
     { provide: CategoriesRepository, useClass: DexieCategoriesRepository },
     // Úklid koše na pozadí
     provideAppInitializer(() => void inject(NoteActions).purgeTrash().catch(() => undefined)),
+    provideAppInitializer(() => void inject(TaskActions).purgeTrash().catch(() => undefined)),
     // Zkratky a odkazy z Androidu
     provideAppInitializer(listenForAppUrls),
     provideServiceWorker('ngsw-worker.js', {

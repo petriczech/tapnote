@@ -6,6 +6,9 @@ import { createNote, Note } from '../../core/model/note';
 import { SHORTCUTS_KEY } from '../../core/shortcuts/shortcuts';
 import { NotesRepository } from '../../core/storage/notes-repository';
 import { InMemoryNotesRepository } from '../../core/storage/testing/in-memory-notes-repository';
+import { createTask } from '../../core/model/task';
+import { TasksRepository } from '../../core/storage/tasks-repository';
+import { InMemoryTasksRepository } from '../../core/storage/testing/in-memory-tasks-repository';
 import { LAYOUT_KEY, NotesList, URL_DEBOUNCE_MS } from './notes-list';
 
 function note(id: string, overrides: Partial<Note> = {}): Note {
@@ -14,6 +17,7 @@ function note(id: string, overrides: Partial<Note> = {}): Note {
 
 describe('NotesList', () => {
   let repository: InMemoryNotesRepository;
+  let tasks: InMemoryTasksRepository;
   let fixture: ComponentFixture<NotesList>;
   let root: HTMLElement;
 
@@ -36,6 +40,7 @@ describe('NotesList', () => {
 
   beforeEach(async () => {
     repository = new InMemoryNotesRepository();
+    tasks = new InMemoryTasksRepository();
     await repository.bulkPut([
       note('old', { updatedAt: '2026-10-15T10:00:00.000Z', tags: ['domov'], content: 'Poznámka old\nmléko' }),
       note('new', { updatedAt: '2026-10-15T12:00:00.000Z', tags: ['práce'] }),
@@ -45,7 +50,11 @@ describe('NotesList', () => {
     ]);
     TestBed.configureTestingModule({
       imports: [NotesList],
-      providers: [provideRouter([]), { provide: NotesRepository, useValue: repository }],
+      providers: [
+        provideRouter([]),
+        { provide: NotesRepository, useValue: repository },
+        { provide: TasksRepository, useValue: tasks },
+      ],
     });
   });
 
@@ -83,6 +92,30 @@ describe('NotesList', () => {
 
     expect(root.querySelector('h1')?.textContent?.replace(/\s+/g, ' ').trim()).toBe(heading);
     expect(titles()).toEqual(expected);
+  });
+
+  it('lists trashed tasks in the trash and restores or deletes them', async () => {
+    await tasks.bulkPut([
+      { ...createTask('t1', 'Zavolat', '2026-10-15T10:00:00.000Z'), deletedAt: '2026-10-16T10:00:00.000Z' },
+      { ...createTask('t2', 'Nakoupit', '2026-10-15T10:00:00.000Z'), deletedAt: '2026-10-17T10:00:00.000Z' },
+      createTask('t3', 'Aktivní', '2026-10-15T10:00:00.000Z'),
+    ]);
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await render({ view: 'trash' });
+    await vi.waitFor(() => expect(root.querySelectorAll('li[data-task]').length).toBe(2));
+
+    expect([...root.querySelectorAll('li[data-task] .title')].map((title) => title.textContent?.trim())).toEqual(['Nakoupit', 'Zavolat']);
+    root.querySelector<HTMLButtonElement>('button[aria-label="Obnovit: Zavolat"]')?.click();
+    await vi.waitFor(() => expect(tasks.tasks.get('t1')?.deletedAt).toBeUndefined());
+    root.querySelector<HTMLButtonElement>('button[aria-label="Smazat trvale: Nakoupit"]')?.click();
+    await vi.waitFor(() => expect(tasks.tasks.has('t2')).toBe(false));
+  });
+
+  it('does not show tasks outside the trash', async () => {
+    await tasks.put({ ...createTask('t1', 'Zavolat', '2026-10-15T10:00:00.000Z'), deletedAt: '2026-10-16T10:00:00.000Z' });
+    await render();
+
+    expect(root.querySelector('li[data-task]')).toBeNull();
   });
 
   it('does not link notes in the trash and explains the retention', async () => {

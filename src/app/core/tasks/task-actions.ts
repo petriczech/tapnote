@@ -1,5 +1,6 @@
 import { inject, Service } from '@angular/core';
 import { createTask, Task } from '../model/task';
+import { TRASH_RETENTION_MS } from '../notes/note-actions';
 import { TasksRepository } from '../storage/tasks-repository';
 
 export type NewTaskFields = Partial<Pick<Task, 'dueDate' | 'myDay' | 'important' | 'categoryId'>>;
@@ -20,6 +21,27 @@ export class TaskActions {
 
   toggleImportant(task: Task): Promise<void> {
     return this.change(task, { important: !task.important });
+  }
+
+  // Úprava v detailu; undefined pole odstraní
+  update(task: Task, changes: Partial<Omit<Task, 'id' | 'createdAt' | 'updatedAt'>>): Promise<void> {
+    return this.change(task, changes);
+  }
+
+  trash(task: Task): Promise<void> {
+    return this.change(task, { deletedAt: new Date().toISOString() });
+  }
+
+  restore(task: Task): Promise<void> {
+    return this.change(task, { deletedAt: undefined });
+  }
+
+  deletePermanently(task: Task): Promise<void> {
+    return this.repository.delete(task.id);
+  }
+
+  purgeTrash(): Promise<number> {
+    return this.repository.purgeTrash(new Date(Date.now() - TRASH_RETENTION_MS).toISOString());
   }
 
   private change(task: Task, changes: Partial<Omit<Task, 'id'>>): Promise<void> {

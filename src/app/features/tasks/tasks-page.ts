@@ -103,9 +103,9 @@ import { BottomNav } from '../list/bottom-nav';
 
     <ng-template #row let-task>
       <li [attr.data-id]="task.id" [class.done]="task.done" [style.--cat]="catVar(categoryOf(task))">
-        <input type="checkbox" class="check" [checked]="task.done" [attr.aria-label]="task.title" (change)="toggleDone(task)" />
+        <input type="checkbox" class="check" [checked]="task.done" [attr.aria-label]="'Hotovo: ' + task.title" (change)="toggleDone(task)" />
         <div class="body">
-          <span class="title">{{ task.title }}</span>
+          <a class="title" [routerLink]="['/task', task.id]">{{ task.title }}</a>
           @if (meta(task)) {
             <span class="meta">
               @if (task.dueDate) {
