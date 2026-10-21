@@ -38,6 +38,8 @@ Osobní mobilní aplikace na poznámky. Offline, bez serveru, bez účtu. Priori
   - úkol: název, hotovo, důležitý (hvězdička), termín, kroky (podúkoly), poznámka k úkolu
   - hotové úkoly dolů a sbalitelné, rychlé přidání úkolu nahoře / u „+“
   - pohledy: Můj den, Důležité, Naplánované, Vše (podle MS To Do; rozsah upřesnit)
+- [ ] **Ikona aplikace v záhlaví:** logo Tapnote (kartička s checklistem) vedle nadpisu v hlavičce seznamů
+- [ ] **Hezčí sada ikon:** nahradit Material ikony jednou ze 3 vybraných sad zdarma (srovnání v `.tmp/mockup/ikony/`)
 - [ ] **Kategorie:** vlastní kategorie s názvem, ikonou (výběr z připravené sady) a barvou; přiřazení k úkolům i poznámkám; filtr podle kategorie v seznamu; správa kategorií v Nastavení (přidat, přejmenovat, změnit ikonu/barvu, smazat, pořadí)
 
 #### Design Konfety – plán zapracování
