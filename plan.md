@@ -13,34 +13,34 @@ Osobní mobilní aplikace na poznámky. Offline, bez serveru, bez účtu. Priori
 ## Scope
 
 ### MVP
-- [ ] **One-tap zápis:** výchozí route `/` = editor nové poznámky; seznam až za zpět/menu
+- [x] **One-tap zápis:** výchozí route `/` = editor nové poznámky; seznam až za zpět/menu
   - poznámka vznikne až při prvním znaku (lazy create), prázdné se neukládají
   - návrat do 5 min → pokračovat v rozepsané poznámce (konfigurovatelné)
   - klávesnice hned otevřená (Capacitor: `windowSoftInputMode="stateAlwaysVisible"` + autofocus / `Keyboard.show()`)
-- [ ] **Zkratka „Nová poznámka“:** PWA manifest `shortcuts` → `/new`; Android `shortcuts.xml` (dlouhý stisk ikony, přetažení na plochu)
-- [ ] **Markdown editor:** lehký (`textarea` nebo CodeMirror 6), živý náhled; uloženo jako čistý Markdown
-- [ ] **Checklisty:** `- [ ]` toggle tapnutím, hotové položky dolů + sbalit
-- [ ] **Organizace:** tagy, připnutí, archiv, koš (automatické smazání po 30 dnech)
-- [ ] **Hledání:** MiniSearch v paměti (fuzzy, prefix, tagy)
-- [ ] **Export/import JSON:** export přes share sheet / download; import přes file picker; validace + migrace podle `schemaVersion`; merge podle `id` + `updatedAt` nebo „nahradit vše“
-- [ ] **Připomínka zálohy:** „bez zálohy X dní“
+- [x] **Zkratka „Nová poznámka“:** PWA manifest `shortcuts` → `/new`; Android `shortcuts.xml` (dlouhý stisk ikony, přetažení na plochu)
+- [x] **Markdown editor:** lehký (`textarea` nebo CodeMirror 6), živý náhled; uloženo jako čistý Markdown
+- [x] **Checklisty:** `- [ ]` toggle tapnutím, hotové položky dolů + sbalit
+- [x] **Organizace:** tagy, připnutí, archiv, koš (automatické smazání po 30 dnech)
+- [x] **Hledání:** MiniSearch v paměti (fuzzy, prefix, tagy)
+- [x] **Export/import JSON:** export přes share sheet / download; import přes file picker; validace + migrace podle `schemaVersion`; merge podle `id` + `updatedAt` nebo „nahradit vše“
+- [x] **Připomínka zálohy:** „bez zálohy X dní“
 
 ### Fáze 2
-- [ ] **Šablony:** poznámka s `isTemplate: true`; výběr u „+“; proměnné `{{date}}`, `{{time}}`, `{{weekday}}`, `{{cursor}}`; výchozí tagy a barva
-- [ ] Barvy poznámek + přepínač grid/list
+- [x] **Šablony:** poznámka s `isTemplate: true`; výběr u „+“; proměnné `{{date}}`, `{{time}}`, `{{weekday}}`, `{{cursor}}`; výchozí tagy a barva
+- [x] Barvy poznámek + přepínač grid/list
 - [ ] Historie verzí (snapshot po pauze v psaní, posledních ~20)
 - [ ] **Quick Settings tile** (nativní `TileService`) → otevře editor
 
 ### Fáze 2b (úkoly, kategorie, design)
-- [ ] **Návrh designu soutěží subagentů:** 4 subagenti navrhnou nezávisle atraktivnější vzhled (mockupy v `.tmp/mockup/`, včetně záložek Úkoly/Poznámky a kategorií), pak se navzájem anonymně ohodnotí podle společných kritérií (čitelnost, rychlost zápisu, přístupnost WCAG AA, konzistence, „wow“); výběr z top 2–3 dělá uživatel, výsledek se zapracuje do tokenů a stylů
-- [ ] **Bílé téma:** čtvrtý vzhled „Bílá“ (čistě bílé plochy, jemné stíny, bez barevného nádechu) vedle Modrá / Papír / Grafit, včetně tmavé varianty
-- [ ] **Úkoly à la Microsoft To Do:** samostatná záložka „Úkoly“ jako výchozí, „Poznámky“ druhá, dál Archiv, Koš, Nastavení
+- [x] **Návrh designu soutěží subagentů:** 4 subagenti navrhnou nezávisle atraktivnější vzhled (mockupy v `.tmp/mockup/`, včetně záložek Úkoly/Poznámky a kategorií), pak se navzájem anonymně ohodnotí podle společných kritérií (čitelnost, rychlost zápisu, přístupnost WCAG AA, konzistence, „wow“); výběr z top 2–3 dělá uživatel, výsledek se zapracuje do tokenů a stylů
+- [x] **Bílé téma:** čtvrtý vzhled „Bílá“ (čistě bílé plochy, jemné stíny, bez barevného nádechu) vedle Modrá / Papír / Grafit, včetně tmavé varianty
+- [x] **Úkoly à la Microsoft To Do:** samostatná záložka „Úkoly“ jako výchozí, „Poznámky“ druhá, dál Archiv, Koš, Nastavení
   - úkol: název, hotovo, důležitý (hvězdička), termín, kroky (podúkoly), poznámka k úkolu
   - hotové úkoly dolů a sbalitelné, rychlé přidání úkolu nahoře / u „+“
   - pohledy: Můj den, Důležité, Naplánované, Vše (podle MS To Do; rozsah upřesnit)
-- [ ] **Ikona aplikace v záhlaví:** logo Tapnote (kartička s checklistem) vedle nadpisu v hlavičce seznamů
-- [ ] **Hezčí sada ikon:** nahradit Material ikony jednou ze 3 vybraných sad zdarma (srovnání v `.tmp/mockup/ikony/`)
-- [ ] **Kategorie:** vlastní kategorie s názvem, ikonou (výběr z připravené sady) a barvou; přiřazení k úkolům i poznámkám; filtr podle kategorie v seznamu; správa kategorií v Nastavení (přidat, přejmenovat, změnit ikonu/barvu, smazat, pořadí)
+- [x] **Ikona aplikace v záhlaví:** logo Tapnote (kartička s checklistem) vedle nadpisu v hlavičce seznamů
+- [x] **Hezčí sada ikon:** nahradit Material ikony jednou ze 3 vybraných sad zdarma (srovnání v `.tmp/mockup/ikony/`)
+- [x] **Kategorie:** vlastní kategorie s názvem, ikonou (výběr z připravené sady) a barvou; přiřazení k úkolům i poznámkám; filtr podle kategorie v seznamu; správa kategorií v Nastavení (přidat, přejmenovat, změnit ikonu/barvu, smazat, pořadí)
 
 #### Design Konfety – plán zapracování
 Vítěz soutěže je návrh B „Konfety“ (`.tmp/mockup/soutez/B.html`, 39,6 bodu). Zapracuje se ve zklidněné podobě a s rychlými čipy z návrhu D.
@@ -218,12 +218,14 @@ Pravidla:
 9b. Fáze 2b: soutěž návrhů designu → bílé téma → datový model (Task, Category, export v2 + migrace) → záložka Úkoly → kategorie (ikona, barva, filtr, správa) → zapracování vybraného designu
 10. Fáze 3: widget + WidgetBridge, backlinky, denní poznámka
 
+## Rozhodnuto
+- Design: vítěz soutěže Konfety (výchozí), dál Modrá, Papír, Grafit, Bílá, Vzdušná, Zápisník, Noir; ikony Phosphor (Bold, Fill pro aktivní stav); logo kartička s checklistem
+- Konfety: krátké konfety po dokončení úkolu, bez nich při omezení animací
+- Úkoly: pohledy Můj den, Důležité, Naplánované, Vše
+- Kategorie: jedna kategorie na položku, tagy zůstávají volné vedle kategorií
+- Historie verzí: jen v zařízení, do zálohy nejde
+
 ## Otevřené
-- Název aplikace, logo, design (navazující průzkum: UI top aplikací, Material 3, koncepty loga, požadavky na ikony)
-- Úkoly: má `/` (jedno tapnutí) otevírat nový úkol, nebo dál novou poznámku?
+- Úkoly: má `/` (jedno tapnutí) otevírat nový úkol, nebo dál novou poznámku? (zatím poznámka)
 - Úkoly: termíny bez notifikací (připomínky jsou mimo scope), nebo připomínky přidat?
-- Úkoly: které pohledy MS To Do opravdu chceme (Můj den, Důležité, Naplánované)?
-- Kategorie: jedna kategorie na položku, nebo víc? Vztah k tagům (kategorie = pevná složka, tagy dál volné)?
-- Bílé téma: tmavá varianta jako černá (OLED), nebo stejná jako Grafit?
-- Konfety: má být výchozím vzhledem místo Modré (Modrá, Papír, Grafit a Bílá zůstanou na výběr)?
-- Konfety: animace konfet u dokončení úkolu ano, nebo ne?
+- Bílé téma: tmavá varianta jako černá (OLED)? (zatím tmavě šedá)
