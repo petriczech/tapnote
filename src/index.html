@@ -11,9 +11,23 @@
     <meta name="theme-color" content="#17121f" media="(prefers-color-scheme: dark)" />
     <script>
       // Vzhled před prvním vykreslením (klíč a hodnoty jako core/theme/theme.ts)
+      // Barvy stavového řádku pro světlý a tmavý režim jako bar v THEMES; Konfety jsou výchozí v metách výše
+      var bars = {
+        blue: ['#fbf9ff', '#121318'],
+        paper: ['#f7f1e3', '#1d1a16'],
+        graphite: ['#ffffff', '#0b0b0b'],
+        white: ['#ffffff', '#0f0f11'],
+        airy: ['#f7f8fb', '#111318'],
+        notebook: ['#f5f0e6', '#1c1a17'],
+        noir: ['#f6f6fa', '#0b0b10'],
+      };
       try {
         var theme = localStorage.getItem('tapnote.theme');
-        if (['blue', 'paper', 'graphite', 'white', 'airy', 'notebook', 'noir'].indexOf(theme) >= 0) document.documentElement.dataset.theme = theme;
+        if (Object.prototype.hasOwnProperty.call(bars, theme)) {
+          document.documentElement.dataset.theme = theme;
+          document.querySelector('meta[name="theme-color"][media*="light"]').content = bars[theme][0];
+          document.querySelector('meta[name="theme-color"][media*="dark"]').content = bars[theme][1];
+        }
       } catch (e) {}
     </script>
   </head>

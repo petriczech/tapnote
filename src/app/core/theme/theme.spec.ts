@@ -28,6 +28,23 @@ describe('theme', () => {
     expect(localStorage.getItem(THEME_KEY)).toBe('konfety');
   });
 
+  it('sets the status bar colours of the theme', () => {
+    const metas = ['light', 'dark'].map((scheme) => {
+      const meta = document.createElement('meta');
+      meta.name = 'theme-color';
+      meta.setAttribute('media', `(prefers-color-scheme: ${scheme})`);
+      document.head.append(meta);
+      return meta;
+    });
+    onTestFinished(() => metas.forEach((meta) => meta.remove()));
+
+    applyTheme('paper');
+    expect(metas.map((meta) => meta.content)).toEqual(['#f7f1e3', '#1d1a16']);
+
+    applyTheme('konfety');
+    expect(metas.map((meta) => meta.content)).toEqual(['#fff8f1', '#17121f']);
+  });
+
   it('applies blue as an attribute', () => {
     applyTheme('blue');
 
