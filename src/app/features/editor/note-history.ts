@@ -1,6 +1,6 @@
 import { afterNextRender, Component, ElementRef, inject, Injector, input, OnInit, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { ICONS } from '../../core/icons/icons';
+import { ICONS_REGULAR } from '../../core/icons/icons';
 import { Note } from '../../core/model/note';
 import { NoteVersion } from '../../core/model/note-version';
 import { NoteActions } from '../../core/notes/note-actions';
@@ -149,7 +149,7 @@ export class NoteHistory implements OnInit {
   private readonly host: HTMLElement = inject(ElementRef).nativeElement;
   private readonly injector = inject(Injector);
 
-  protected readonly icons = ICONS;
+  protected readonly icons = ICONS_REGULAR;
   protected readonly note = signal<Note | undefined>(undefined);
   protected readonly versions = signal<NoteVersion[]>([]);
   protected readonly loaded = signal(false);

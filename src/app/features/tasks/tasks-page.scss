@@ -1,6 +1,6 @@
 :host {
   display: block;
-  padding: env(safe-area-inset-top) 0 calc(10rem + env(safe-area-inset-bottom));
+  padding: env(safe-area-inset-top) 0 calc(10.5rem + env(safe-area-inset-bottom));
 }
 
 .app-bar {
@@ -415,7 +415,7 @@ details[open] summary::before {
 .fab {
   position: fixed;
   right: 16px;
-  bottom: calc(96px + env(safe-area-inset-bottom));
+  bottom: calc(102px + env(safe-area-inset-bottom));
   display: inline-flex;
   align-items: center;
   gap: 12px;

@@ -1,6 +1,6 @@
 import { NotesView } from '../../core/model/note-query';
 
-// icon = název z core/icons/icons.ts (Bold, aktivní Fill)
+// icon = název z core/icons/icons.ts (Regular v liště, Bold v prázdném stavu)
 export const VIEWS: { view: NotesView; label: string; empty: string; icon: 'notes' | 'archive' | 'trash' }[] = [
   {
     view: 'notes',

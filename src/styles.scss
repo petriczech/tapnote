@@ -75,6 +75,11 @@
   --ring: var(--primary);
   // Rozostření pod pevnými vrstvami (lišta); jen Noir, ostatní vzhledy mají plné plochy
   --glass-blur: none;
+  // Přechod jen v Noiru; ostatní vzhledy dostávají plnou primary
+  --grad: var(--primary);
+  --on-grad: var(--on-primary);
+  // Proužek aktivní záložky lišty
+  --nav-pip: var(--grad);
 
   // Písmo a tvary, které se mezi vzhledy liší
   --font: 'Geist', system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -227,6 +232,8 @@
     --blob-3: rgb(240 138 36 / 16%);
     --card-bg: #17171f;
     --card-shadow: 0 1px 0 rgb(255 255 255 / 4%) inset, 0 10px 30px -12px rgb(0 0 0 / 70%);
+    // Světlejší přechod drží kontrast 3 : 1 vůči tmavé liště
+    --nav-pip: linear-gradient(120deg, var(--ring), var(--c-pink));
   }
 }
 
@@ -534,6 +541,11 @@
     --note-purple: #35265a;
     --note-gray: #2b2b2b;
   }
+}
+
+// Plovoucí spodní lišta a FAB nad ní nezakrývají prvek s fokusem (WCAG 2.4.11)
+html:has(tn-bottom-nav) {
+  scroll-padding-bottom: calc(172px + env(safe-area-inset-bottom));
 }
 
 body {

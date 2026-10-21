@@ -2,7 +2,7 @@ import { Component, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NotesView } from '../../core/model/note-query';
 import { VIEWS } from './views';
-import { ICONS, ICONS_FILL } from '../../core/icons/icons';
+import { ICONS_REGULAR } from '../../core/icons/icons';
 
 @Component({
   selector: 'tn-bottom-nav',
@@ -10,12 +10,9 @@ import { ICONS, ICONS_FILL } from '../../core/icons/icons';
   template: `
     <nav aria-label="Pohledy">
       <a routerLink="/tasks" [attr.aria-current]="current() === 'tasks' ? 'page' : null" (click)="leave.emit()">
-        <span class="pill">
-          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true">
-            <path [attr.d]="current() === 'tasks' ? iconsFill.tasks : icons.tasks" />
-          </svg>
-        </span>
+        <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.tasks" /></svg>
         Úkoly
+        <span class="pip"></span>
       </a>
       @for (item of views; track item.view) {
         <a
@@ -24,36 +21,47 @@ import { ICONS, ICONS_FILL } from '../../core/icons/icons';
           [attr.aria-current]="item.view === current() ? 'page' : null"
           (click)="leave.emit()"
         >
-          <span class="pill">
-            <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="item.view === current() ? iconsFill[item.icon] : icons[item.icon]" /></svg>
-          </span>
+          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons[item.icon]" /></svg>
           {{ item.label }}
+          <span class="pip"></span>
         </a>
       }
       <a routerLink="/settings" [attr.aria-current]="current() === 'settings' ? 'page' : null" (click)="leave.emit()">
-        <span class="pill">
-          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true">
-            <path [attr.d]="current() === 'settings' ? iconsFill.settings : icons.settings" />
-          </svg>
-        </span>
+        <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.settings" /></svg>
         Nastavení
+        <span class="pip"></span>
       </a>
     </nav>
   `,
   styles: `
+    // Plovoucí lišta jako v návrhu D; nad gesture barem drží odstup safe area
     nav {
       position: fixed;
-      right: 0;
-      bottom: 0;
-      left: 0;
+      right: 12px;
+      bottom: calc(14px + env(safe-area-inset-bottom));
+      left: 12px;
       display: flex;
-      justify-content: space-around;
+      gap: 2px;
       box-sizing: border-box;
-      height: calc(80px + env(safe-area-inset-bottom));
-      padding: 12px 0 env(safe-area-inset-bottom);
-      border-top: 1px solid var(--nav-border);
+      max-width: 560px;
+      min-height: 72px;
+      margin: 0 auto;
+      padding: 6px;
+      border: 1px solid var(--nav-border);
+      border-radius: var(--radius-l);
       background: var(--nav-bg);
       backdrop-filter: var(--glass-blur);
+      box-shadow: var(--card-shadow);
+    }
+
+    // Na úzkém displeji (320 px) se okraje zúží, aby se „Nastavení“ vešlo do záložky
+    @media (max-width: 359px) {
+      nav {
+        right: 8px;
+        left: 8px;
+        gap: 0;
+        padding-inline: 2px;
+      }
     }
 
     a {
@@ -61,35 +69,49 @@ import { ICONS, ICONS_FILL } from '../../core/icons/icons';
       flex: 1;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
-      max-width: 96px;
+      justify-content: center;
+      gap: 3px;
+      min-width: 0;
+      min-height: 44px;
+      border-radius: 18px;
       color: var(--on-surface-variant);
       font-size: 0.75rem;
+      font-weight: 500;
       text-decoration: none;
     }
 
-    .pill {
-      display: flex;
-      justify-content: center;
-      width: 64px;
-      padding: 4px 0;
-      border-radius: 16px;
+    .pip {
+      width: 4px;
+      height: 4px;
+      border-radius: 4px;
     }
 
+    // Aktivní stav nese barva ikony, tučný popisek a přechodový proužek (v ostatních vzhledech plná primary)
     a[aria-current] {
+      background: var(--outline-variant);
       color: var(--on-surface);
       font-weight: 600;
     }
 
-    a[aria-current] .pill {
-      background: var(--primary-container);
-      color: var(--on-primary-container);
+    a[aria-current] .icon {
+      color: var(--primary);
+    }
+
+    a[aria-current] .pip {
+      width: 16px;
+      background: var(--nav-pip);
+    }
+
+    @media (forced-colors: active) {
+      a[aria-current] .pip {
+        background: Highlight;
+        forced-color-adjust: none;
+      }
     }
   `,
 })
 export class BottomNav {
-  protected readonly icons = ICONS;
-  protected readonly iconsFill = ICONS_FILL;
+  protected readonly icons = ICONS_REGULAR;
   readonly current = input.required<NotesView | 'tasks' | 'settings'>();
   // Hledání, které se drží při přepnutí pohledu
   readonly q = input<string | null>(null);

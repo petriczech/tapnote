@@ -30,7 +30,7 @@ import { TasksRepository } from '../../core/storage/tasks-repository';
 import { TaskActions } from '../../core/tasks/task-actions';
 import { BottomNav } from './bottom-nav';
 import { VIEWS } from './views';
-import { ICONS, ICONS_FILL } from '../../core/icons/icons';
+import { ICONS, ICONS_FILL, ICONS_REGULAR } from '../../core/icons/icons';
 
 export const URL_DEBOUNCE_MS = 300;
 
@@ -63,7 +63,7 @@ function readLayout(): string | null {
           }
         </h1>
         <a class="icon-btn" routerLink="/today" title="Dnešní poznámka" (click)="flushQuery()">
-          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.calendar" /></svg>
+          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.calendar" /></svg>
           <span class="visually-hidden">Dnešní poznámka</span>
         </a>
         <button
@@ -75,7 +75,7 @@ function readLayout(): string | null {
           (click)="toggleGrid()"
         >
           <svg class="icon" viewBox="0 0 256 256" aria-hidden="true">
-            <path [attr.d]="icons.grid" />
+            <path [attr.d]="iconsRegular.grid" />
           </svg>
           <span class="visually-hidden">Mřížka</span>
         </button>
@@ -311,7 +311,7 @@ function readLayout(): string | null {
     :host {
       display: block;
       padding-top: env(safe-area-inset-top);
-      padding-bottom: calc(10rem + env(safe-area-inset-bottom));
+      padding-bottom: calc(10.5rem + env(safe-area-inset-bottom));
     }
 
     :host(.with-templates) {
@@ -699,7 +699,7 @@ function readLayout(): string | null {
     .from-template {
       position: fixed;
       right: 20px;
-      bottom: calc(96px + 56px + 12px + env(safe-area-inset-bottom));
+      bottom: calc(102px + 56px + 12px + env(safe-area-inset-bottom));
       background: var(--surface-high);
       color: var(--on-surface);
       box-shadow: 0 3px 8px rgb(0 0 0 / 25%);
@@ -708,7 +708,7 @@ function readLayout(): string | null {
     .fab {
       position: fixed;
       right: 16px;
-      bottom: calc(96px + env(safe-area-inset-bottom));
+      bottom: calc(102px + env(safe-area-inset-bottom));
       display: inline-flex;
       align-items: center;
       gap: 12px;
@@ -725,6 +725,7 @@ function readLayout(): string | null {
 })
 export class NotesList implements OnInit {
   protected readonly icons = ICONS;
+  protected readonly iconsRegular = ICONS_REGULAR;
   protected readonly iconsFill = ICONS_FILL;
   readonly view = input<string>();
   readonly tag = input<string>();

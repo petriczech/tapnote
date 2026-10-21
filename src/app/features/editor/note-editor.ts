@@ -21,7 +21,7 @@ import { NotesRepository } from '../../core/storage/notes-repository';
 import { readShortcutsEnabled } from '../../core/shortcuts/shortcuts';
 import { NoteDraft } from './note-draft';
 import { NoteView } from './note-view';
-import { ICONS } from '../../core/icons/icons';
+import { ICONS, ICONS_REGULAR } from '../../core/icons/icons';
 
 @Component({
   selector: 'tn-note-editor',
@@ -37,7 +37,7 @@ import { ICONS } from '../../core/icons/icons';
   template: `
     <div class="toolbar">
       <a class="icon-btn list-link" routerLink="/notes" title="Seznam">
-        <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.back" /></svg>
+        <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.back" /></svg>
         <span class="visually-hidden">Seznam</span>
       </a>
       @if (draft.content().trim() && draft.saved()) {
@@ -48,7 +48,7 @@ import { ICONS } from '../../core/icons/icons';
       }
       @if (draft.noteId(); as noteId) {
         <a class="icon-btn" [routerLink]="['/note', noteId, 'history']" title="Historie">
-          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.history" /></svg>
+          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.history" /></svg>
           <span class="visually-hidden">Historie</span>
         </a>
       }
@@ -60,16 +60,16 @@ import { ICONS } from '../../core/icons/icons';
           (pointerdown)="$event.preventDefault()"
           (click)="toggleChecklistLine()"
         >
-          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.checklist" /></svg>
+          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.checklist" /></svg>
           <span class="visually-hidden">Checklist</span>
         </button>
         <button type="button" class="icon-btn" title="Hotovo" (click)="setMode('view')">
-          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.eye" /></svg>
+          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.eye" /></svg>
           <span class="visually-hidden">Hotovo</span>
         </button>
       } @else {
         <button #editButton type="button" class="icon-btn on" title="Upravit" (click)="setMode('edit')">
-          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.pencil" /></svg>
+          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.pencil" /></svg>
           <span class="visually-hidden">Upravit</span>
         </button>
       }
@@ -213,6 +213,7 @@ import { ICONS } from '../../core/icons/icons';
 })
 export class NoteEditor implements OnInit {
   protected readonly icons = ICONS;
+  protected readonly iconsRegular = ICONS_REGULAR;
   readonly id = input<string>();
   readonly resume = input(false, { transform: booleanAttribute });
   // Id šablony pro novou poznámku (/new?template=…)

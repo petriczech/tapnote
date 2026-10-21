@@ -6,7 +6,7 @@ import { localDate } from '../../core/model/task-query';
 import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { TasksRepository } from '../../core/storage/tasks-repository';
 import { TaskActions } from '../../core/tasks/task-actions';
-import { ICONS, ICONS_FILL } from '../../core/icons/icons';
+import { ICONS, ICONS_FILL, ICONS_REGULAR } from '../../core/icons/icons';
 
 type TaskChanges = Parameters<TaskActions['update']>[1];
 
@@ -24,7 +24,7 @@ const TEXT_DEBOUNCE_MS = 400;
   template: `
     <div class="toolbar">
       <a class="icon-btn" routerLink="/tasks" title="Úkoly">
-        <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.back" /></svg>
+        <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.back" /></svg>
         <span class="visually-hidden">Úkoly</span>
       </a>
       @if (task()) {
@@ -117,6 +117,7 @@ const TEXT_DEBOUNCE_MS = 400;
 })
 export class TaskDetail implements OnInit {
   protected readonly icons = ICONS;
+  protected readonly iconsRegular = ICONS_REGULAR;
   protected readonly iconsFill = ICONS_FILL;
   readonly id = input.required<string>();
 

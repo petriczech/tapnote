@@ -25,3 +25,22 @@ test('poznámky: napsat, najít v seznamu a hledáním', async ({ page, axe }) =
   await card.click();
   await expect(page.getByRole('textbox', { name: 'Poznámka' })).toHaveValue('Recept na buchty\nmouka, tvaroh a švestky');
 });
+
+// Poslední karta se dá odrolovat nad plovoucí lištu i FAB, nic ji nezakrývá
+test('poznámky: poslední karta nad spodní lištou', async ({ page, seed }) => {
+  const notes = Array.from({ length: 20 }, (_, i) => {
+    const title = `Poznámka ${String(i + 1).padStart(2, '0')}`;
+    return { id: `n${i}`, title, content: `${title}\nřádek` };
+  });
+  await seed({ notes });
+  await page.goto('/notes');
+  const cards = page.getByRole('link', { name: /^Poznámka \d\d/ });
+  await expect(cards).toHaveCount(20);
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+
+  const last = await cards.last().boundingBox();
+  const nav = await page.getByRole('navigation', { name: 'Pohledy' }).boundingBox();
+  const fab = await page.getByRole('link', { name: 'Nová poznámka' }).boundingBox();
+  expect(last!.y + last!.height).toBeLessThanOrEqual(nav!.y);
+  expect(last!.y + last!.height).toBeLessThanOrEqual(fab!.y);
+});
