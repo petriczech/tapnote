@@ -18,6 +18,7 @@ import { noteColorVar } from '../../core/model/note-colors';
 import { readShortcutsEnabled } from '../../core/shortcuts/shortcuts';
 import { NoteDraft } from './note-draft';
 import { NoteView } from './note-view';
+import { ICONS } from '../../core/icons/icons';
 
 @Component({
   selector: 'tn-note-editor',
@@ -33,12 +34,12 @@ import { NoteView } from './note-view';
   template: `
     <div class="toolbar">
       <a class="icon-btn list-link" routerLink="/notes" title="Seznam">
-        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" /></svg>
+        <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.back" /></svg>
         <span class="visually-hidden">Seznam</span>
       </a>
       @if (draft.content().trim() && draft.saved()) {
         <span class="saved">
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
+          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.check" /></svg>
           Uloženo
         </span>
       }
@@ -50,16 +51,16 @@ import { NoteView } from './note-view';
           (pointerdown)="$event.preventDefault()"
           (click)="toggleChecklistLine()"
         >
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm-9 14-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" /></svg>
+          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.checklist" /></svg>
           <span class="visually-hidden">Checklist</span>
         </button>
         <button type="button" class="icon-btn" title="Hotovo" (click)="setMode('view')">
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" /></svg>
+          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.eye" /></svg>
           <span class="visually-hidden">Hotovo</span>
         </button>
       } @else {
         <button #editButton type="button" class="icon-btn on" title="Upravit" (click)="setMode('edit')">
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" /></svg>
+          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.pencil" /></svg>
           <span class="visually-hidden">Upravit</span>
         </button>
       }
@@ -165,6 +166,7 @@ import { NoteView } from './note-view';
   `,
 })
 export class NoteEditor implements OnInit {
+  protected readonly icons = ICONS;
   readonly id = input<string>();
   readonly resume = input(false, { transform: booleanAttribute });
   // Id šablony pro novou poznámku (/new?template=…)

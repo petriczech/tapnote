@@ -2,6 +2,7 @@ import { Component, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NotesView } from '../../core/model/note-query';
 import { VIEWS } from './views';
+import { ICONS, ICONS_FILL } from '../../core/icons/icons';
 
 @Component({
   selector: 'tn-bottom-nav',
@@ -10,10 +11,8 @@ import { VIEWS } from './views';
     <nav aria-label="Pohledy">
       <a routerLink="/tasks" [attr.aria-current]="current() === 'tasks' ? 'page' : null" (click)="leave.emit()">
         <span class="pill">
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
-            />
+          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true">
+            <path [attr.d]="current() === 'tasks' ? iconsFill.tasks : icons.tasks" />
           </svg>
         </span>
         Úkoly
@@ -26,17 +25,15 @@ import { VIEWS } from './views';
           (click)="leave.emit()"
         >
           <span class="pill">
-            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="item.icon" /></svg>
+            <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="item.view === current() ? iconsFill[item.icon] : icons[item.icon]" /></svg>
           </span>
           {{ item.label }}
         </a>
       }
       <a routerLink="/settings" [attr.aria-current]="current() === 'settings' ? 'page' : null" (click)="leave.emit()">
         <span class="pill">
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87a.47.47 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"
-            />
+          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true">
+            <path [attr.d]="current() === 'settings' ? iconsFill.settings : icons.settings" />
           </svg>
         </span>
         Nastavení
@@ -90,6 +87,8 @@ import { VIEWS } from './views';
   `,
 })
 export class BottomNav {
+  protected readonly icons = ICONS;
+  protected readonly iconsFill = ICONS_FILL;
   readonly current = input.required<NotesView | 'tasks' | 'settings'>();
   // Hledání, které se drží při přepnutí pohledu
   readonly q = input<string | null>(null);

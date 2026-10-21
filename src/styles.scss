@@ -604,6 +604,16 @@ body {
   font-family: var(--font);
 }
 
+// Logo aplikace v nadpisu seznamů (dekorace, název nese text nadpisu)
+.app-logo {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  margin-right: 10px;
+  border-radius: 9px;
+  vertical-align: -6px;
+}
+
 .icon {
   flex: none;
   width: 24px;

@@ -12,7 +12,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { Location } from '@angular/common';
+import { Location, NgOptimizedImage } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { daysWithoutBackup, readLastBackup } from '../../core/backup/notes-backup';
 import { Note } from '../../core/model/note';
@@ -30,6 +30,7 @@ import { TasksRepository } from '../../core/storage/tasks-repository';
 import { TaskActions } from '../../core/tasks/task-actions';
 import { BottomNav } from './bottom-nav';
 import { VIEWS } from './views';
+import { ICONS, ICONS_FILL } from '../../core/icons/icons';
 
 export const URL_DEBOUNCE_MS = 300;
 
@@ -49,11 +50,12 @@ function readLayout(): string | null {
 @Component({
   selector: 'tn-notes-list',
   host: { '[class.with-templates]': 'templates().length > 0', '(document:keydown)': 'onKey($event)' },
-  imports: [RouterLink, BottomNav],
+  imports: [NgOptimizedImage, RouterLink, BottomNav],
   template: `
     <header class="header">
       <div class="app-bar">
         <h1 #heading tabindex="-1">
+          <img class="app-logo" ngSrc="icons/icon-96x96.png" width="32" height="32" alt="" />
           @if (current().view === 'notes') {
             Tapnote<span class="visually-hidden"> – {{ current().label }}</span>
           } @else {
@@ -68,19 +70,15 @@ function readLayout(): string | null {
           [attr.aria-pressed]="grid()"
           (click)="toggleGrid()"
         >
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              d="M3 3v8h8V3H3zm6 6H5V5h4v4zm-6 4v8h8v-8H3zm6 6H5v-4h4v4zm4-16v8h8V3h-8zm6 6h-4V5h4v4zm-6 4v8h8v-8h-8zm6 6h-4v-4h4v4z"
-            />
+          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true">
+            <path [attr.d]="icons.grid" />
           </svg>
           <span class="visually-hidden">Mřížka</span>
         </button>
       </div>
       <div role="search" class="search">
-        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-          <path
-            d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"
-          />
+        <svg class="icon" viewBox="0 0 256 256" aria-hidden="true">
+          <path [attr.d]="icons.search" />
         </svg>
         <input
           #field
@@ -102,7 +100,7 @@ function readLayout(): string | null {
               [style.--cat]="catVar(item)"
               [attr.aria-current]="item.id === category() ? 'true' : null"
             >
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconPath(item.icon)" /></svg>
+              <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconPath(item.icon)" /></svg>
               {{ item.name }}
             </a>
           }
@@ -141,7 +139,7 @@ function readLayout(): string | null {
 
     @if (loadFailed() || (loaded() && items().length === 0 && trashedTasks().length === 0)) {
       <div class="empty-state">
-        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="current().icon" /></svg>
+        <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons[current().icon]" /></svg>
         @if (loadFailed()) {
           <p class="empty" role="alert">Poznámky se nepodařilo načíst.</p>
         } @else {
@@ -173,10 +171,8 @@ function readLayout(): string | null {
                   <span class="title">
                     @if (item.note.pinned) {
                       <span class="visually-hidden">Připnuto: </span>
-                      <svg class="icon pin" viewBox="0 0 24 24" aria-hidden="true">
-                        <path
-                          d="M16 9V4h1a1 1 0 0 0 0-2H7a1 1 0 0 0 0 2h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3z"
-                        />
+                      <svg class="icon pin" viewBox="0 0 256 256" aria-hidden="true">
+                        <path [attr.d]="iconsFill.pin" />
                       </svg>
                     }
                     {{ item.title }}
@@ -186,7 +182,7 @@ function readLayout(): string | null {
                   }
                   @if (categoryOf(item.note); as cat) {
                     <span class="note-cat" [style.--cat]="catVar(cat)">
-                      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconPath(cat.icon)" /></svg>
+                      <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconPath(cat.icon)" /></svg>
                       {{ cat.name }}
                     </span>
                   }
@@ -205,10 +201,8 @@ function readLayout(): string | null {
                 [attr.popovertarget]="'menu-' + item.note.id"
                 [attr.aria-label]="'Akce pro ' + item.title"
               >
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    d="M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"
-                  />
+                <svg class="icon" viewBox="0 0 256 256" aria-hidden="true">
+                  <path [attr.d]="icons.more" />
                 </svg>
               </button>
               <div #menu class="menu" popover [id]="'menu-' + item.note.id" (toggle)="onMenuToggle($event)">
@@ -254,7 +248,7 @@ function readLayout(): string | null {
                           [attr.aria-pressed]="item.note.categoryId === cat.id"
                           (click)="run(item.note, 'category', menu, undefined, item.note.categoryId === cat.id ? undefined : cat.id)"
                         >
-                          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconPath(cat.icon)" /></svg>
+                          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconPath(cat.icon)" /></svg>
                           {{ cat.name }}
                         </button>
                       }
@@ -288,10 +282,8 @@ function readLayout(): string | null {
 
     @if (templates().length > 0) {
       <button type="button" class="icon-btn from-template" popovertarget="templates-menu" title="Ze šablony">
-        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-          <path
-            d="M4 6H2v14a2 2 0 0 0 2 2h14v-2H4V6zm16-4H8a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm-1 9h-4v4h-2v-4H9V9h4V5h2v4h4v2z"
-          />
+        <svg class="icon" viewBox="0 0 256 256" aria-hidden="true">
+          <path [attr.d]="icons.template" />
         </svg>
         <span class="visually-hidden">Ze šablony</span>
       </button>
@@ -305,7 +297,7 @@ function readLayout(): string | null {
     }
 
     <a class="fab" routerLink="/new" aria-label="Nová poznámka" (click)="flushQuery()">
-      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" /></svg>
+      <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.plus" /></svg>
       Nová
     </a>
 
@@ -728,6 +720,8 @@ function readLayout(): string | null {
   `,
 })
 export class NotesList implements OnInit {
+  protected readonly icons = ICONS;
+  protected readonly iconsFill = ICONS_FILL;
   readonly view = input<string>();
   readonly tag = input<string>();
   // Filtr podle kategorie z ?category=

@@ -4,6 +4,7 @@ import { CategoryActions, CategoryFields } from '../../core/categories/category-
 import { Category, CATEGORY_COLORS } from '../../core/model/category';
 import { CATEGORY_ICONS, categoryIconPath } from '../../core/model/category-icons';
 import { CategoriesRepository } from '../../core/storage/categories-repository';
+import { ICONS } from '../../core/icons/icons';
 
 // Rozpracovaná kategorie; id null = nová
 type Draft = CategoryFields & { id: string | null };
@@ -39,7 +40,7 @@ type Draft = CategoryFields & { id: string | null };
                       [attr.aria-label]="icon.label"
                       (change)="patch({ icon: icon.id })"
                     />
-                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icon.path" /></svg>
+                    <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icon.path" /></svg>
                   </label>
                 }
               </div>
@@ -81,7 +82,7 @@ type Draft = CategoryFields & { id: string | null };
                 <ng-container [ngTemplateOutlet]="form" />
               } @else {
                 <span class="badge" aria-hidden="true">
-                  <svg class="icon" viewBox="0 0 24 24"><path [attr.d]="iconPath(item.icon)" /></svg>
+                  <svg class="icon" viewBox="0 0 256 256"><path [attr.d]="iconPath(item.icon)" /></svg>
                 </span>
                 <span class="item-name">{{ item.name }}</span>
                 <button
@@ -91,7 +92,7 @@ type Draft = CategoryFields & { id: string | null };
                   [attr.aria-disabled]="first"
                   (click)="move(item, -1)"
                 >
-                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.41 15.41 12 10.83l4.59 4.58L18 14l-6-6-6 6z" /></svg>
+                  <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="uiIcons.caretUp" /></svg>
                 </button>
                 <button
                   type="button"
@@ -100,7 +101,7 @@ type Draft = CategoryFields & { id: string | null };
                   [attr.aria-disabled]="last"
                   (click)="move(item, 1)"
                 >
-                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z" /></svg>
+                  <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="uiIcons.caretDown" /></svg>
                 </button>
                 <button type="button" class="text-btn edit" [attr.aria-label]="'Upravit: ' + item.name" (click)="edit(item)">
                   Upravit
@@ -122,6 +123,7 @@ type Draft = CategoryFields & { id: string | null };
   styleUrl: './categories-section.scss',
 })
 export class CategoriesSection implements OnInit {
+  protected readonly uiIcons = ICONS;
   private readonly repository = inject(CategoriesRepository);
   private readonly actions = inject(CategoryActions);
   private readonly host: HTMLElement = inject(ElementRef).nativeElement;

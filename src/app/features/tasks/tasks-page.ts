@@ -1,5 +1,5 @@
 import { afterNextRender, Component, computed, DestroyRef, ElementRef, inject, Injector, input, OnInit, signal } from '@angular/core';
-import { NgTemplateOutlet } from '@angular/common';
+import { NgOptimizedImage, NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Category } from '../../core/model/category';
 import { categoryIconPath } from '../../core/model/category-icons';
@@ -10,18 +10,19 @@ import { TasksRepository } from '../../core/storage/tasks-repository';
 import { NewTaskFields, TaskActions } from '../../core/tasks/task-actions';
 import { BottomNav } from '../list/bottom-nav';
 import { Confetti } from './confetti';
+import { ICONS, ICONS_FILL } from '../../core/icons/icons';
 
 // Délka animace konfet (tn-confetti), pak se prvek odstraní
 const CONFETTI_MS = 800;
 
 @Component({
   selector: 'tn-tasks-page',
-  imports: [BottomNav, Confetti, NgTemplateOutlet, RouterLink],
+  imports: [BottomNav, Confetti, NgOptimizedImage, NgTemplateOutlet, RouterLink],
   host: { '(document:visibilitychange)': 'refreshToday()' },
   template: `
     <header class="header">
       <div class="app-bar">
-        <h1 tabindex="-1">{{ current().label }}</h1>
+        <h1 tabindex="-1"><img class="app-logo" ngSrc="icons/icon-96x96.png" width="32" height="32" alt="" />{{ current().label }}</h1>
         @if (progress().total > 0) {
           <span class="ring" role="img" [attr.aria-label]="'Hotovo ' + progress().done + ' z ' + progress().total">
             <svg viewBox="0 0 36 36" aria-hidden="true">
@@ -61,7 +62,7 @@ const CONFETTI_MS = 800;
               [style.--cat]="catVar(item)"
               [attr.aria-current]="filter()?.id === item.id ? 'true' : null"
             >
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconPath(item.icon)" /></svg>
+              <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconPath(item.icon)" /></svg>
               {{ item.name }}
             </a>
           }
@@ -79,13 +80,13 @@ const CONFETTI_MS = 800;
         (input)="draft.set(title.value)"
       />
       <button type="submit" class="add-btn" aria-label="Přidat úkol" [attr.aria-disabled]="!draft().trim()">
-        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" /></svg>
+        <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.plus" /></svg>
       </button>
     </form>
 
     <div class="quick" role="group" aria-label="Vlastnosti nového úkolu">
       <button type="button" class="chip" popovertarget="due-menu" [class.set]="due() !== undefined">
-        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="calendarIcon" /></svg>
+        <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.calendar" /></svg>
         {{ due() === undefined ? 'Termín' : dueText(due()!) }}
       </button>
       <div id="due-menu" class="menu" popover (toggle)="onMenuToggle($event)">
@@ -101,13 +102,13 @@ const CONFETTI_MS = 800;
         }
       </div>
       <button type="button" class="chip" popovertarget="category-menu" [class.set]="chosenCategory() !== undefined">
-        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="tagIcon" /></svg>
+        <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.tag" /></svg>
         {{ chosenCategory()?.name ?? 'Kategorie' }}
       </button>
       <div id="category-menu" class="menu" popover (toggle)="onMenuToggle($event)">
         @for (item of categories(); track item.id) {
           <button type="button" (click)="setCategory(item, categoryMenu)">
-            <svg class="icon cat-icon" viewBox="0 0 24 24" aria-hidden="true" [style.--cat]="catVar(item)">
+            <svg class="icon cat-icon" viewBox="0 0 256 256" aria-hidden="true" [style.--cat]="catVar(item)">
               <path [attr.d]="iconPath(item.icon)" />
             </svg>
             {{ item.name }}
@@ -120,7 +121,7 @@ const CONFETTI_MS = 800;
         }
       </div>
       <button type="button" class="chip" [class.set]="important()" [attr.aria-pressed]="important()" (click)="important.set(!important())">
-        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="starIcon" /></svg>
+        <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="important() ? iconsFill.star : icons.star" /></svg>
         Důležité
       </button>
     </div>
@@ -162,7 +163,7 @@ const CONFETTI_MS = 800;
           [attr.aria-label]="'Důležité: ' + task.title"
           (click)="toggleImportant(task)"
         >
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="task.important ? starIcon : starOutlineIcon" /></svg>
+          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="task.important ? iconsFill.star : icons.star" /></svg>
         </button>
       </li>
     </ng-template>
@@ -192,8 +193,8 @@ const CONFETTI_MS = 800;
       <tn-confetti [x]="burst.x" [y]="burst.y" />
     }
 
-    <button type="button" class="fab" aria-label="Nový úkol" (click)="focusAdd(title)">
-      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" /></svg>
+    <button type="button" class="fab" aria-label="Přidat nový úkol" (click)="focusAdd(title)">
+      <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.plus" /></svg>
       Nový
     </button>
 
@@ -202,6 +203,8 @@ const CONFETTI_MS = 800;
   styleUrl: './tasks-page.scss',
 })
 export class TasksPage implements OnInit {
+  protected readonly icons = ICONS;
+  protected readonly iconsFill = ICONS_FILL;
   readonly view = input<string>();
   // Filtr podle kategorie z ?category=
   readonly category = input<string>();
@@ -213,13 +216,6 @@ export class TasksPage implements OnInit {
   private readonly injector = inject(Injector);
 
   protected readonly views = TASK_VIEWS;
-  protected readonly calendarIcon =
-    'M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z';
-  protected readonly tagIcon =
-    'M21.41 11.58 12.41 2.58A2 2 0 0 0 11 2H4a2 2 0 0 0-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58s1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41s-.23-1.06-.59-1.42zM5.5 7A1.5 1.5 0 1 1 7 5.5 1.5 1.5 0 0 1 5.5 7z';
-  protected readonly starIcon = 'M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z';
-  protected readonly starOutlineIcon =
-    'm22 9.24-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24zM12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4z';
 
   protected readonly tasks = signal<Task[]>([]);
   protected readonly categories = signal<Category[]>([]);

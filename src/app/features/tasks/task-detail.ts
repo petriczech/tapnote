@@ -6,6 +6,7 @@ import { localDate } from '../../core/model/task-query';
 import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { TasksRepository } from '../../core/storage/tasks-repository';
 import { TaskActions } from '../../core/tasks/task-actions';
+import { ICONS, ICONS_FILL } from '../../core/icons/icons';
 
 type TaskChanges = Parameters<TaskActions['update']>[1];
 
@@ -23,7 +24,7 @@ const TEXT_DEBOUNCE_MS = 400;
   template: `
     <div class="toolbar">
       <a class="icon-btn" routerLink="/tasks" title="Úkoly">
-        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" /></svg>
+        <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.back" /></svg>
         <span class="visually-hidden">Úkoly</span>
       </a>
       @if (task()) {
@@ -53,7 +54,7 @@ const TEXT_DEBOUNCE_MS = 400;
           [attr.aria-pressed]="task.important"
           (click)="toggleImportant()"
         >
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="task.important ? starIcon : starOutlineIcon" /></svg>
+          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="task.important ? iconsFill.star : icons.star" /></svg>
         </button>
       </div>
 
@@ -66,8 +67,8 @@ const TEXT_DEBOUNCE_MS = 400;
                 <input type="checkbox" class="check small" [checked]="step.done" [attr.aria-label]="step.title" (change)="toggleStep(step)" />
                 <span class="step-title">{{ step.title }}</span>
                 <button type="button" class="icon-btn" [attr.aria-label]="'Smazat krok: ' + step.title" (click)="removeStep(step)">
-                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                  <svg class="icon" viewBox="0 0 256 256" aria-hidden="true">
+                    <path [attr.d]="icons.close" />
                   </svg>
                 </button>
               </li>
@@ -81,16 +82,14 @@ const TEXT_DEBOUNCE_MS = 400;
 
       <div class="fields">
         <button type="button" class="field" [class.on]="inMyDay()" (click)="toggleMyDay()">
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM2 13h2a1 1 0 0 0 0-2H2a1 1 0 0 0 0 2zm18 0h2a1 1 0 0 0 0-2h-2a1 1 0 0 0 0 2zM11 2v2a1 1 0 0 0 2 0V2a1 1 0 0 0-2 0zm0 18v2a1 1 0 0 0 2 0v-2a1 1 0 0 0-2 0z"
-            />
+          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true">
+            <path [attr.d]="icons.sun" />
           </svg>
           {{ inMyDay() ? 'Přidáno do Můj den' : 'Přidat do Můj den' }}
         </button>
         <label class="field">
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 16H5V10h14v10z" />
+          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true">
+            <path [attr.d]="icons.calendar" />
           </svg>
           Termín
           <input #due type="date" [value]="task.dueDate ?? ''" (change)="save({ dueDate: due.value || undefined })" />
@@ -117,6 +116,8 @@ const TEXT_DEBOUNCE_MS = 400;
   styleUrl: './task-detail.scss',
 })
 export class TaskDetail implements OnInit {
+  protected readonly icons = ICONS;
+  protected readonly iconsFill = ICONS_FILL;
   readonly id = input.required<string>();
 
   private readonly repository = inject(TasksRepository);
@@ -124,9 +125,6 @@ export class TaskDetail implements OnInit {
   private readonly actions = inject(TaskActions);
   private readonly router = inject(Router);
 
-  protected readonly starIcon = 'M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z';
-  protected readonly starOutlineIcon =
-    'm22 9.24-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24zM12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4z';
   protected readonly today = localDate(new Date());
 
   protected readonly task = signal<Task | undefined>(undefined);
