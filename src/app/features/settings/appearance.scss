@@ -1,0 +1,311 @@
+:host {
+  display: block;
+  padding: env(safe-area-inset-top) 0 calc(7rem + env(safe-area-inset-bottom));
+}
+
+// Drobečky „Nastavení ›“ nad velkým nadpisem jako v návrhu D
+.app-bar {
+  padding: 8px 16px 0;
+}
+
+.crumbs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  color: var(--on-surface-variant);
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.crumbs .icon {
+  width: 16px;
+  height: 16px;
+}
+
+h1 {
+  margin: 0;
+  font-family: var(--title-font);
+  font-size: var(--title-size);
+  font-weight: var(--title-weight);
+  letter-spacing: var(--title-spacing);
+}
+
+h1:focus:not(:focus-visible) {
+  outline: none;
+}
+
+fieldset {
+  margin: 0;
+  padding: 0 16px;
+  border: 0;
+}
+
+legend {
+  padding: 0;
+}
+
+// Záhlaví sekcí mono verzálkami
+legend h2,
+.section-h {
+  margin: 22px 4px 8px;
+  color: var(--on-surface-variant);
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.section-h {
+  margin-inline: 20px;
+}
+
+// Režim jako skleněný segment; nativní radio leží neviditelně přes celý segment
+.schemes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  background: var(--glass);
+}
+
+.schemes label {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  color: var(--on-surface-variant);
+  font-weight: 600;
+}
+
+// Zvolený segment má i obrys, jinde než v Noiru splývá pozadí s kontejnerem
+.schemes label:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--surface-high);
+  color: var(--on-surface);
+  box-shadow: var(--card-shadow);
+}
+
+input[type='radio'] {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+label:has(input[type='radio']:focus-visible) {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.themes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+// Dlaždice s náhledem z barev preview
+.theme {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 7px;
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  background: var(--glass);
+}
+
+.theme:has(input:checked) {
+  border: 2px solid var(--primary);
+  padding: 6px;
+}
+
+.preview {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 72px;
+  padding: 9px;
+  border: 1px solid rgb(0 0 0 / 8%);
+  border-radius: 14px;
+  background: var(--bg);
+  box-sizing: border-box;
+}
+
+.pt {
+  width: 55%;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--accent);
+}
+
+.pr {
+  height: 18px;
+  border-radius: 6px;
+  background: var(--card);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 12%);
+}
+
+.pf {
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  background: var(--accent);
+}
+
+.theme-name {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 24px;
+  padding: 0 2px;
+  font-weight: 600;
+}
+
+.tick {
+  width: 22px;
+  height: 22px;
+  padding: 4px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: var(--primary);
+  fill: var(--on-primary);
+}
+
+.card {
+  margin: 0 16px;
+  padding: 4px 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--card-radius);
+  background: var(--glass);
+}
+
+// Statický řádek úkolu ve stylu Úkolů
+.sample {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+}
+
+.sample + .switch-row {
+  border-top: 1px solid var(--outline-variant);
+}
+
+.dot {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--primary);
+  border-radius: 50%;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.title {
+  font-weight: 500;
+}
+
+.meta {
+  color: var(--on-surface-variant);
+  font-size: 0.8125rem;
+}
+
+.meta b {
+  margin-right: 8px;
+  color: var(--primary);
+}
+
+.star {
+  color: var(--pin);
+}
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 56px;
+  font-weight: 600;
+}
+
+.info {
+  margin: 0 0 12px;
+  color: var(--on-surface-variant);
+}
+
+// Nativní checkbox jako přepínač; stav nese i poloha jezdce, nejen barva
+.switch {
+  position: relative;
+  flex: none;
+  width: 52px;
+  height: 32px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--outline);
+  appearance: none;
+  cursor: pointer;
+}
+
+.switch::before {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--surface);
+  content: '';
+}
+
+.switch:checked {
+  background: var(--primary);
+}
+
+.switch:checked::before {
+  left: 24px;
+}
+
+// Vysoký kontrast: zvolený segment v systémové barvě výběru, obrys dráhy a jezdec přepínače v barvě textu
+@media (forced-colors: active) {
+  .schemes label:has(input:checked) {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .switch {
+    border: 1px solid CanvasText;
+  }
+
+  .switch::before {
+    top: 3px;
+    left: 3px;
+    background: CanvasText;
+    forced-color-adjust: none;
+  }
+
+  .switch:checked::before {
+    left: 23px;
+  }
+}

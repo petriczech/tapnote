@@ -415,7 +415,7 @@ describe('NotesList', () => {
       await render();
 
       expect(reminder()).toBe('Bez zálohy 10 dní Zálohovat');
-      expect(root.querySelector('.backup a')?.getAttribute('href')).toBe('/settings');
+      expect(root.querySelector('.backup a')?.getAttribute('href')).toBe('/settings#backup');
     });
 
     it('is hidden after a recent backup and outside the notes view', async () => {

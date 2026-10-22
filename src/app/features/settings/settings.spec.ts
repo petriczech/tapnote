@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
+import { RouterTestingHarness } from '@angular/router/testing';
 import { createExport, LAST_BACKUP_KEY } from '../../core/backup/notes-backup';
 import { createNote, Note } from '../../core/model/note';
 import { createTask, Task } from '../../core/model/task';
@@ -10,7 +11,7 @@ import { InMemoryCategoriesRepository } from '../../core/storage/testing/in-memo
 import { InMemoryNotesRepository } from '../../core/storage/testing/in-memory-notes-repository';
 import { InMemoryTasksRepository } from '../../core/storage/testing/in-memory-tasks-repository';
 import { SHORTCUTS_KEY } from '../../core/shortcuts/shortcuts';
-import { AMBIENT_KEY, SCHEME_KEY, THEME_KEY } from '../../core/theme/theme';
+import { THEME_KEY } from '../../core/theme/theme';
 import { MAX_IMPORT_BYTES, Settings } from './settings';
 import { VersionsRepository } from '../../core/storage/versions-repository';
 import { InMemoryVersionsRepository } from '../../core/storage/testing/in-memory-versions-repository';
@@ -82,6 +83,71 @@ describe('Settings', () => {
     expect(current?.getAttribute('href')).toBe('/settings');
   });
 
+  describe('hub', () => {
+    const rows = () => [...root.querySelectorAll<HTMLAnchorElement>('.hub a')];
+
+    afterEach(() => localStorage.removeItem(THEME_KEY));
+
+    it('lists the sections with Vzhled as a sub-page showing the current theme', async () => {
+      localStorage.setItem(THEME_KEY, 'paper');
+      await render();
+
+      expect(rows().map((row) => row.querySelector('.row-label')?.textContent?.trim())).toEqual([
+        'Vzhled',
+        'Kategorie',
+        'Šablony',
+        'Záloha',
+        'Klávesové zkratky',
+        'O aplikaci',
+      ]);
+      expect(rows()[0].getAttribute('href')).toBe('/settings/vzhled');
+      expect(rows()[0].querySelector('.value')?.textContent?.trim()).toBe('Papír');
+      expect(rows().slice(1).map((row) => row.getAttribute('href'))).toEqual([
+        '/settings#categories',
+        '/settings#templates',
+        '/settings#backup',
+        '/settings#shortcuts',
+        '/settings#about',
+      ]);
+    });
+
+    it('focuses the section heading when a row is clicked', async () => {
+      TestBed.inject(Router).resetConfig([{ path: 'settings', component: Settings }]);
+      await render();
+
+      rows()[3].click();
+
+      expect(document.activeElement).toBe(root.querySelector('#backup-heading'));
+    });
+  });
+
+  // Deep linky: zkratka ? ze seznamu (#shortcuts), Zálohovat (#backup) a ostatní sekce
+  describe('deep links', () => {
+    it.each([
+      ['shortcuts', 'Klávesové zkratky'],
+      ['backup', 'Záloha'],
+      ['categories', 'Kategorie'],
+    ])('focuses the heading of #%s', async (fragment, heading) => {
+      TestBed.inject(Router).resetConfig([{ path: 'settings', component: Settings }]);
+      const harness = await RouterTestingHarness.create();
+
+      await harness.navigateByUrl('/settings#' + fragment, Settings);
+
+      await vi.waitFor(() => expect(document.activeElement?.textContent?.trim()).toBe(heading));
+      expect(document.activeElement?.id).toBe(fragment + '-heading');
+    });
+
+    it('leaves the focus alone without a fragment or with an unknown one', async () => {
+      TestBed.inject(Router).resetConfig([{ path: 'settings', component: Settings }]);
+      const harness = await RouterTestingHarness.create();
+
+      await harness.navigateByUrl('/settings#nic', Settings);
+      await harness.fixture.whenStable();
+
+      expect(document.activeElement).toBe(document.body);
+    });
+  });
+
   describe('templates', () => {
     beforeEach(async () => {
       await repository.put({ ...note('tpl', '2026-10-15T10:00:00.000Z'), title: 'Porada', isTemplate: true });
@@ -128,109 +194,6 @@ describe('Settings', () => {
 
     expect(root.textContent).toContain('Uložit jako šablonu');
     expect(root.textContent).toContain('{{date}}');
-  });
-
-  it('switches the theme', async () => {
-    await render();
-    expect(radio('noir').checked).toBe(true);
-
-    radio('graphite').click();
-    await fixture.whenStable();
-
-    expect(document.documentElement.dataset['theme']).toBe('graphite');
-    expect(localStorage.getItem(THEME_KEY)).toBe('graphite');
-    expect(radio('graphite').checked).toBe(true);
-
-    radio('noir').click();
-    expect(document.documentElement.hasAttribute('data-theme')).toBe(false);
-    localStorage.removeItem(THEME_KEY);
-  });
-
-  describe('Vzhled', () => {
-    const group = () => [...root.querySelectorAll('fieldset')].find((item) => item.querySelector('legend')?.textContent?.trim() === 'Vzhled');
-    const themeRadio = (name: string) =>
-      [...(group()?.querySelectorAll<HTMLInputElement>('input[type="radio"]') ?? [])].find(
-        (input) => input.closest('label')?.textContent?.trim() === name,
-      ) as HTMLInputElement;
-    const ambientSwitch = () => root.querySelector<HTMLInputElement>('input[role="switch"]');
-
-    afterEach(() => {
-      localStorage.removeItem(THEME_KEY);
-      localStorage.removeItem(AMBIENT_KEY);
-      delete document.documentElement.dataset['theme'];
-      delete document.documentElement.dataset['ambient'];
-    });
-
-    it('offers five theme tiles with a check badge on the selected one', async () => {
-      await render();
-
-      const names = [...(group()?.querySelectorAll('label') ?? [])].map((label) => label.textContent?.trim());
-      expect(names).toEqual(['Noir', 'Modrá', 'Papír', 'Grafit', 'Bílá']);
-      expect(themeRadio('Noir').checked).toBe(true);
-      expect(themeRadio('Noir').closest('label')?.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
-      expect(themeRadio('Bílá').closest('label')?.querySelector('svg')).toBeNull();
-
-      themeRadio('Bílá').click();
-      await fixture.whenStable();
-
-      expect(document.documentElement.dataset['theme']).toBe('white');
-      expect(themeRadio('Bílá').closest('label')?.querySelector('svg')).not.toBeNull();
-      expect(themeRadio('Noir').closest('label')?.querySelector('svg')).toBeNull();
-    });
-
-    it('shows a stored airy theme as Modrá', async () => {
-      localStorage.setItem(THEME_KEY, 'airy');
-      await render();
-
-      expect(themeRadio('Modrá').checked).toBe(true);
-    });
-
-    it('switches the ambient glow off and on in Noir only', async () => {
-      await render();
-      const toggle = ambientSwitch() as HTMLInputElement;
-      expect(toggle.labels?.[0]?.textContent?.trim()).toBe('Ambientní přechody');
-      expect(root.querySelector(`#${toggle.getAttribute('aria-describedby')}`)?.textContent?.trim()).toBe('Barevná záře za skleněnými panely');
-      expect(toggle.checked).toBe(true);
-
-      toggle.click();
-      await fixture.whenStable();
-
-      expect(document.documentElement.dataset['ambient']).toBe('off');
-      expect(localStorage.getItem(AMBIENT_KEY)).toBe('off');
-      expect(toggle.checked).toBe(false);
-
-      toggle.click();
-      await fixture.whenStable();
-
-      expect(document.documentElement.hasAttribute('data-ambient')).toBe(false);
-
-      themeRadio('Papír').click();
-      await fixture.whenStable();
-
-      expect(ambientSwitch()).toBeNull();
-    });
-  });
-
-  it('switches the scheme in the Režim group', async () => {
-    onTestFinished(() => localStorage.removeItem(SCHEME_KEY));
-    await render();
-    const group = [...root.querySelectorAll('fieldset')].find((item) => item.querySelector('legend')?.textContent?.trim() === 'Režim');
-    const labels = [...(group?.querySelectorAll('label') ?? [])].map((label) => label.textContent?.trim());
-    expect(labels).toEqual(['Světlý', 'Tmavý', 'Systém']);
-    expect(radio('system').checked).toBe(true);
-
-    radio('dark').click();
-    await fixture.whenStable();
-
-    expect(document.documentElement.dataset['scheme']).toBe('dark');
-    expect(localStorage.getItem(SCHEME_KEY)).toBe('dark');
-    expect(radio('dark').checked).toBe(true);
-
-    radio('system').click();
-    await fixture.whenStable();
-
-    expect(document.documentElement.hasAttribute('data-scheme')).toBe(false);
-    expect(radio('system').checked).toBe(true);
   });
 
   it('downloads all notes and remembers the backup', async () => {

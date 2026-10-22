@@ -12,5 +12,6 @@ export const routes: Routes = [
   { path: 'task/:id', loadComponent: () => import('./features/tasks/task-detail').then((m) => m.TaskDetail) },
   { path: 'notes', loadComponent: () => import('./features/list/notes-list').then((m) => m.NotesList) },
   { path: 'settings', loadComponent: () => import('./features/settings/settings').then((m) => m.Settings) },
+  { path: 'settings/vzhled', loadComponent: () => import('./features/settings/appearance').then((m) => m.Appearance) },
   { path: '**', redirectTo: '' },
 ];

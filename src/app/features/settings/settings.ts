@@ -17,19 +17,8 @@ import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { NotesRepository } from '../../core/storage/notes-repository';
 import { TasksRepository } from '../../core/storage/tasks-repository';
 import { VersionsRepository } from '../../core/storage/versions-repository';
-import { ICONS } from '../../core/icons/icons';
-import {
-  applyAmbient,
-  applyScheme,
-  applyTheme,
-  readAmbient,
-  readScheme,
-  readTheme,
-  SchemeId,
-  SCHEMES,
-  ThemeId,
-  THEMES,
-} from '../../core/theme/theme';
+import { ICONS_REGULAR } from '../../core/icons/icons';
+import { readTheme, THEMES } from '../../core/theme/theme';
 import { BottomNav } from '../list/bottom-nav';
 import { CategoriesSection } from './categories-section';
 
@@ -40,101 +29,33 @@ const REVOKE_DELAY_MS = 60_000;
   selector: 'tn-settings',
   imports: [BottomNav, CategoriesSection, RouterLink],
   template: `
-    <h1>Nastavení</h1>
+    <header class="app-bar">
+      <p class="eyebrow">Tapnote</p>
+      <h1>Nastavení</h1>
+    </header>
 
-    <section>
-      <fieldset>
-        <legend><h2>Režim</h2></legend>
-        <div class="schemes">
-          @for (item of schemes; track item.id) {
-            <label>
-              <input type="radio" name="scheme" [value]="item.id" [checked]="scheme() === item.id" (change)="setScheme(item.id)" />
-              {{ item.label }}
-            </label>
-          }
-        </div>
-      </fieldset>
-
-      <fieldset>
-        <legend><h2>Vzhled</h2></legend>
-        <div class="themes">
-          @for (item of themes; track item.id) {
-            <label class="theme">
-              <input
-                type="radio"
-                name="theme"
-                [value]="item.id"
-                [checked]="theme() === item.id"
-                (change)="setTheme(item.id)"
-              />
-              <span
-                class="preview"
-                aria-hidden="true"
-                [style.--bg]="item.preview[0]"
-                [style.--card]="item.preview[1]"
-                [style.--accent]="item.preview[2]"
-              >
-                <span class="pt"></span>
-                <span class="pr"></span>
-                <span class="pr"></span>
-                <span class="pf"></span>
-              </span>
-              <span class="theme-name">
-                {{ item.label }}
-                @if (theme() === item.id) {
-                  <svg class="tick" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="checkIcon" /></svg>
-                }
-              </span>
-            </label>
-          }
-        </div>
-      </fieldset>
-
-      <!-- Záře je jen v Noiru, proto se přepínač ukazuje jen tam -->
-      @if (theme() === 'noir') {
-        <label class="check switch-row">
-          Ambientní přechody
-          <input
-            #ambientBox
-            class="switch"
-            type="checkbox"
-            role="switch"
-            aria-describedby="ambient-hint"
-            [checked]="ambient()"
-            (change)="setAmbient(ambientBox.checked)"
-          />
-        </label>
-        <p id="ambient-hint" class="info">Barevná záře za skleněnými panely</p>
+    <!-- Rozcestník: Vzhled je podstránka, ostatní řádky skočí na sekci níže (Kategorie dostanou vlastní obrazovku) -->
+    <ul class="hub">
+      <li>
+        <a routerLink="/settings/vzhled">
+          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.palette" /></svg>
+          <span class="row-label">Vzhled</span>
+          <span class="value">{{ themeLabel }}</span>
+          <svg class="icon chev" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.caretRight" /></svg>
+        </a>
+      </li>
+      @for (row of rows; track row.fragment) {
+        <li>
+          <a routerLink="/settings" [fragment]="row.fragment" (click)="focusSection(row.fragment)">
+            <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons[row.icon]" /></svg>
+            <span class="row-label">{{ row.label }}</span>
+            <svg class="icon chev" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.caretRight" /></svg>
+          </a>
+        </li>
       }
-    </section>
+    </ul>
 
     <tn-categories-section />
-
-    <section aria-labelledby="shortcuts-heading">
-      <h2 id="shortcuts-heading" tabindex="-1">Klávesové zkratky</h2>
-      <label class="check">
-        <input #shortcutsBox type="checkbox" [checked]="shortcuts()" (change)="setShortcuts(shortcutsBox.checked)" />
-        Zapnout klávesové zkratky
-      </label>
-      <table class="shortcuts">
-        <thead>
-          <tr>
-            <th scope="col">Kde</th>
-            <th scope="col">Klávesa</th>
-            <th scope="col">Akce</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (item of shortcutList; track item.keys) {
-            <tr>
-              <td>{{ item.place }}</td>
-              <td><kbd>{{ item.keys }}</kbd></td>
-              <td>{{ item.label }}</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </section>
 
     <section aria-labelledby="templates-heading">
       <h2 id="templates-heading" tabindex="-1">Šablony</h2>
@@ -171,7 +92,7 @@ const REVOKE_DELAY_MS = 60_000;
     </section>
 
     <section aria-labelledby="backup-heading">
-      <h2 id="backup-heading">Záloha</h2>
+      <h2 id="backup-heading" tabindex="-1">Záloha</h2>
       <p class="info last-backup">Poslední záloha: {{ lastBackupText() }}</p>
       <div class="actions">
         <button type="button" class="filled" [attr.aria-disabled]="busy()" (click)="exportNotes('download')">Stáhnout zálohu</button>
@@ -202,8 +123,34 @@ const REVOKE_DELAY_MS = 60_000;
 
     <p class="status" [class.error]="failed()" aria-live="polite">{{ status() }}</p>
 
+    <section aria-labelledby="shortcuts-heading">
+      <h2 id="shortcuts-heading" tabindex="-1">Klávesové zkratky</h2>
+      <label class="check">
+        <input #shortcutsBox type="checkbox" [checked]="shortcuts()" (change)="setShortcuts(shortcutsBox.checked)" />
+        Zapnout klávesové zkratky
+      </label>
+      <table class="shortcuts">
+        <thead>
+          <tr>
+            <th scope="col">Kde</th>
+            <th scope="col">Klávesa</th>
+            <th scope="col">Akce</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of shortcutList; track item.keys) {
+            <tr>
+              <td>{{ item.place }}</td>
+              <td><kbd>{{ item.keys }}</kbd></td>
+              <td>{{ item.label }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </section>
+
     <section aria-labelledby="about-heading">
-      <h2 id="about-heading">O aplikaci</h2>
+      <h2 id="about-heading" tabindex="-1">O aplikaci</h2>
       <dl class="about">
         <dt>Verze</dt>
         <dd>{{ build() }}</dd>
@@ -218,30 +165,84 @@ const REVOKE_DELAY_MS = 60_000;
       padding: env(safe-area-inset-top) 0 calc(7rem + env(safe-area-inset-bottom));
     }
 
+    .app-bar {
+      padding: 8px 16px 0;
+    }
+
     h1 {
-      display: flex;
-      align-items: center;
-      min-height: 56px;
       margin: 0;
-      padding: 0 16px;
       font-family: var(--title-font);
       font-size: var(--title-size);
       font-weight: var(--title-weight);
       letter-spacing: var(--title-spacing);
     }
 
+    // Rozcestník: skleněné řádky s ikonou, popiskem, hodnotou a šipkou
+    .hub {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 16px 16px 24px;
+      padding: 0;
+      list-style: none;
+    }
+
+    .hub a {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-height: 56px;
+      padding: 0 12px 0 16px;
+      border: 1px solid var(--glass-border);
+      border-radius: var(--card-radius);
+      background: var(--glass);
+      color: var(--on-surface);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .hub .icon {
+      color: var(--primary);
+    }
+
+    .row-label {
+      flex: 1;
+    }
+
+    .value {
+      color: var(--on-surface-variant);
+      font-family: var(--mono);
+      font-size: 0.8125rem;
+      font-weight: 500;
+    }
+
+    .hub .chev {
+      width: 18px;
+      height: 18px;
+      color: var(--on-surface-variant);
+    }
+
+    // Sekce jako skleněné karty se záhlavím mono verzálkami
     section {
-      margin: 8px 16px 24px;
+      margin: 0 16px 12px;
+      padding: 4px 12px 12px;
+      border: 1px solid var(--glass-border);
+      border-radius: var(--card-radius);
+      background: var(--glass);
+    }
+
+    h2 {
+      margin: 14px 0 8px;
+      color: var(--on-surface-variant);
+      font-family: var(--mono);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
     }
 
     h2:focus:not(:focus-visible) {
       outline: none;
-    }
-
-    h2 {
-      margin: 0 0 8px;
-      font-size: 1rem;
-      font-weight: 600;
     }
 
     .info {
@@ -261,16 +262,17 @@ const REVOKE_DELAY_MS = 60_000;
       align-items: center;
       min-height: 48px;
       padding: 0 24px;
-      border-radius: var(--radius-l);
+      border-radius: 14px;
       font: inherit;
       font-weight: 600;
       cursor: pointer;
     }
 
+    // Průhledný okraj se ve vysokém kontrastu vykreslí, přechod se tam zahodí
     .filled {
-      border: 0;
-      background: var(--primary);
-      color: var(--on-primary);
+      border: 1px solid transparent;
+      background: var(--grad);
+      color: var(--on-grad);
     }
 
     .outlined {
@@ -297,10 +299,6 @@ const REVOKE_DELAY_MS = 60_000;
       color: var(--on-surface-variant);
     }
 
-    legend h2 {
-      color: var(--on-surface);
-    }
-
     fieldset label,
     .check {
       display: flex;
@@ -316,160 +314,6 @@ const REVOKE_DELAY_MS = 60_000;
       height: 20px;
       margin: 0;
       accent-color: var(--primary);
-    }
-
-    .schemes {
-      display: flex;
-      flex-wrap: wrap;
-      column-gap: 24px;
-    }
-
-    .themes {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
-    }
-
-    /* .themes kvůli přednosti před obecným fieldset label; dlaždice s náhledem z barev preview */
-    .themes .theme {
-      position: relative;
-      flex-direction: column;
-      align-items: stretch;
-      gap: 6px;
-      padding: 7px;
-      border: 1px solid var(--outline-variant);
-      border-radius: 20px;
-      background: var(--card-bg);
-      cursor: pointer;
-    }
-
-    /* Neviditelné radio přes celou dlaždici: klik i fokus jdou přímo na něj */
-    .themes input {
-      position: absolute;
-      inset: 0;
-      z-index: 1;
-      width: 100%;
-      height: 100%;
-      opacity: 0;
-      cursor: pointer;
-    }
-
-    .themes .theme:has(input:checked) {
-      border: 2px solid var(--primary);
-      padding: 6px;
-    }
-
-    .themes .theme:has(input:focus-visible) {
-      outline: 2px solid var(--ring);
-      outline-offset: 2px;
-    }
-
-    .preview {
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      height: 72px;
-      padding: 9px;
-      border: 1px solid rgb(0 0 0 / 8%);
-      border-radius: 14px;
-      background: var(--bg);
-      box-sizing: border-box;
-    }
-
-    .pt {
-      width: 55%;
-      height: 8px;
-      border-radius: 4px;
-      background: var(--accent);
-    }
-
-    .pr {
-      height: 18px;
-      border-radius: 6px;
-      background: var(--card);
-      box-shadow: 0 1px 3px rgb(0 0 0 / 12%);
-    }
-
-    .pf {
-      position: absolute;
-      right: 7px;
-      bottom: 7px;
-      width: 22px;
-      height: 22px;
-      border-radius: 8px;
-      background: var(--accent);
-    }
-
-    .theme-name {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      min-height: 24px;
-      padding: 0 2px;
-      font-weight: 600;
-    }
-
-    .tick {
-      width: 22px;
-      height: 22px;
-      padding: 4px;
-      box-sizing: border-box;
-      border-radius: 50%;
-      background: var(--primary);
-      fill: var(--on-primary);
-    }
-
-    .switch-row {
-      justify-content: space-between;
-    }
-
-    /* Nativní checkbox jako přepínač; stav nese i poloha jezdce, nejen barva */
-    .check .switch {
-      position: relative;
-      width: 52px;
-      height: 32px;
-      border-radius: 999px;
-      background: var(--outline);
-      appearance: none;
-      cursor: pointer;
-    }
-
-    .switch::before {
-      position: absolute;
-      top: 4px;
-      left: 4px;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: var(--surface);
-      content: '';
-    }
-
-    .check .switch:checked {
-      background: var(--primary);
-    }
-
-    .switch:checked::before {
-      left: 24px;
-    }
-
-    /* Vysoký kontrast: obrys dráhy a jezdec v systémové barvě */
-    @media (forced-colors: active) {
-      .check .switch {
-        border: 1px solid CanvasText;
-      }
-
-      .switch::before {
-        top: 3px;
-        left: 3px;
-        background: CanvasText;
-        forced-color-adjust: none;
-      }
-
-      .switch:checked::before {
-        left: 23px;
-      }
     }
 
     .file input {
@@ -570,6 +414,7 @@ const REVOKE_DELAY_MS = 60_000;
     .about dd {
       margin: 0;
       color: var(--on-surface-variant);
+      font-family: var(--mono);
     }
   `,
 })
@@ -588,13 +433,18 @@ export class Settings implements OnInit {
   // Mimo šablonu komponenty, kde by se {{ }} vyhodnotilo
   protected readonly variablesHint = 'V textu šablony lze použít {{date}}, {{time}} a {{weekday}}; {{cursor}} označí místo kurzoru.';
 
-  ngOnInit(): Promise<void> {
+  async ngOnInit(): Promise<void> {
     void loadBuildStamp().then((stamp) => this.build.set(stamp));
-    // Zkratka ? ze seznamu otevírá přehled zkratek
-    if (this.route.snapshot.fragment === 'shortcuts') {
-      afterNextRender(() => this.host.querySelector<HTMLElement>('#shortcuts-heading')?.focus(), { injector: this.injector });
+    await this.loadTemplates();
+    // Odkaz se sekcí (zkratka ? ze seznamu → #shortcuts, Zálohovat → #backup) zaměří její nadpis až po načtení šablon, které ho jinak odsunou mimo obrazovku
+    const fragment = this.route.snapshot.fragment;
+    if (fragment) {
+      afterNextRender(() => this.focusSection(fragment), { injector: this.injector });
     }
-    return this.loadTemplates();
+  }
+
+  protected focusSection(fragment: string): void {
+    document.getElementById(`${fragment}-heading`)?.focus();
   }
 
   protected async restoreTemplate(template: Note): Promise<void> {
@@ -633,12 +483,16 @@ export class Settings implements OnInit {
   }
 
   protected readonly canShare = typeof navigator.canShare === 'function';
-  protected readonly themes = THEMES;
-  protected readonly theme = signal(readTheme());
-  protected readonly schemes = SCHEMES;
-  protected readonly scheme = signal(readScheme());
-  protected readonly ambient = signal(readAmbient());
-  protected readonly checkIcon = ICONS.check;
+  protected readonly icons = ICONS_REGULAR;
+  protected readonly themeLabel = THEMES.find((item) => item.id === readTheme())?.label;
+  // Řádky rozcestníku s nadpisy sekcí; fragment + '-heading' je id nadpisu
+  protected readonly rows = [
+    { label: 'Kategorie', fragment: 'categories', icon: 'tag' },
+    { label: 'Šablony', fragment: 'templates', icon: 'copy' },
+    { label: 'Záloha', fragment: 'backup', icon: 'cloudArrowUp' },
+    { label: 'Klávesové zkratky', fragment: 'shortcuts', icon: 'keyboard' },
+    { label: 'O aplikaci', fragment: 'about', icon: 'info' },
+  ] as const;
   private readonly lastBackup = signal(readLastBackup());
   protected readonly lastBackupText = computed(() => {
     const iso = this.lastBackup();
@@ -655,21 +509,6 @@ export class Settings implements OnInit {
   protected setShortcuts(enabled: boolean): void {
     writeShortcutsEnabled(enabled);
     this.shortcuts.set(enabled);
-  }
-
-  protected setTheme(theme: ThemeId): void {
-    applyTheme(theme);
-    this.theme.set(theme);
-  }
-
-  protected setAmbient(on: boolean): void {
-    applyAmbient(on);
-    this.ambient.set(on);
-  }
-
-  protected setScheme(scheme: SchemeId): void {
-    applyScheme(scheme);
-    this.scheme.set(scheme);
   }
 
   protected async exportNotes(target: 'download' | 'share'): Promise<void> {

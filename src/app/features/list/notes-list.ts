@@ -152,7 +152,7 @@ function dateLabel(iso: string, today: string): string {
     @if (backupDays(); as days) {
       <p class="backup">
         Bez zálohy {{ days }} dní
-        <a routerLink="/settings" (click)="flushQuery()">Zálohovat</a>
+        <a routerLink="/settings" fragment="backup" (click)="flushQuery()">Zálohovat</a>
       </p>
     }
 
