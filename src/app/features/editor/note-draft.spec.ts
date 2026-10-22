@@ -297,6 +297,47 @@ describe('NoteDraft', () => {
     });
   });
 
+  it('applies an action after saving typed text and keeps it on the next save', async () => {
+    await repository.put(existingNote('1', 'a', ago(1000)));
+    await draft.open('1', false);
+    draft.update('ab');
+
+    await draft.change((note) => repository.update(note.id, { color: 'blue' }));
+    expect(draft.color()).toBe('blue');
+    expect(draft.stored()?.content).toBe('ab');
+
+    draft.update('abc');
+    await draft.flush();
+    expect(repository.notes.get('1')).toMatchObject({ content: 'abc', color: 'blue' });
+  });
+
+  it('keeps saving after a failed action', async () => {
+    await repository.put(existingNote('1', 'a', ago(1000)));
+    await draft.open('1', false);
+
+    await expect(draft.change(() => Promise.reject(new Error('x')))).rejects.toThrow('x');
+    draft.update('ab');
+    await draft.flush();
+
+    expect(repository.notes.get('1')?.content).toBe('ab');
+  });
+
+  it('skips an action when the typed text could not be saved', async () => {
+    await repository.put(existingNote('1', 'a', ago(1000)));
+    await draft.open('1', false);
+    repository.failPut = true;
+    draft.update('ab');
+    const action = vi.fn(() => Promise.resolve());
+
+    await expect(draft.change(action)).rejects.toThrow();
+    expect(action).not.toHaveBeenCalled();
+
+    repository.failPut = false;
+    await draft.change(action);
+    expect(action).toHaveBeenCalledOnce();
+    expect(repository.notes.get('1')?.content).toBe('ab');
+  });
+
   it('reports a failed save and recovers', async () => {
     repository.failPut = true;
     draft.update('a');

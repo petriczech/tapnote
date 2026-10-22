@@ -18,14 +18,17 @@ import { categoryIconPath } from '../../core/model/category-icons';
 import { continueList, hasChecklist, TextEdit, toggleItem, toggleItemPrefix } from '../../core/model/checklist';
 import { backlinks, extractLinks, linkTargets } from '../../core/model/links';
 import { deriveTitle, Note } from '../../core/model/note';
-import { noteColorVar } from '../../core/model/note-colors';
+import { isNoteColor, NOTE_COLORS, noteColorVar } from '../../core/model/note-colors';
 import { localDate } from '../../core/model/task-query';
+import { NoteActions } from '../../core/notes/note-actions';
 import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { NotesRepository } from '../../core/storage/notes-repository';
 import { readShortcutsEnabled } from '../../core/shortcuts/shortcuts';
 import { NoteDraft } from './note-draft';
 import { NoteView } from './note-view';
 import { ICONS_FILL, ICONS_REGULAR } from '../../core/icons/icons';
+
+type EditorAction = 'pin' | 'archive' | 'template' | 'trash' | 'color' | 'category';
 
 @Component({
   selector: 'tn-note-editor',
@@ -39,7 +42,7 @@ import { ICONS_FILL, ICONS_REGULAR } from '../../core/icons/icons';
     '[class.colored]': 'noteBg() !== null',
   },
   template: `
-    <!-- Horní lišta jako obrazovka 03 návrhu D: zpět, Uloženo, vpravo skleněné a přechodové tlačítko -->
+    <!-- Horní lišta jako obrazovka 03 návrhu D: zpět, Uloženo, vpravo přechodové tlačítko -->
     <div class="toolbar">
       <a class="icon-btn" routerLink="/notes" title="Seznam">
         <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.back" /></svg>
@@ -49,23 +52,7 @@ import { ICONS_FILL, ICONS_REGULAR } from '../../core/icons/icons';
         <span class="saved"><span class="dot" aria-hidden="true"></span>Uloženo</span>
       }
       <span class="actions">
-        @if (draft.noteId(); as noteId) {
-          <a class="icon-btn" [routerLink]="['/note', noteId, 'history']" title="Historie">
-            <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.history" /></svg>
-            <span class="visually-hidden">Historie</span>
-          </a>
-        }
         @if (mode() === 'edit') {
-          <button
-            type="button"
-            class="tool"
-            title="Checklist"
-            (pointerdown)="$event.preventDefault()"
-            (click)="toggleChecklistLine()"
-          >
-            <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.checklist" /></svg>
-            <span class="label">Checklist</span>
-          </button>
           <button type="button" class="tool grad" (click)="setMode('view')">Hotovo</button>
         } @else {
           <button #editButton type="button" class="tool grad" (click)="setMode('edit')">
@@ -123,9 +110,76 @@ import { ICONS_FILL, ICONS_REGULAR } from '../../core/icons/icons';
         </ul>
       </nav>
     }
+    <!-- Spodní panel nástrojů jako obrazovka 03 návrhu D, jen s existujícími akcemi; prostá skupina tlačítek v pořadí Tab -->
+    <div class="format" role="group" aria-label="Formát">
+      @if (mode() === 'edit') {
+        <button type="button" class="icon-btn" title="Checklist" (pointerdown)="$event.preventDefault()" (click)="toggleChecklistLine()">
+          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.checklist" /></svg>
+          <span class="visually-hidden">Checklist</span>
+        </button>
+      }
+      <button type="button" class="icon-btn" title="Tag" (pointerdown)="$event.preventDefault()" (click)="insertTag()">
+        <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.tag" /></svg>
+        <span class="visually-hidden">Tag</span>
+      </button>
+      <button type="button" class="icon-btn" title="Barva" popovertarget="color-menu">
+        <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.palette" /></svg>
+        <span class="visually-hidden">Barva</span>
+      </button>
+      @if (draft.stored()) {
+        <button type="button" class="icon-btn" title="Další akce" popovertarget="more-menu">
+          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.more" /></svg>
+          <span class="visually-hidden">Další akce</span>
+        </button>
+      }
+    </div>
+    <div #colorMenu id="color-menu" class="menu format-menu" popover (toggle)="onMenuToggle($event)">
+      <div class="swatches" role="group" aria-label="Barva">
+        <button type="button" class="swatch none" aria-label="Bez barvy" [attr.aria-pressed]="noteBg() === null" (click)="run(colorMenu, 'color')"></button>
+        @for (color of colors; track color.id) {
+          <button
+            type="button"
+            class="swatch"
+            [attr.aria-label]="color.label"
+            [attr.aria-pressed]="draft.color() === color.id"
+            [style.--swatch]="colorVar(color.id)"
+            (click)="run(colorMenu, 'color', color.id)"
+          ></button>
+        }
+      </div>
+    </div>
+    <!-- Akce jako v nabídce ⋮ seznamu (stejné popisky, Smazat do koše bez potvrzení) -->
+    @if (draft.stored(); as note) {
+      <div #moreMenu id="more-menu" class="menu format-menu" popover (toggle)="onMenuToggle($event)">
+        <a [routerLink]="['/note', note.id, 'history']">Historie</a>
+        <button type="button" (click)="run(moreMenu, 'pin')">{{ note.pinned ? 'Odepnout' : 'Připnout' }}</button>
+        <button type="button" (click)="run(moreMenu, 'archive')">{{ note.archived ? 'Vrátit z archivu' : 'Archivovat' }}</button>
+        @if (!note.isTemplate) {
+          <button type="button" (click)="run(moreMenu, 'template')">Uložit jako šablonu</button>
+        }
+        <button type="button" (click)="run(moreMenu, 'trash')">Smazat</button>
+        @if (categories().length > 0) {
+          <div class="menu-categories" role="group" aria-label="Kategorie">
+            @for (cat of categories(); track cat.id) {
+              <button
+                type="button"
+                [style.--cat]="'var(--c-' + cat.color + ')'"
+                [attr.aria-pressed]="note.categoryId === cat.id"
+                (click)="run(moreMenu, 'category', note.categoryId === cat.id ? undefined : cat.id)"
+              >
+                <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconPath(cat.icon)" /></svg>
+                {{ cat.name }}
+              </button>
+            }
+          </div>
+        }
+      </div>
+    }
     <p class="status" aria-live="polite">
       @if (draft.saveFailed()) {
         Neuloženo
+      } @else if (actionFailed()) {
+        Akci se nepodařilo dokončit.
       }
     </p>
   `,
@@ -135,7 +189,8 @@ import { ICONS_FILL, ICONS_REGULAR } from '../../core/icons/icons';
       flex-direction: column;
       box-sizing: border-box;
       height: 100dvh;
-      padding-bottom: env(safe-area-inset-bottom);
+      /* Místo pro spodní panel nástrojů, obsah ani fokus pod ním nezmizí (WCAG 2.4.11) */
+      padding-bottom: calc(88px + env(safe-area-inset-bottom));
       background: var(--note-bg, var(--editor-bg));
     }
 
@@ -220,7 +275,6 @@ import { ICONS_FILL, ICONS_REGULAR } from '../../core/icons/icons';
       box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-green) 25%, transparent);
     }
 
-    /* Na úzkém displeji zůstane u Checklistu jen ikona, název drží čtečka */
     @media (width < 412px) {
       .toolbar,
       .actions {
@@ -230,21 +284,37 @@ import { ICONS_FILL, ICONS_REGULAR } from '../../core/icons/icons';
       .toolbar {
         padding-inline: 8px;
       }
+    }
 
-      .tool:has(.label) {
-        justify-content: center;
-        width: 44px;
-        padding: 0;
-      }
+    /* Plovoucí panel jako spodní lišta seznamů; sklo a rozostření dávají tokeny jen Noiru, jinde plná plocha */
+    .format {
+      position: fixed;
+      right: 12px;
+      bottom: calc(14px + env(safe-area-inset-bottom));
+      left: 12px;
+      display: flex;
+      justify-content: space-around;
+      box-sizing: border-box;
+      max-width: 560px;
+      min-height: 60px;
+      margin: 0 auto;
+      padding: 5px 8px;
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-l);
+      background: var(--glass-strong);
+      backdrop-filter: var(--glass-blur);
+      box-shadow: var(--card-shadow);
+    }
 
-      .label {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip-path: inset(50%);
-        white-space: nowrap;
-      }
+    .format .icon-btn {
+      color: var(--on-surface);
+    }
+
+    /* Nabídky panelu vpravo nad ním, na dosah palce */
+    .format-menu {
+      inset: auto 12px calc(88px + env(safe-area-inset-bottom)) auto;
+      max-height: calc(100dvh - 120px);
+      margin: 0;
     }
 
     .meta {
@@ -352,7 +422,7 @@ import { ICONS_FILL, ICONS_REGULAR } from '../../core/icons/icons';
     .status {
       position: fixed;
       right: 1rem;
-      bottom: calc(1rem + env(safe-area-inset-bottom));
+      bottom: calc(92px + env(safe-area-inset-bottom));
       margin: 0;
       color: var(--error);
     }
@@ -378,12 +448,16 @@ export class NoteEditor implements OnInit {
   private readonly repository = inject(NotesRepository);
   private readonly categoriesRepository = inject(CategoriesRepository);
   private readonly router = inject(Router);
+  private readonly actions = inject(NoteActions);
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
   private readonly textarea = viewChild<ElementRef<HTMLTextAreaElement>>('textarea');
   private readonly editButton = viewChild<ElementRef<HTMLButtonElement>>('editButton');
 
   protected readonly mode = signal<'edit' | 'view'>('edit');
+  protected readonly actionFailed = signal(false);
+  protected readonly colors = NOTE_COLORS;
+  protected readonly colorVar = noteColorVar;
   protected readonly noteBg = computed(() => noteColorVar(this.draft.color()));
   // Ostatní poznámky pro [[odkazy]] a „Odkazuje sem“, načtené při otevření editoru
   private readonly notes = signal<Note[]>([]);
@@ -508,6 +582,73 @@ export class NoteEditor implements OnInit {
     );
   }
 
+  // Tag: „#“ na pozici kurzoru (za slovem s mezerou); z náhledu se přepne do úprav a vloží se na konec
+  protected insertTag(): void {
+    const textarea = this.textarea()?.nativeElement;
+    if (textarea) {
+      this.insertHash(textarea, textarea.selectionStart);
+      return;
+    }
+    this.mode.set('edit');
+    afterNextRender(
+      () => {
+        const textarea = this.textarea()?.nativeElement;
+        if (textarea) {
+          this.insertHash(textarea, textarea.value.length);
+        }
+      },
+      { injector: this.injector },
+    );
+  }
+
+  private insertHash(textarea: HTMLTextAreaElement, at: number): void {
+    const insert = /\S/.test(textarea.value.charAt(at - 1)) ? ' #' : '#';
+    this.apply(textarea, { from: at, to: at, insert, cursor: at + insert.length });
+    textarea.focus();
+  }
+
+  // Akce panelu přes NoteActions jako v nabídce ⋮ seznamu; barva nové, ještě neuložené poznámky se jen předvyplní
+  protected async run(menu: HTMLElement, action: EditorAction, value?: string): Promise<void> {
+    menu.hidePopover?.();
+    if (action === 'color') {
+      this.draft.color.set(value);
+    }
+    this.actionFailed.set(false);
+    try {
+      await this.draft.change((note) => {
+        switch (action) {
+          case 'pin':
+            return this.actions.togglePin(note);
+          case 'archive':
+            return this.actions.setArchived(note, !note.archived);
+          case 'template':
+            return this.actions.setTemplate(note, true);
+          case 'trash':
+            return this.actions.trash(note);
+          case 'color':
+            return this.actions.setColor(note, isNoteColor(value) ? value : undefined);
+          case 'category':
+            return this.actions.setCategory(note, value);
+        }
+      });
+    } catch {
+      // Neuložená barva se nezobrazuje
+      this.draft.color.set(this.draft.stored()?.color);
+      this.actionFailed.set(true);
+      return;
+    }
+    if (action === 'trash') {
+      void this.router.navigate(['/notes']);
+    }
+  }
+
+  // Fokus na první položku otevřené nabídky
+  protected onMenuToggle(event: Event): void {
+    if ('newState' in event && event.newState === 'open') {
+      (event.target as HTMLElement).querySelector<HTMLElement>('button, a')?.focus();
+    }
+  }
+
   private apply(textarea: HTMLTextAreaElement, edit: TextEdit): void {
     textarea.setRangeText(edit.insert, edit.from, edit.to);
     textarea.setSelectionRange(edit.cursor, edit.cursor);
@@ -520,6 +661,10 @@ export class NoteEditor implements OnInit {
       return;
     }
     const ctrl = event.ctrlKey || event.metaKey;
+    // Esc s otevřenou nabídkou jen zavře nabídku (i když fokus z nabídky odešel); bez podpory popoveru selektor neplatí
+    if (event.key === 'Escape' && 'popover' in HTMLElement.prototype && document.querySelector(':popover-open')) {
+      return;
+    }
     if (event.key === 'Escape' && !ctrl && !event.shiftKey && !event.altKey) {
       void this.router.navigate(['/notes']);
     } else if (event.key === 'Enter' && ctrl && !event.shiftKey && !event.altKey && !event.repeat) {

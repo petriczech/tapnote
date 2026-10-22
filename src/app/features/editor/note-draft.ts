@@ -128,6 +128,30 @@ export class NoteDraft {
     return this.queue;
   }
 
+  // Akce mimo text (barva, připnutí, archiv…) po uložení rozepsaného textu; uložená poznámka se pak načte znovu,
+  // aby ji další uložení textu nepřepsalo. Bez uložené poznámky se nic nemění.
+  change(action: (note: Note) => Promise<void>): Promise<void> {
+    const run = this.flush().then(async () => {
+      if (!this.note) {
+        return;
+      }
+      // Bez uloženého textu se akce neprovede
+      if (this.saveFailed()) {
+        throw new Error('Text není uložený');
+      }
+      await action(this.note);
+      const note = await this.repository.get(this.note.id);
+      if (note) {
+        this.note = note;
+        this.stored.set(note);
+        this.color.set(note.color);
+      }
+    });
+    // Chyba akce nezastaví další ukládání
+    this.queue = run.catch(() => undefined);
+    return run;
+  }
+
   private load(note: Note): void {
     this.note = note;
     this.stored.set(note);

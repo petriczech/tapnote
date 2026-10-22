@@ -476,26 +476,6 @@ function dateLabel(iso: string, today: string): string {
       color: var(--cat);
     }
 
-    .menu-categories {
-      border-top: 1px solid var(--outline-variant);
-      margin-top: 4px;
-      padding-top: 4px;
-    }
-
-    .menu .menu-categories button {
-      gap: 12px;
-    }
-
-    .menu-categories .icon {
-      color: var(--cat);
-    }
-
-    .menu .menu-categories button[aria-pressed='true'] {
-      background: var(--primary-container);
-      color: var(--on-primary-container);
-      font-weight: 700;
-    }
-
     .backup {
       display: flex;
       align-items: center;
@@ -747,33 +727,6 @@ function dateLabel(iso: string, today: string): string {
       right: 2px;
       width: 44px;
       height: 44px;
-    }
-
-    .menu .swatches {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      max-width: 12rem;
-      padding: 8px 12px 4px;
-    }
-
-    .menu .swatch {
-      width: 44px;
-      min-width: 0;
-      height: 44px;
-      min-height: 0;
-      padding: 0;
-      border: 1px solid var(--outline);
-      border-radius: 50%;
-      background: var(--swatch, var(--surface));
-    }
-
-    .menu .swatch.none {
-      background: linear-gradient(135deg, transparent 46%, var(--outline) 46% 54%, transparent 54%), var(--surface);
-    }
-
-    .menu .swatch[aria-pressed='true'] {
-      border: 3px solid var(--on-surface);
     }
 
     .from-template {

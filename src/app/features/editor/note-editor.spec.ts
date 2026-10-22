@@ -248,6 +248,142 @@ describe('NoteEditor', () => {
     expect(textareaOf(root).value).toBe('Nákup\n  - [ ] mléko\n    - [ ] polotučné\n  - [ ] ');
   });
 
+  describe('bottom toolbar', () => {
+    function toolbarOf(root: HTMLElement): HTMLElement {
+      return root.querySelector('[role=group][aria-label="Formát"]') as HTMLElement;
+    }
+
+    it('offers Checklist, Tag and Barva for a new note, and ⋯ once it is saved', async () => {
+      const fixture = TestBed.createComponent(NoteEditor);
+      await fixture.whenStable();
+      const root: HTMLElement = fixture.nativeElement;
+      expect([...toolbarOf(root).querySelectorAll('button')].map((button) => button.textContent?.trim())).toEqual(['Checklist', 'Tag', 'Barva']);
+
+      type(textareaOf(root), 'ahoj');
+      await fixture.debugElement.injector.get(NoteDraft).flush();
+      await fixture.whenStable();
+      expect(buttonOf(toolbarOf(root), 'Další akce').getAttribute('popovertarget')).toBe('more-menu');
+    });
+
+    it('inserts # at the cursor, with a space after a word', async () => {
+      const fixture = TestBed.createComponent(NoteEditor);
+      await fixture.whenStable();
+      const textarea = textareaOf(fixture.nativeElement);
+      type(textarea, 'Nákup ');
+
+      buttonOf(fixture.nativeElement, 'Tag').click();
+      expect(textarea.value).toBe('Nákup #');
+
+      textarea.setSelectionRange(5, 5);
+      buttonOf(fixture.nativeElement, 'Tag').click();
+      expect(textarea.value).toBe('Nákup # #');
+      expect(textarea.selectionStart).toBe(7);
+      expect(document.activeElement).toBe(textarea);
+      expect(fixture.debugElement.injector.get(NoteDraft).content()).toBe('Nákup # #');
+    });
+
+    it('switches from the view to editing and appends #', async () => {
+      await repository.put({ ...createNote('1', '2026-10-15T10:00:00.000Z'), content: '- [ ] mléko' });
+      const harness = await RouterTestingHarness.create();
+      await harness.navigateByUrl('/note/1', NoteEditor);
+      const root = harness.routeNativeElement!;
+      await vi.waitFor(() => expect(buttonOf(root, 'Upravit')).toBeTruthy());
+
+      buttonOf(root, 'Tag').click();
+      await harness.fixture.whenStable();
+
+      const textarea = textareaOf(root);
+      expect(textarea.value).toBe('- [ ] mléko #');
+      expect(document.activeElement).toBe(textarea);
+      expect(textarea.selectionStart).toBe(textarea.value.length);
+    });
+
+    it('links to the history from the ⋯ menu', async () => {
+      await repository.put({ ...createNote('1', '2026-10-15T10:00:00.000Z'), content: 'text' });
+      const harness = await RouterTestingHarness.create();
+      await harness.navigateByUrl('/note/1', NoteEditor);
+      const root = harness.routeNativeElement!;
+
+      await vi.waitFor(() => expect(root.querySelector('#more-menu')).toBeTruthy());
+      const history = [...root.querySelectorAll<HTMLAnchorElement>('#more-menu a')].find((link) => link.textContent?.trim() === 'Historie');
+      expect(history?.getAttribute('href')).toBe('/note/1/history');
+    });
+
+    it('saves the chosen color and keeps it while typing', async () => {
+      await repository.put({ ...createNote('1', '2026-10-15T10:00:00.000Z'), content: 'text' });
+      const fixture = TestBed.createComponent(NoteEditor);
+      fixture.componentRef.setInput('id', '1');
+      const root: HTMLElement = fixture.nativeElement;
+      await vi.waitFor(() => expect(textareaOf(root).value).toBe('text'));
+      type(textareaOf(root), 'text 2');
+
+      root.querySelector<HTMLButtonElement>('#color-menu [aria-label="Modrá"]')!.click();
+      await vi.waitFor(() => expect(repository.notes.get('1')).toMatchObject({ content: 'text 2', color: 'blue' }));
+      await fixture.whenStable();
+      expect(root.style.getPropertyValue('--note-bg')).toBe('var(--note-blue)');
+      expect(root.querySelector('#color-menu [aria-label="Modrá"]')?.getAttribute('aria-pressed')).toBe('true');
+
+      root.querySelector<HTMLButtonElement>('#color-menu [aria-label="Bez barvy"]')!.click();
+      await vi.waitFor(() => expect(repository.notes.get('1')?.color).toBeUndefined());
+    });
+
+    it('pins, archives and moves the note to the trash like the list menu', async () => {
+      const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+      await repository.put({ ...createNote('1', '2026-10-15T10:00:00.000Z'), content: 'text' });
+      const fixture = TestBed.createComponent(NoteEditor);
+      fixture.componentRef.setInput('id', '1');
+      const root: HTMLElement = fixture.nativeElement;
+      await vi.waitFor(() => expect(root.querySelector('#more-menu')).toBeTruthy());
+      const menu = root.querySelector('#more-menu') as HTMLElement;
+
+      buttonOf(menu, 'Připnout').click();
+      await vi.waitFor(() => expect(buttonOf(menu, 'Odepnout')).toBeTruthy());
+      expect(repository.notes.get('1')?.pinned).toBe(true);
+
+      buttonOf(menu, 'Archivovat').click();
+      await vi.waitFor(() => expect(buttonOf(menu, 'Vrátit z archivu')).toBeTruthy());
+      expect(repository.notes.get('1')?.archived).toBe(true);
+
+      buttonOf(menu, 'Smazat').click();
+      await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith(['/notes']));
+      expect(repository.notes.get('1')?.deletedAt).toBeDefined();
+    });
+
+    it('closes an open menu with Esc without leaving the editor', async () => {
+      const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+      const fixture = TestBed.createComponent(NoteEditor);
+      await fixture.whenStable();
+      const menu = (fixture.nativeElement as HTMLElement).querySelector('#color-menu');
+      // jsdom popovery nepodporuje ani neotevírá, podpora i otevřená nabídka se proto podstrčí
+      Object.defineProperty(HTMLElement.prototype, 'popover', { configurable: true, value: null });
+      const query = document.querySelector.bind(document);
+      const spy = vi.spyOn(document, 'querySelector').mockImplementation((selector: string) => (selector === ':popover-open' ? menu : query(selector)));
+
+      const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+      document.body.dispatchEvent(event);
+      spy.mockRestore();
+      delete (HTMLElement.prototype as { popover?: unknown }).popover;
+
+      expect(navigate).not.toHaveBeenCalled();
+      expect(event.defaultPrevented).toBe(false);
+    });
+
+    it('shows the stored color again when saving the chosen color fails', async () => {
+      await repository.put({ ...createNote('1', '2026-10-15T10:00:00.000Z'), content: 'text', color: 'yellow' });
+      const fixture = TestBed.createComponent(NoteEditor);
+      fixture.componentRef.setInput('id', '1');
+      const root: HTMLElement = fixture.nativeElement;
+      await vi.waitFor(() => expect(textareaOf(root).value).toBe('text'));
+      vi.spyOn(repository, 'update').mockRejectedValue(new Error('x'));
+
+      root.querySelector<HTMLButtonElement>('#color-menu [aria-label="Modrá"]')!.click();
+
+      await vi.waitFor(() => expect(root.querySelector('.status')?.textContent?.trim()).toBe('Akci se nepodařilo dokončit.'));
+      await fixture.whenStable();
+      expect(root.style.getPropertyValue('--note-bg')).toBe('var(--note-yellow)');
+    });
+  });
+
   describe('links', () => {
     beforeEach(() =>
       repository.bulkPut([
