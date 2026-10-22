@@ -266,6 +266,21 @@ Hlavní vzhled je návrh D „Tapnote Noir“ (`.tmp/mockup/soutez/D-dark.png`, 
 11. **Detail úkolu a Historie** dorovnat do stejného jazyka
 12. **Nové funkce** jen ty schválené v bodu 6
 
+### Další úkoly po krocích 6–11
+13. **Desktop varianta:** kolečko subagentů UX + grafika (návrhy se navzájem oznámkují jako u soutěže designu) pro široké obrazovky, třeba od 900 px. Řeší se:
+    - boční navigace místo spodní lišty;
+    - seznam a editor vedle sebe;
+    - šířka mřížky poznámek;
+    - ovládání myší a klávesnicí (hover, zkratky).
+
+    Výstupem bude mockup v `.tmp/mockup/desktop/` a seznam rozhodnutí ke schválení, implementace až potom.
+14. **Drag & drop – prověření:** analýza UX a techniky:
+    - přetažení poznámky nebo úkolu na kategorii;
+    - řazení úkolů, kategorií a položek checklistu;
+    - přetažení mezi pohledy (Můj den, Archiv, Koš).
+
+    Pokrýt dotyk, myš i klávesnici. Šipky ▲▼ nebo menu zůstávají jako alternativa kvůli WCAG 2.5.7. Porovná se nativní HTML5 DnD a Angular CDK drag-drop a zhodnotí se dopad na balík a na Android WebView. Výstupem bude návrh ke schválení (navazuje na odložený bod 6 rozhodnutí).
+
 ### Hlídat v každém kroku
 - Kontrast: bílá na oranžovém konci přechodu má 2,5–3,0 : 1 (nepoužívat pro text), světlý přechodový nadpis končit `#c2410c`, okraje polí přes `--outline`; axe za `backdrop-filter` kontrast nespočítá → ruční vzorkování pixelů a druhý průchod bez průhlednosti
 - Cíle dotyku ≥ 44 px, minima písma (navigace 12 px, metadata 13 px) zůstávají i proti menším velikostem v D
