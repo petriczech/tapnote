@@ -13,15 +13,19 @@ import {
   viewChild,
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { Category } from '../../core/model/category';
+import { categoryIconPath } from '../../core/model/category-icons';
 import { continueList, hasChecklist, TextEdit, toggleItem, toggleItemPrefix } from '../../core/model/checklist';
 import { backlinks, extractLinks, linkTargets } from '../../core/model/links';
 import { deriveTitle, Note } from '../../core/model/note';
 import { noteColorVar } from '../../core/model/note-colors';
+import { localDate } from '../../core/model/task-query';
+import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { NotesRepository } from '../../core/storage/notes-repository';
 import { readShortcutsEnabled } from '../../core/shortcuts/shortcuts';
 import { NoteDraft } from './note-draft';
 import { NoteView } from './note-view';
-import { ICONS, ICONS_REGULAR } from '../../core/icons/icons';
+import { ICONS_FILL, ICONS_REGULAR } from '../../core/icons/icons';
 
 @Component({
   selector: 'tn-note-editor',
@@ -35,44 +39,41 @@ import { ICONS, ICONS_REGULAR } from '../../core/icons/icons';
     '[class.colored]': 'noteBg() !== null',
   },
   template: `
+    <!-- Horní lišta jako obrazovka 03 návrhu D: zpět, Uloženo, vpravo skleněné a přechodové tlačítko -->
     <div class="toolbar">
-      <a class="icon-btn list-link" routerLink="/notes" title="Seznam">
+      <a class="icon-btn" routerLink="/notes" title="Seznam">
         <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.back" /></svg>
         <span class="visually-hidden">Seznam</span>
       </a>
       @if (draft.content().trim() && draft.saved()) {
-        <span class="saved">
-          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.check" /></svg>
-          Uloženo
-        </span>
+        <span class="saved"><span class="dot" aria-hidden="true"></span>Uloženo</span>
       }
-      @if (draft.noteId(); as noteId) {
-        <a class="icon-btn" [routerLink]="['/note', noteId, 'history']" title="Historie">
-          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.history" /></svg>
-          <span class="visually-hidden">Historie</span>
-        </a>
-      }
-      @if (mode() === 'edit') {
-        <button
-          type="button"
-          class="icon-btn"
-          title="Checklist"
-          (pointerdown)="$event.preventDefault()"
-          (click)="toggleChecklistLine()"
-        >
-          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.checklist" /></svg>
-          <span class="visually-hidden">Checklist</span>
-        </button>
-        <button type="button" class="icon-btn" title="Hotovo" (click)="setMode('view')">
-          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.eye" /></svg>
-          <span class="visually-hidden">Hotovo</span>
-        </button>
-      } @else {
-        <button #editButton type="button" class="icon-btn on" title="Upravit" (click)="setMode('edit')">
-          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.pencil" /></svg>
-          <span class="visually-hidden">Upravit</span>
-        </button>
-      }
+      <span class="actions">
+        @if (draft.noteId(); as noteId) {
+          <a class="icon-btn" [routerLink]="['/note', noteId, 'history']" title="Historie">
+            <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.history" /></svg>
+            <span class="visually-hidden">Historie</span>
+          </a>
+        }
+        @if (mode() === 'edit') {
+          <button
+            type="button"
+            class="tool"
+            title="Checklist"
+            (pointerdown)="$event.preventDefault()"
+            (click)="toggleChecklistLine()"
+          >
+            <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.checklist" /></svg>
+            <span class="label">Checklist</span>
+          </button>
+          <button type="button" class="tool grad" (click)="setMode('view')">Hotovo</button>
+        } @else {
+          <button #editButton type="button" class="tool grad" (click)="setMode('edit')">
+            <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.pencil" /></svg>
+            Upravit
+          </button>
+        }
+      </span>
     </div>
     @if (mode() === 'edit') {
       <textarea
@@ -86,7 +87,31 @@ import { ICONS, ICONS_REGULAR } from '../../core/icons/icons';
         (keydown.enter)="onEnter($event)"
       ></textarea>
     } @else {
-      <tn-note-view class="view" [content]="draft.content()" [targets]="targets()" (itemToggle)="toggleItem($event)" />
+      <tn-note-view
+        class="view"
+        [content]="draft.content()"
+        [targets]="targets()"
+        (itemToggle)="toggleItem($event)"
+        (addItem)="addItem($event)"
+      >
+        @if (draft.stored(); as note) {
+          <div class="meta">
+            @if (category(); as cat) {
+              <span class="pill" [style.--cat]="'var(--c-' + cat.color + ')'">
+                <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconPath(cat.icon)" /></svg>
+                {{ cat.name }}
+              </span>
+            }
+            @if (note.pinned) {
+              <span class="pill">
+                <svg class="icon pin" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsFill.pin" /></svg>
+                Připnuto
+              </span>
+            }
+            <time class="pill" [attr.datetime]="note.updatedAt">upraveno {{ edited() }}</time>
+          </div>
+        }
+      </tn-note-view>
     }
     @if (backlinks().length > 0) {
       <nav class="backlinks" aria-labelledby="backlinks-heading">
@@ -114,34 +139,144 @@ import { ICONS, ICONS_REGULAR } from '../../core/icons/icons';
       background: var(--note-bg, var(--editor-bg));
     }
 
-    /* Akcent na barevném pozadí v barvě textu kvůli kontrastu */
+    /* Akcent a fajfka na barevném pozadí v barvě textu kvůli kontrastu */
     :host(.colored) {
       --primary: var(--on-surface);
+      --check-fill: var(--on-surface);
+      --outline: var(--on-surface-variant);
     }
 
     .toolbar {
       display: flex;
       align-items: center;
-      min-height: 56px;
-      padding: env(safe-area-inset-top) 4px 0;
+      gap: 6px;
+      min-height: 64px;
+      padding: env(safe-area-inset-top) 12px 0;
     }
 
-    .list-link {
-      margin-right: auto;
+    .actions {
+      display: flex;
+      gap: 6px;
+      margin-left: auto;
+    }
+
+    .toolbar .icon-btn,
+    .tool {
+      box-sizing: border-box;
+      flex: none;
+      height: 44px;
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      background: var(--glass);
+      color: var(--on-surface);
+    }
+
+    .toolbar .icon-btn {
+      width: 44px;
+    }
+
+    .tool {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 14px;
+      font: inherit;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .tool .icon {
+      width: 20px;
+      height: 20px;
+    }
+
+    .tool.grad {
+      border-color: transparent;
+      background: var(--grad);
+      color: var(--on-grad);
+      font-weight: 600;
     }
 
     .saved {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
-      margin-right: 4px;
+      gap: 6px;
+      min-width: 0;
+      padding-left: 4px;
+      overflow: hidden;
       color: var(--on-surface-variant);
+      font-family: var(--mono);
       font-size: 0.8125rem;
+      white-space: nowrap;
     }
 
-    .saved .icon {
+    .dot {
+      flex: none;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--c-green);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-green) 25%, transparent);
+    }
+
+    /* Na úzkém displeji zůstane u Checklistu jen ikona, název drží čtečka */
+    @media (width < 412px) {
+      .toolbar,
+      .actions {
+        gap: 4px;
+      }
+
+      .toolbar {
+        padding-inline: 8px;
+      }
+
+      .tool:has(.label) {
+        justify-content: center;
+        width: 44px;
+        padding: 0;
+      }
+
+      .label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 30px;
+      padding: 0 10px;
+      border: 1px solid var(--glass-border);
+      border-radius: 999px;
+      background: var(--glass);
+      color: var(--on-surface-variant);
+      font-family: var(--font);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      line-height: 1.2;
+    }
+
+    .pill .icon {
       width: 16px;
       height: 16px;
+      color: var(--cat, currentColor);
+    }
+
+    .pill .pin {
+      color: var(--pin);
     }
 
     .view {
@@ -151,7 +286,7 @@ import { ICONS, ICONS_REGULAR } from '../../core/icons/icons';
 
     .editor {
       flex: 1;
-      padding: 8px 20px;
+      padding: 8px 22px;
       border: none;
       resize: none;
       background: var(--editor-lines) 0 8px / 100% auto local;
@@ -171,22 +306,29 @@ import { ICONS, ICONS_REGULAR } from '../../core/icons/icons';
     }
 
     .editor:focus-visible {
-      outline: 2px solid var(--primary);
+      outline: 2px solid var(--ring);
       outline-offset: -2px;
     }
 
+    /* Zpětné odkazy ve skleněné kartě s nadpisem v Geist Mono */
     .backlinks {
       max-height: 40dvh;
       overflow: auto;
-      padding: 8px 20px;
-      border-top: 1px solid var(--outline-variant);
+      margin: 8px 16px 12px;
+      padding: 10px 16px 0;
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      background: var(--glass);
     }
 
     .backlinks h2 {
       margin: 0;
       color: var(--on-surface-variant);
+      font-family: var(--mono);
       font-size: 0.8125rem;
-      font-weight: 600;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
     }
 
     .backlinks ul {
@@ -195,11 +337,16 @@ import { ICONS, ICONS_REGULAR } from '../../core/icons/icons';
       list-style: none;
     }
 
+    .backlinks li + li {
+      border-top: 1px solid var(--outline-variant);
+    }
+
     .backlinks a {
       display: flex;
       align-items: center;
       min-height: 48px;
       color: var(--primary);
+      font-weight: 500;
     }
 
     .status {
@@ -209,11 +356,19 @@ import { ICONS, ICONS_REGULAR } from '../../core/icons/icons';
       margin: 0;
       color: var(--error);
     }
+
+    /* Ve vysokém kontrastu se přechod zahodí, tlačítko proto dostane obrys */
+    @media (forced-colors: active) {
+      .tool.grad {
+        border-color: ButtonText;
+      }
+    }
   `,
 })
 export class NoteEditor implements OnInit {
-  protected readonly icons = ICONS;
+  protected readonly iconsFill = ICONS_FILL;
   protected readonly iconsRegular = ICONS_REGULAR;
+  protected readonly iconPath = categoryIconPath;
   readonly id = input<string>();
   readonly resume = input(false, { transform: booleanAttribute });
   // Id šablony pro novou poznámku (/new?template=…)
@@ -221,6 +376,7 @@ export class NoteEditor implements OnInit {
 
   protected readonly draft = inject(NoteDraft);
   private readonly repository = inject(NotesRepository);
+  private readonly categoriesRepository = inject(CategoriesRepository);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
@@ -238,16 +394,44 @@ export class NoteEditor implements OnInit {
     const id = this.draft.noteId();
     return id === undefined ? [] : backlinks(this.notes(), { id, title: this.title() });
   });
+  // Kategorie pro meta řádek; neznámé id (smazaná kategorie) se nezobrazí
+  private readonly categories = signal<Category[]>([]);
+  protected readonly category = computed(() => this.categories().find((item) => item.id === this.draft.stored()?.categoryId));
+  // Dnešek pro „upraveno 9:38“ (jindy datum), přepočítává se o půlnoci a po návratu do aplikace
+  private readonly today = signal(localDate(new Date()));
+  private midnightTimer?: ReturnType<typeof setTimeout>;
+  protected readonly edited = computed(() => {
+    const iso = this.draft.stored()?.updatedAt;
+    if (iso === undefined) {
+      return '';
+    }
+    const at = new Date(iso);
+    const date = localDate(at);
+    const today = this.today();
+    if (date === today) {
+      return `${at.getHours()}:${String(at.getMinutes()).padStart(2, '0')}`;
+    }
+    const [year, month, day] = date.split('-').map(Number);
+    return `${day}. ${month}.${year === Number(today.slice(0, 4)) ? '' : ` ${year}`}`;
+  });
 
   constructor() {
     afterNextRender(() => this.textarea()?.nativeElement.focus());
-    this.destroyRef.onDestroy(() => void this.draft.flush());
+    this.destroyRef.onDestroy(() => {
+      clearTimeout(this.midnightTimer);
+      void this.draft.flush();
+    });
   }
 
   async ngOnInit(): Promise<void> {
+    this.refreshToday();
     void this.repository
       .getAll()
       .then((notes) => this.notes.set(notes))
+      .catch(() => undefined);
+    void this.categoriesRepository
+      .getAll()
+      .then((categories) => this.categories.set(categories))
       .catch(() => undefined);
     const template = this.template();
     if (this.id() === undefined && template !== undefined) {
@@ -307,6 +491,23 @@ export class NoteEditor implements OnInit {
     this.draft.update(toggleItem(this.draft.content(), line));
   }
 
+  // „Přidat položku“: prázdná položka s odsazením bloku na daném řádku a úprava s kurzorem za ní
+  protected addItem({ line, from }: { line: number; from: number }): void {
+    const lines = this.draft.content().split('\n');
+    lines.splice(line, 0, `${/^\s*/.exec(lines[from])?.[0] ?? ''}- [ ] `);
+    const cursor = lines.slice(0, line + 1).join('\n').length;
+    this.draft.update(lines.join('\n'));
+    this.mode.set('edit');
+    afterNextRender(
+      () => {
+        const textarea = this.textarea()?.nativeElement;
+        textarea?.focus();
+        textarea?.setSelectionRange(cursor, cursor);
+      },
+      { injector: this.injector },
+    );
+  }
+
   private apply(textarea: HTMLTextAreaElement, edit: TextEdit): void {
     textarea.setRangeText(edit.insert, edit.from, edit.to);
     textarea.setSelectionRange(edit.cursor, edit.cursor);
@@ -334,6 +535,15 @@ export class NoteEditor implements OnInit {
   protected onVisibilityChange(): void {
     if (document.visibilityState === 'hidden') {
       void this.draft.flush();
+    } else {
+      this.refreshToday();
     }
+  }
+
+  private refreshToday(): void {
+    const now = new Date();
+    this.today.set(localDate(now));
+    clearTimeout(this.midnightTimer);
+    this.midnightTimer = setTimeout(() => this.refreshToday(), new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime());
   }
 }

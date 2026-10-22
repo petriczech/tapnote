@@ -61,6 +61,8 @@ export class NoteDraft {
   readonly color = signal<string | undefined>(undefined);
   // Id uložené poznámky (pro odkaz na historii)
   readonly noteId = signal<string | undefined>(undefined);
+  // Uložená podoba poznámky pro meta řádek (kategorie, připnutí, poslední úprava)
+  readonly stored = signal<Note | undefined>(undefined);
 
   private note: Note | undefined;
   // Poslední úprava textu otevřené poznámky; updatedAt mění i připnutí nebo barva
@@ -128,6 +130,7 @@ export class NoteDraft {
 
   private load(note: Note): void {
     this.note = note;
+    this.stored.set(note);
     // Známá je jen u naposledy psané poznámky, jinak se bere updatedAt
     const lastEdit = readLastEdit();
     this.textEditedAt = lastEdit?.id === note.id ? lastEdit.editedAt : note.updatedAt;
@@ -181,6 +184,7 @@ export class NoteDraft {
         }
         await this.versions.deleteForNotes([this.note.id]).catch(() => undefined);
         this.note = undefined;
+        this.stored.set(undefined);
         this.noteId.set(undefined);
         this.createdHere = false;
       }
@@ -199,6 +203,7 @@ export class NoteDraft {
     writeLastEdit({ id: note.id, editedAt: now });
     this.createdHere ||= !this.note;
     this.note = note;
+    this.stored.set(note);
     this.textEditedAt = now;
     this.noteId.set(note.id);
     this.prefill = '';

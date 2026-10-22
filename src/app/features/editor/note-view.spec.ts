@@ -28,7 +28,7 @@ describe('NoteView', () => {
   it('renders text lines and open items', async () => {
     await render('Nákup\n- [ ] mléko\n- [x] chleba');
 
-    expect(root.querySelector('.text')?.textContent).toBe('Nákup');
+    expect(root.querySelector('h1')?.textContent).toBe('Nákup');
     expect(labels()).toEqual(['mléko']);
     expect(doneToggle()?.textContent?.trim()).toBe('Hotové (1)');
   });
@@ -95,6 +95,45 @@ describe('NoteView', () => {
     expect(root.querySelector('input')?.getAttribute('aria-label')).toBe('Prázdná položka');
   });
 
+  it('shows the first line as the heading and the checklist progress', async () => {
+    await render('\n# Víkend\npoznámka\n- [x] klíče\n- [ ] spacák\n- [ ] deky');
+
+    expect(root.querySelector('h1')?.textContent).toBe('Víkend');
+    expect([...root.querySelectorAll('.text')].map((text) => text.textContent)).toEqual(['poznámka']);
+    const progress = root.querySelector('progress');
+    expect([progress?.value, progress?.max]).toEqual([1, 3]);
+    expect(root.querySelector(`#${progress?.getAttribute('aria-labelledby')}`)?.textContent).toBe('1 ze 3 splněno');
+  });
+
+  it('leaves out the heading when the note starts with an item', async () => {
+    await render('- [ ] mléko');
+
+    expect(root.querySelector('h1')).toBeNull();
+    expect(labels()).toEqual(['mléko']);
+  });
+
+  it('emits the line for a new item after the open items', async () => {
+    const lines: { line: number; from: number }[] = [];
+    fixture.componentInstance.addItem.subscribe((line) => lines.push(line));
+    await render('Nákup\n- [ ] mléko\n- [x] chleba');
+    root.querySelector<HTMLButtonElement>('.add-item')?.click();
+
+    await render('Nákup\n- [x] chleba');
+    root.querySelector<HTMLButtonElement>('.add-item')?.click();
+
+    expect(lines).toEqual([
+      { line: 2, from: 1 },
+      { line: 1, from: 1 },
+    ]);
+  });
+
+  it('leaves out the heading when the first line has no title, like deriveTitle', async () => {
+    await render('#\nNákup\n- [ ] mléko');
+
+    expect(root.querySelector('h1')).toBeNull();
+    expect([...root.querySelectorAll('.text')].map((text) => text.textContent)).toEqual(['#', 'Nákup']);
+  });
+
   it('hides the done toggle without done items', async () => {
     await render('- [ ] mléko');
 
@@ -110,7 +149,7 @@ describe('NoteView', () => {
       const link = root.querySelector<HTMLAnchorElement>('a.link');
       expect(link?.textContent).toBe('Nákup');
       expect(link?.getAttribute('href')).toBe('/note/n1');
-      expect(root.querySelector('.text')?.textContent).toBe('Viz Nákup a Porada.');
+      expect(root.querySelector('h1')?.textContent).toBe('Viz Nákup a Porada.');
     });
 
     it('marks a link to a missing note', async () => {

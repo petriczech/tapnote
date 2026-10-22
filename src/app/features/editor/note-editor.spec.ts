@@ -9,18 +9,23 @@ import { NoteDraft } from './note-draft';
 import { NoteEditor } from './note-editor';
 import { VersionsRepository } from '../../core/storage/versions-repository';
 import { InMemoryVersionsRepository } from '../../core/storage/testing/in-memory-versions-repository';
+import { CategoriesRepository } from '../../core/storage/categories-repository';
+import { InMemoryCategoriesRepository } from '../../core/storage/testing/in-memory-categories-repository';
 
 describe('NoteEditor', () => {
   let repository: InMemoryNotesRepository;
+  let categories: InMemoryCategoriesRepository;
 
   beforeEach(() => {
     repository = new InMemoryNotesRepository();
+    categories = new InMemoryCategoriesRepository();
     TestBed.configureTestingModule({
       imports: [NoteEditor],
       providers: [
         provideRouter([{ path: 'note/:id', component: NoteEditor }], withComponentInputBinding()),
         { provide: RouteReuseStrategy, useClass: ParamsRouteReuseStrategy },
         { provide: NotesRepository, useValue: repository }, { provide: VersionsRepository, useClass: InMemoryVersionsRepository },
+        { provide: CategoriesRepository, useValue: categories },
       ],
     });
   });
@@ -196,6 +201,51 @@ describe('NoteEditor', () => {
 
     await vi.waitFor(() => expect(buttonOf(harness.routeNativeElement!, 'Upravit')).toBeTruthy());
     expect(textareaOf(harness.routeNativeElement!)).toBeNull();
+  });
+
+  it('shows the category, pin and edit time under the title in the view', async () => {
+    const now = new Date();
+    now.setHours(9, 38);
+    await categories.put({ id: 'c1', name: 'Cesty', icon: 'home', color: 'blue', order: 0, createdAt: now.toISOString(), updatedAt: now.toISOString() });
+    await repository.put({ ...createNote('1', now.toISOString()), content: 'Víkend\n- [x] klíče\n- [ ] spacák', pinned: true, categoryId: 'c1' });
+    const harness = await RouterTestingHarness.create();
+
+    await harness.navigateByUrl('/note/1', NoteEditor);
+    const root = harness.routeNativeElement!;
+
+    await vi.waitFor(() => expect(root.querySelector('.meta')?.textContent?.replace(/\s+/g, ' ').trim()).toBe('Cesty Připnuto upraveno 9:38'));
+    expect(root.querySelector('h1')?.textContent).toBe('Víkend');
+    expect(root.querySelector('progress')?.getAttribute('aria-labelledby')).toBe('checklist-progress');
+    expect(root.querySelector('#checklist-progress')?.textContent).toBe('1 ze 2 splněno');
+  });
+
+  it('adds an empty item after the open items and edits it', async () => {
+    await repository.put({ ...createNote('1', '2026-10-15T10:00:00.000Z'), content: 'Nákup\n- [ ] mléko\n- [x] chleba' });
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/note/1', NoteEditor);
+    const root = harness.routeNativeElement!;
+    await vi.waitFor(() => expect(buttonOf(root, 'Přidat položku')).toBeTruthy());
+
+    buttonOf(root, 'Přidat položku').click();
+    await harness.fixture.whenStable();
+
+    const textarea = textareaOf(root);
+    expect(textarea.value).toBe('Nákup\n- [ ] mléko\n- [ ] \n- [x] chleba');
+    expect(document.activeElement).toBe(textarea);
+    expect(textarea.selectionStart).toBe('Nákup\n- [ ] mléko\n- [ ] '.length);
+  });
+
+  it('adds an item with the indent of an indented checklist', async () => {
+    await repository.put({ ...createNote('1', '2026-10-15T10:00:00.000Z'), content: 'Nákup\n  - [ ] mléko\n    - [ ] polotučné' });
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/note/1', NoteEditor);
+    const root = harness.routeNativeElement!;
+    await vi.waitFor(() => expect(buttonOf(root, 'Přidat položku')).toBeTruthy());
+
+    buttonOf(root, 'Přidat položku').click();
+    await harness.fixture.whenStable();
+
+    expect(textareaOf(root).value).toBe('Nákup\n  - [ ] mléko\n    - [ ] polotučné\n  - [ ] ');
   });
 
   describe('links', () => {
