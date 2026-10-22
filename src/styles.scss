@@ -122,6 +122,13 @@
   --note-red: #ffe3ee;
   --note-purple: #ece6ff;
   --note-gray: #eeeef3;
+  // Barevný horní okraj karty (návrh D): sytá barva kategorie podle odstínu poznámky
+  --note-edge-yellow: var(--c-yellow);
+  --note-edge-blue: var(--c-blue);
+  --note-edge-green: var(--c-green);
+  --note-edge-red: var(--c-pink);
+  --note-edge-purple: var(--c-violet);
+  --note-edge-gray: var(--outline);
 
   // Barvy kategorií (sytá barva a světlý podklad) pro všechny vzhledy
   --c-green: #0b7a45;
@@ -633,6 +640,100 @@ body {
 .icon-btn.on {
   background: var(--primary-container);
   color: var(--on-primary-container);
+}
+
+// Řádek skleněných čipů filtrů (tagy a kategorie v Poznámkách, stejný tvar jako čipy pohledů v Úkolech); aktivní s přechodem
+.chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 0 16px 12px;
+  scrollbar-width: none;
+}
+
+.chips a {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--chip-radius);
+  background: var(--glass);
+  color: var(--on-surface);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.chips a[aria-current] {
+  border-color: transparent;
+  background: var(--grad);
+  color: var(--on-grad);
+  font-weight: 600;
+}
+
+// Aktivní kategorie tónovaná jako v Úkolech
+.chips.categories a[aria-current] {
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+  font-weight: 700;
+}
+
+// Ve vysokém kontrastu se přechod zahodí, aktivní čip se proto kreslí systémovou barvou výběru
+@media (forced-colors: active) {
+  .chips a[aria-current],
+  .chips.categories a[aria-current] {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+}
+
+// Nabídka v popoveru (⋮ u poznámky, Ze šablony); komponenty si ji můžou upřesnit
+.menu {
+  padding: 8px 0;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: var(--surface-high);
+  color: var(--on-surface);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 25%);
+}
+
+.menu button,
+.menu a {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 12rem;
+  min-height: 48px;
+  padding: 0 16px;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+}
+
+// Plovoucí „Nová“ nad spodní lištou
+.fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(102px + env(safe-area-inset-bottom));
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  height: 56px;
+  padding: 0 20px 0 16px;
+  border-radius: var(--fab-radius);
+  background: var(--fab-bg);
+  color: var(--fab-text);
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 3px 8px rgb(0 0 0 / 25%);
 }
 
 :focus-visible {

@@ -74,6 +74,16 @@ describe('NotesList', () => {
     expect(root.querySelector('li[data-id="new"] a.body')?.getAttribute('href')).toBe('/note/new');
   });
 
+  it('counts the notes and previews a checklist with its progress on the card', async () => {
+    await repository.update('new', { content: 'Poznámka new\n- [ ] Repelent\n- [x] Spacáky', updatedAt: '2025-03-08T10:00:00.000Z' });
+    await render();
+
+    expect(root.querySelector('header p')?.textContent?.trim()).toBe('3 poznámky');
+    const card = [...root.querySelectorAll('a')].find((link) => link.textContent?.includes('Poznámka new'));
+    expect(card?.textContent).toMatch(/^\s*Poznámka new\s*Repelent\s*Spacáky\s*hotovo 1\/2\s*#práce\s*8\. 3\. 2025\s*$/);
+    expect(card?.querySelector('time')?.getAttribute('datetime')).toBe('2025-03-08T10:00:00.000Z');
+  });
+
   it('marks the current view and offers tag filters', async () => {
     await render();
 

@@ -12,9 +12,10 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { Location, NgOptimizedImage } from '@angular/common';
+import { Location, NgOptimizedImage, NgTemplateOutlet } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { daysWithoutBackup, readLastBackup } from '../../core/backup/notes-backup';
+import { parseSegments } from '../../core/model/checklist';
 import { Note } from '../../core/model/note';
 import { collectTags, isNotesView, queryNotes, snippet, templatesOf } from '../../core/model/note-query';
 import { NoteActions } from '../../core/notes/note-actions';
@@ -26,6 +27,7 @@ import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { isPlainKey, readShortcutsEnabled } from '../../core/shortcuts/shortcuts';
 import { NotesRepository } from '../../core/storage/notes-repository';
 import { Task } from '../../core/model/task';
+import { addDays, localDate } from '../../core/model/task-query';
 import { TasksRepository } from '../../core/storage/tasks-repository';
 import { TaskActions } from '../../core/tasks/task-actions';
 import { BottomNav } from './bottom-nav';
@@ -47,21 +49,41 @@ function readLayout(): string | null {
   }
 }
 
+// Datum úpravy na kartě: dnes, včera, jinak „12. 10.“ (s rokem mimo letošek)
+function dateLabel(iso: string, today: string): string {
+  const date = localDate(new Date(iso));
+  if (date === today) {
+    return 'dnes';
+  }
+  if (date === addDays(today, -1)) {
+    return 'včera';
+  }
+  const [year, month, day] = date.split('-').map(Number);
+  return `${day}. ${month}.${year === Number(today.slice(0, 4)) ? '' : ` ${year}`}`;
+}
+
 @Component({
   selector: 'tn-notes-list',
-  host: { '[class.with-templates]': 'templates().length > 0', '(document:keydown)': 'onKey($event)' },
-  imports: [NgOptimizedImage, RouterLink, BottomNav],
+  host: {
+    '[class.with-templates]': 'templates().length > 0',
+    '(document:keydown)': 'onKey($event)',
+    '(document:visibilitychange)': 'refreshToday()',
+  },
+  imports: [NgOptimizedImage, NgTemplateOutlet, RouterLink, BottomNav],
   template: `
     <header class="header">
       <div class="app-bar">
-        <h1 #heading tabindex="-1">
-          <img class="app-logo" ngSrc="icons/icon-96x96.png" width="32" height="32" alt="" />
-          @if (current().view === 'notes') {
-            Tapnote<span class="visually-hidden"> – {{ current().label }}</span>
-          } @else {
-            {{ current().label }}
-          }
-        </h1>
+        <div class="heading">
+          <p class="eyebrow">{{ countLine() }}</p>
+          <h1 #heading tabindex="-1">
+            <img class="app-logo" ngSrc="icons/icon-96x96.png" width="32" height="32" alt="" />
+            @if (current().view === 'notes') {
+              Tapnote<span class="visually-hidden"> – {{ current().label }}</span>
+            } @else {
+              {{ current().label }}
+            }
+          </h1>
+        </div>
         <a class="icon-btn" routerLink="/today" title="Dnešní poznámka" (click)="flushQuery()">
           <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.calendar" /></svg>
           <span class="visually-hidden">Dnešní poznámka</span>
@@ -93,6 +115,9 @@ function readLayout(): string | null {
           (input)="onQuery(field.value)"
           (keydown.escape)="onQuery('')"
         />
+        @if (shortcuts) {
+          <kbd aria-hidden="true">Ctrl F</kbd>
+        }
       </div>
       @if (categories().length > 0) {
         <nav class="chips categories" aria-label="Kategorie">
@@ -141,6 +166,36 @@ function readLayout(): string | null {
       <p class="error" role="alert">Akci se nepodařilo dokončit.</p>
     }
 
+    <!-- Náhled karty: řádky checklistu (čtverečky jen jako dekorace) nebo text, kategorie a patička -->
+    <ng-template #preview let-item>
+      @if (item.rows.length > 0) {
+        <span class="rows">
+          @for (row of item.rows.slice(0, 4); track $index) {
+            <span [class.ok]="row.checked"><span class="box" aria-hidden="true"></span>{{ row.text }}</span>
+          }
+        </span>
+      } @else if (item.snippet) {
+        <span class="snippet">{{ item.snippet }}</span>
+      }
+      @if (categoryOf(item.note); as cat) {
+        <span class="note-cat" [style.--cat]="catVar(cat)">
+          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconPath(cat.icon)" /></svg>
+          {{ cat.name }}
+        </span>
+      }
+      <span class="foot">
+        <span class="note-tags">
+          @if (item.rows.length > 0) {
+            <span><span class="visually-hidden">hotovo </span>{{ item.done }}/{{ item.rows.length }}</span>
+          }
+          @for (name of item.note.tags; track name) {
+            <span>#{{ name }}</span>
+          }
+        </span>
+        <time [attr.datetime]="item.note.updatedAt">{{ item.date }}</time>
+      </span>
+    </ng-template>
+
     @if (loadFailed() || (loaded() && items().length === 0 && trashedTasks().length === 0)) {
       <div class="empty-state">
         <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons[current().icon]" /></svg>
@@ -153,7 +208,10 @@ function readLayout(): string | null {
     } @else {
       @for (group of items().length > 0 ? groups() : []; track group.label) {
         @if (group.label) {
-          <h2 class="label">{{ group.label }}</h2>
+          <div class="label">
+            <h2>{{ group.label }}</h2>
+            <span aria-hidden="true">{{ group.items.length }}</span>
+          </div>
         }
         <ul class="notes" [class.grid]="grid()">
           @for (item of group.items; track item.note.id) {
@@ -162,41 +220,27 @@ function readLayout(): string | null {
               [class.pinned]="item.note.pinned && current().view !== 'trash'"
               [class.colored]="colorVar(item.note.color) !== null"
               [style.--note-bg]="colorVar(item.note.color)"
+              [style.--note-edge]="'var(--note-edge-' + item.note.color + ')'"
             >
               @if (current().view === 'trash') {
                 <div class="body">
                   <span class="title">{{ item.title }}</span>
-                  @if (item.snippet) {
-                    <span class="snippet">{{ item.snippet }}</span>
-                  }
+                  <ng-container [ngTemplateOutlet]="preview" [ngTemplateOutletContext]="{ $implicit: item }" />
                 </div>
               } @else {
                 <a class="body" [routerLink]="['/note', item.note.id]" (click)="flushQuery()">
                   <span class="title">
                     @if (item.note.pinned) {
                       <span class="visually-hidden">Připnuto: </span>
+                    }
+                    {{ item.title }}
+                    @if (item.note.pinned) {
                       <svg class="icon pin" viewBox="0 0 256 256" aria-hidden="true">
                         <path [attr.d]="iconsFill.pin" />
                       </svg>
                     }
-                    {{ item.title }}
                   </span>
-                  @if (item.snippet) {
-                    <span class="snippet">{{ item.snippet }}</span>
-                  }
-                  @if (categoryOf(item.note); as cat) {
-                    <span class="note-cat" [style.--cat]="catVar(cat)">
-                      <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconPath(cat.icon)" /></svg>
-                      {{ cat.name }}
-                    </span>
-                  }
-                  @if (item.note.tags.length > 0) {
-                    <span class="note-tags">
-                      @for (name of item.note.tags; track name) {
-                        <span>#{{ name }}</span>
-                      }
-                    </span>
-                  }
+                  <ng-container [ngTemplateOutlet]="preview" [ngTemplateOutletContext]="{ $implicit: item }" />
                 </a>
               }
               <button
@@ -265,7 +309,10 @@ function readLayout(): string | null {
         </ul>
       }
       @if (trashedTasks().length > 0) {
-        <h2 class="label">Úkoly</h2>
+        <div class="label">
+          <h2>Úkoly</h2>
+          <span aria-hidden="true">{{ trashedTasks().length }}</span>
+        </div>
         <ul class="notes">
           @for (task of trashedTasks(); track task.id) {
             <li [attr.data-task]="task.id">
@@ -318,19 +365,24 @@ function readLayout(): string | null {
       padding-bottom: calc(14rem + env(safe-area-inset-bottom));
     }
 
+    // Hlavička jako obrazovka 02 návrhu D: počet, velký nadpis, skleněná tlačítka vpravo
     .app-bar {
       display: flex;
       align-items: center;
-      padding-right: 4px;
+      gap: 6px;
+      min-height: 64px;
+      padding: 8px 16px 0;
+    }
+
+    .heading {
+      flex: 1;
+      min-width: 0;
     }
 
     h1 {
-      flex: 1;
       display: flex;
       align-items: center;
-      min-height: 56px;
       margin: 0;
-      padding: 0 16px;
       font-family: var(--title-font);
       font-size: var(--title-size);
       font-weight: var(--title-weight);
@@ -341,13 +393,27 @@ function readLayout(): string | null {
       outline: none;
     }
 
+    .app-bar .icon-btn {
+      width: 44px;
+      height: 44px;
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      background: var(--glass);
+      color: var(--on-surface);
+    }
+
+    .app-bar .on {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+    }
+
     .search {
       display: flex;
       align-items: center;
-      gap: 8px;
-      min-height: 52px;
-      margin: 0 16px 12px;
-      padding: 0 16px;
+      gap: 10px;
+      min-height: 50px;
+      margin: 12px 16px;
+      padding: 0 8px 0 16px;
       border: 1px solid var(--search-border);
       border-radius: var(--search-radius);
       background: var(--search-bg);
@@ -355,7 +421,7 @@ function readLayout(): string | null {
     }
 
     .search:focus-within {
-      outline: 2px solid var(--primary);
+      outline: 2px solid var(--ring);
     }
 
     .search input {
@@ -377,32 +443,17 @@ function readLayout(): string | null {
       color: var(--on-surface-variant);
     }
 
-    .chips {
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      padding: 0 16px 8px;
-      scrollbar-width: none;
-    }
-
-    .chips a {
-      display: inline-flex;
-      flex: none;
-      align-items: center;
-      min-height: 32px;
-      margin: 6px 0;
-      padding: 0 12px;
-      border: 1px solid var(--outline);
-      border-radius: var(--chip-radius);
-      color: var(--on-surface-variant);
-      font-size: 0.875rem;
-      text-decoration: none;
+    kbd {
+      padding: 0 6px;
+      border: 1px solid var(--outline-variant);
+      border-radius: 4px;
+      font-family: var(--mono);
+      font-size: 0.8125rem;
     }
 
     .chips.categories .icon {
       width: 18px;
       height: 18px;
-      margin-right: 4px;
       color: var(--cat);
     }
 
@@ -414,7 +465,6 @@ function readLayout(): string | null {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      margin-top: 2px;
       color: var(--on-surface-variant);
       font-size: 0.8125rem;
       font-weight: 600;
@@ -444,13 +494,6 @@ function readLayout(): string | null {
       background: var(--primary-container);
       color: var(--on-primary-container);
       font-weight: 700;
-    }
-
-    .chips a[aria-current] {
-      border-color: transparent;
-      background: var(--primary-container);
-      color: var(--on-primary-container);
-      font-weight: 600;
     }
 
     .backup {
@@ -519,12 +562,21 @@ function readLayout(): string | null {
       font-weight: 700;
     }
 
+    // Záhlaví sekce mono verzálkami, počet vpravo
     .label {
-      margin: 12px 20px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 16px 20px 8px;
       color: var(--on-surface-variant);
-      font-size: 0.75rem;
-      font-weight: 600;
-      letter-spacing: 0.06em;
+      font-family: var(--mono);
+      font-size: 0.8125rem;
+    }
+
+    .label h2 {
+      margin: 0;
+      font-size: inherit;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
     }
 
@@ -535,11 +587,8 @@ function readLayout(): string | null {
     }
 
     li {
-      display: flex;
-      align-items: flex-start;
-      gap: 4px;
+      position: relative;
       margin-bottom: var(--card-gap);
-      padding-right: 4px;
       border: 1px solid var(--card-border);
       border-bottom-color: var(--card-divider, var(--card-border));
       border-radius: var(--card-radius);
@@ -553,21 +602,22 @@ function readLayout(): string | null {
       background: var(--card-pinned-bg);
     }
 
-    /* Akcent na barevné kartě v barvě textu kvůli kontrastu */
+    /* Akcent na barevné kartě v barvě textu kvůli kontrastu; nahoře sytý okraj podle barvy (návrh D) */
     li.colored {
       --primary: var(--on-surface);
       border-color: transparent;
+      border-top: 3px solid var(--note-edge);
       background: var(--note-bg);
     }
 
     .notes.grid {
       column-count: 2;
-      column-gap: 8px;
+      column-gap: 10px;
     }
 
     .notes.grid li {
       break-inside: avoid;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
 
     .notes.grid .snippet {
@@ -576,27 +626,29 @@ function readLayout(): string | null {
 
     .body {
       display: flex;
-      flex: 1;
       flex-direction: column;
-      gap: 4px;
-      min-width: 0;
-      padding: 12px 0 12px 16px;
-      border-radius: var(--radius-m);
+      gap: 6px;
+      padding: 14px 14px 12px;
+      border-radius: inherit;
       color: inherit;
       text-decoration: none;
     }
 
+    // Místo vpravo nahoře pro ⋮
     .title {
       display: flex;
       align-items: center;
       gap: 6px;
+      padding-right: 30px;
       font-family: var(--title-font);
-      font-weight: 600;
+      font-weight: 700;
+      overflow-wrap: anywhere;
     }
 
     .title .pin {
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
+      margin-left: auto;
       color: var(--pin);
     }
 
@@ -604,25 +656,77 @@ function readLayout(): string | null {
       display: -webkit-box;
       overflow: hidden;
       color: var(--on-surface-variant);
-      font-size: 0.9375rem;
+      font-size: 0.875rem;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
+    }
+
+    // Náhled checklistu: hotové přeškrtnuté s plným čtverečkem
+    .rows {
+      display: grid;
+      gap: 4px;
+      color: var(--on-surface-variant);
+      font-size: 0.875rem;
+    }
+
+    .rows > span {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .box {
+      flex: none;
+      box-sizing: border-box;
+      width: 14px;
+      height: 14px;
+      border: 1.5px solid currentColor;
+      border-radius: 4px;
+    }
+
+    .rows .ok {
+      text-decoration: line-through;
+    }
+
+    .ok .box {
+      background: currentColor;
+    }
+
+    .foot {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 4px 8px;
+      color: var(--on-surface-variant);
+      font-family: var(--mono);
+      font-size: 0.8125rem;
     }
 
     .note-tags {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 4px;
-      color: var(--primary);
-      font-size: 0.8125rem;
-      font-weight: 500;
+      gap: 4px 8px;
+    }
+
+    // Úkol v koši: název přes celou šířku, tlačítka vpravo (bez ⋮, proto bez místa pro něj)
+    li[data-task] {
+      display: flex;
+      align-items: center;
+      padding-right: 4px;
+    }
+
+    li[data-task] .body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    li[data-task] .title {
+      padding-right: 0;
     }
 
     .task-actions {
       display: flex;
       flex-wrap: wrap;
-      align-self: center;
     }
 
     .task-actions button {
@@ -638,35 +742,11 @@ function readLayout(): string | null {
     }
 
     .actions {
+      position: absolute;
+      top: 2px;
+      right: 2px;
       width: 44px;
       height: 44px;
-      margin-top: 4px;
-    }
-
-    .menu {
-      padding: 8px 0;
-      border: 0;
-      border-radius: var(--radius-s);
-      background: var(--surface-high);
-      color: var(--on-surface);
-      box-shadow: 0 4px 16px rgb(0 0 0 / 25%);
-    }
-
-    .menu button,
-    .menu a {
-      display: flex;
-      align-items: center;
-      box-sizing: border-box;
-      width: 100%;
-      min-width: 12rem;
-      min-height: 48px;
-      padding: 0 16px;
-      border: none;
-      background: none;
-      color: inherit;
-      font: inherit;
-      text-align: left;
-      text-decoration: none;
     }
 
     .menu .swatches {
@@ -678,9 +758,9 @@ function readLayout(): string | null {
     }
 
     .menu .swatch {
-      width: 40px;
+      width: 44px;
       min-width: 0;
-      height: 40px;
+      height: 44px;
       min-height: 0;
       padding: 0;
       border: 1px solid var(--outline);
@@ -705,21 +785,18 @@ function readLayout(): string | null {
       box-shadow: 0 3px 8px rgb(0 0 0 / 25%);
     }
 
-    .fab {
-      position: fixed;
-      right: 16px;
-      bottom: calc(102px + env(safe-area-inset-bottom));
-      display: inline-flex;
-      align-items: center;
-      gap: 12px;
-      height: 56px;
-      padding: 0 20px 0 16px;
-      border-radius: var(--fab-radius);
-      background: var(--fab-bg);
-      color: var(--fab-text);
-      font-weight: 600;
-      text-decoration: none;
-      box-shadow: 0 3px 8px rgb(0 0 0 / 25%);
+    // Ve vysokém kontrastu se zapnutý stav (tónovaná plocha, plný čtvereček) kreslí systémovými barvami
+    @media (forced-colors: active) {
+      .app-bar .on {
+        forced-color-adjust: none;
+        background: Highlight;
+        color: HighlightText;
+      }
+
+      .ok .box {
+        forced-color-adjust: none;
+        background: CanvasText;
+      }
     }
   `,
 })
@@ -744,6 +821,7 @@ export class NotesList implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly location = inject(Location);
   private urlTimer?: ReturnType<typeof setTimeout>;
+  private midnightTimer?: ReturnType<typeof setTimeout>;
   private readonly heading = viewChild.required<ElementRef<HTMLElement>>('heading');
   private readonly field = viewChild.required<ElementRef<HTMLInputElement>>('field');
 
@@ -780,18 +858,38 @@ export class NotesList implements OnInit {
   protected readonly colorVar = noteColorVar;
   protected readonly grid = signal(readLayout() === 'grid');
   private readonly search = computed(() => createNoteSearch(this.notes()));
+  // Dnešek pro „dnes“ / „včera“ na kartách, přepočítává se o půlnoci a po návratu do aplikace
+  private readonly today = signal(localDate(new Date()));
   protected readonly items = computed(() => {
     const category = this.activeCategory();
     const notes = queryNotes(this.notes(), this.current().view, this.tag()).filter(
       (note) => !category || note.categoryId === category.id,
     );
     const query = this.queryParam();
-    return (query ? this.search()(query, notes) : notes).map((note) => ({
-      note,
-      title: note.title || 'Bez názvu',
-      snippet: snippet(note.content),
-    }));
+    const today = this.today();
+    return (query ? this.search()(query, notes) : notes).map((note) => {
+      // Řádky checklistu pro náhled na kartě a počet hotových („4/7“)
+      const rows = parseSegments(note.content).flatMap((segment) => (segment.kind === 'checklist' ? [...segment.open, ...segment.done] : []));
+      return {
+        note,
+        title: note.title || 'Bez názvu',
+        snippet: snippet(note.content),
+        rows,
+        done: rows.filter((row) => row.checked).length,
+        date: dateLabel(note.updatedAt, today),
+      };
+    });
   });
+  // Počet poznámek v pohledu nad nadpisem („3 poznámky“); před načtením pevná mezera drží výšku řádku
+  protected readonly countLine = computed(() => {
+    if (!this.loaded() || this.loadFailed()) {
+      return ' ';
+    }
+    const count = this.items().length;
+    return `${count} ${count === 1 ? 'poznámka' : count >= 2 && count <= 4 ? 'poznámky' : 'poznámek'}`;
+  });
+  // Nápověda Ctrl F v hledání jen se zapnutými zkratkami
+  protected readonly shortcuts = readShortcutsEnabled();
   // Připnuté zvlášť, jen v poznámkách bez hledání (výsledky drží pořadí podle relevance)
   protected readonly groups = computed(() => {
     const items = this.items();
@@ -816,12 +914,23 @@ export class NotesList implements OnInit {
   });
 
   constructor() {
-    inject(DestroyRef).onDestroy(() => clearTimeout(this.urlTimer));
+    inject(DestroyRef).onDestroy(() => {
+      clearTimeout(this.urlTimer);
+      clearTimeout(this.midnightTimer);
+    });
   }
 
   ngOnInit(): Promise<void> {
     this.query.set(this.q() ?? '');
+    this.refreshToday();
     return this.load();
+  }
+
+  protected refreshToday(): void {
+    const now = new Date();
+    this.today.set(localDate(now));
+    clearTimeout(this.midnightTimer);
+    this.midnightTimer = setTimeout(() => this.refreshToday(), new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime());
   }
 
   protected onQuery(value: string): void {
