@@ -169,6 +169,13 @@ const REVOKE_DELAY_MS = 60_000;
       padding: env(safe-area-inset-top) 0 calc(7rem + env(safe-area-inset-bottom));
     }
 
+    // Od 900 px lišta dole není, stačí běžné odsazení
+    @media (min-width: 900px) {
+      :host {
+        padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+      }
+    }
+
     .app-bar {
       padding: 8px 16px 0;
     }

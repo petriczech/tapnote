@@ -317,7 +317,7 @@ Rozhodnutí (v závorce návrh):
 17. ✅ **Desktop 3 – štítky zkratek:** `kbd` u existujících zkratek (jen `pointer: fine` a zapnuté zkratky), „Přehled zkratek“ v panelu
 18. ✅ **Desktop 4 – poznámky vedle editoru:** rodičovská routa `tn-split` s prázdnou cestou, `NotesList` s `pane`, URL beze změny, návrat fokusu
 19. ✅ **Desktop 5 – úkoly vedle detailu a panel nástrojů:** `tn-split` pro `task/:id`, panel nástrojů editoru ukotvený dole ve sloupci editoru s popisky
-20. **Desktop 6 – Nastavení S2 a e2e 1440 × 900:** podstránky na střed, projekt e2e 1440 × 900 světlý/tmavý, axe, průchod klávesnicí, změna šířky přes 1200 px
+20. ✅ **Desktop 6 – Nastavení S2 a e2e 1440 × 900:** podstránky na střed, projekt e2e 1440 × 900 světlý/tmavý, axe, průchod klávesnicí, změna šířky přes 1200 px
 21. **D&D 1 – direktiva `tnReorder` + kategorie (pilot):** úchyt ⠿, Pointer Events, autoscroll, klávesové uchopení, live region; ▲▼ u kategorií zůstávají
 22. **D&D 2 – checklist:** `moveGroup` v `checklist.ts`, jen otevřené položky nejvyšší úrovně s podpoložkami, menu úchytu (nahoru / dolů / na začátek / na konec)
 23. **D&D 3 – úkoly:** pole `order` (migrace Dexie, záloha a import), ruční pořadí v Můj den, Důležité a Vše, nový úkol nahoru, menu úchytu

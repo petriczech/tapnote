@@ -609,6 +609,14 @@ html:has(tn-bottom-nav) {
   tn-notes-list.grid {
     max-width: 1240px;
   }
+
+  // Nastavení a jeho podstránky na střed v širším sloupci (S2 bez rozcestníku vlevo)
+  tn-settings,
+  tn-appearance,
+  tn-categories {
+    max-width: 780px;
+    margin-inline: auto;
+  }
 }
 
 @media (min-width: 1200px) {

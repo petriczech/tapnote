@@ -114,6 +114,17 @@ label:has(input[type='radio']:focus-visible) {
   gap: 10px;
 }
 
+// Od 900 px lišta dole není, stačí běžné odsazení; motivy v jedné řadě, pokud se vejdou
+@media (min-width: 900px) {
+  :host {
+    padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+  }
+
+  .themes {
+    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  }
+}
+
 // Dlaždice s náhledem z barev preview
 .theme {
   position: relative;
