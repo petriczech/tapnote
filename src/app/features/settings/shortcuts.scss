@@ -1,0 +1,94 @@
+:host {
+  display: block;
+  padding: env(safe-area-inset-top) 0 calc(7rem + env(safe-area-inset-bottom));
+}
+
+// Od 900 px lišta dole není, stačí běžné odsazení
+@media (min-width: 900px) {
+  :host {
+    padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+  }
+}
+
+// Drobečky „Nastavení ›“ nad velkým nadpisem jako ve Vzhledu
+.app-bar {
+  padding: 8px 16px 0;
+}
+
+.crumbs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  color: var(--on-surface-variant);
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.crumbs .icon {
+  width: 16px;
+  height: 16px;
+}
+
+h1 {
+  margin: 0;
+  font-family: var(--title-font);
+  font-size: var(--title-size);
+  font-weight: var(--title-weight);
+  letter-spacing: var(--title-spacing);
+}
+
+h1:focus:not(:focus-visible) {
+  outline: none;
+}
+
+// Přepínač a tabulka ve skleněné kartě
+.card {
+  margin: 16px 16px 12px;
+  padding: 4px 12px 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--card-radius);
+  background: var(--glass);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+}
+
+.check input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--primary);
+}
+
+.shortcuts {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.shortcuts th,
+.shortcuts td {
+  padding: 8px 8px 8px 0;
+  border-bottom: 1px solid var(--outline-variant);
+  text-align: left;
+  vertical-align: top;
+}
+
+.shortcuts th {
+  color: var(--on-surface-variant);
+  font-weight: 600;
+}
+
+kbd {
+  padding: 0 6px;
+  border: 1px solid var(--outline);
+  border-radius: 4px;
+  font-family: inherit;
+  white-space: nowrap;
+}

@@ -322,7 +322,7 @@ Rozhodnutí (v závorce návrh):
 22. **D&D 2 – checklist:** `moveGroup` v `checklist.ts`, jen otevřené položky nejvyšší úrovně s podpoložkami, menu úchytu (nahoru / dolů / na začátek / na konec)
 23. **D&D 3 – úkoly:** pole `order` (migrace Dexie, záloha a import), ruční pořadí v Můj den, Důležité a Vše, nový úkol nahoru, menu úchytu
 
-24. **Zkratky na samostatné stránce:** sekce „Klávesové zkratky“ (přepínač „Zapnout klávesové zkratky“ a tabulka) se z rozcestníku Nastavení přesune na `/settings/zkratky` podle vzoru Vzhledu a Kategorií; řádek rozcestníku, zkratka `?`, odkaz „Přehled zkratek“ v panelu a starý odkaz `/settings#shortcuts` vedou na novou stránku s fokusem na nadpisu
+24. ✅ **Zkratky na samostatné stránce:** sekce „Klávesové zkratky“ (přepínač „Zapnout klávesové zkratky“ a tabulka) se z rozcestníku Nastavení přesune na `/settings/zkratky` podle vzoru Vzhledu a Kategorií; řádek rozcestníku, zkratka `?`, odkaz „Přehled zkratek“ v panelu a starý odkaz `/settings#shortcuts` vedou na novou stránku s fokusem na nadpisu
 
 ### Hlídat v každém kroku
 - Kontrast: bílá na oranžovém konci přechodu má 2,5–3,0 : 1 (nepoužívat pro text), světlý přechodový nadpis končit `#c2410c`, okraje polí přes `--outline`; axe za `backdrop-filter` kontrast nespočítá → ruční vzorkování pixelů a druhý průchod bez průhlednosti

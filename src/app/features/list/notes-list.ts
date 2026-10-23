@@ -1050,7 +1050,7 @@ export class NotesList implements OnInit {
       }
       case '?':
         this.flushQuery();
-        void this.router.navigate(['/settings'], { fragment: 'shortcuts' });
+        void this.router.navigate(['/settings/zkratky']);
         break;
       case 'p':
       case 'a':

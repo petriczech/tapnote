@@ -1,5 +1,5 @@
 import { afterNextRender, Component, computed, ElementRef, inject, Injector, OnInit, signal } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   createExport,
   exportFileName,
@@ -12,7 +12,6 @@ import { loadBuildStamp } from '../../core/build-info';
 import { Note } from '../../core/model/note';
 import { templatesOf } from '../../core/model/note-query';
 import { NoteActions } from '../../core/notes/note-actions';
-import { readShortcutsEnabled, SHORTCUTS, writeShortcutsEnabled } from '../../core/shortcuts/shortcuts';
 import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { NotesRepository } from '../../core/storage/notes-repository';
 import { TasksRepository } from '../../core/storage/tasks-repository';
@@ -35,7 +34,7 @@ const REVOKE_DELAY_MS = 60_000;
       <h1 id="obsah" tabindex="-1">Nastavení</h1>
     </header>
 
-    <!-- Rozcestník: Vzhled a Kategorie jsou podstránky, ostatní řádky skočí na sekci níže -->
+    <!-- Rozcestník: Vzhled, Kategorie a Klávesové zkratky jsou podstránky, ostatní řádky skočí na sekci níže -->
     <ul class="hub">
       <li>
         <a routerLink="/settings/vzhled">
@@ -52,9 +51,9 @@ const REVOKE_DELAY_MS = 60_000;
           <svg class="icon chev" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.caretRight" /></svg>
         </a>
       </li>
-      @for (row of rows; track row.fragment) {
+      @for (row of rows; track row.label) {
         <li>
-          <a routerLink="/settings" [fragment]="row.fragment" (click)="focusSection(row.fragment)">
+          <a [routerLink]="row.link" [fragment]="row.fragment" (click)="row.fragment && focusSection(row.fragment)">
             <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons[row.icon]" /></svg>
             <span class="row-label">{{ row.label }}</span>
             <svg class="icon chev" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.caretRight" /></svg>
@@ -128,32 +127,6 @@ const REVOKE_DELAY_MS = 60_000;
     </section>
 
     <p class="status" [class.error]="failed()" aria-live="polite">{{ status() }}</p>
-
-    <section aria-labelledby="shortcuts-heading">
-      <h2 id="shortcuts-heading" tabindex="-1">Klávesové zkratky</h2>
-      <label class="check">
-        <input #shortcutsBox type="checkbox" [checked]="shortcuts()" (change)="setShortcuts(shortcutsBox.checked)" />
-        Zapnout klávesové zkratky
-      </label>
-      <table class="shortcuts">
-        <thead>
-          <tr>
-            <th scope="col">Kde</th>
-            <th scope="col">Klávesa</th>
-            <th scope="col">Akce</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (item of shortcutList; track item.keys) {
-            <tr>
-              <td>{{ item.place }}</td>
-              <td><kbd>{{ item.keys }}</kbd></td>
-              <td>{{ item.label }}</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </section>
 
     <section aria-labelledby="about-heading">
       <h2 id="about-heading" tabindex="-1">O aplikaci</h2>
@@ -310,16 +283,14 @@ const REVOKE_DELAY_MS = 60_000;
       color: var(--on-surface-variant);
     }
 
-    fieldset label,
-    .check {
+    fieldset label {
       display: flex;
       align-items: center;
       gap: 12px;
       min-height: 48px;
     }
 
-    fieldset input,
-    .check input {
+    fieldset input {
       flex: none;
       width: 20px;
       height: 20px;
@@ -380,33 +351,6 @@ const REVOKE_DELAY_MS = 60_000;
       cursor: pointer;
     }
 
-    .shortcuts {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.9375rem;
-    }
-
-    .shortcuts th,
-    .shortcuts td {
-      padding: 8px 8px 8px 0;
-      border-bottom: 1px solid var(--outline-variant);
-      text-align: left;
-      vertical-align: top;
-    }
-
-    .shortcuts th {
-      color: var(--on-surface-variant);
-      font-weight: 600;
-    }
-
-    kbd {
-      padding: 0 6px;
-      border: 1px solid var(--outline);
-      border-radius: 4px;
-      font-family: inherit;
-      white-space: nowrap;
-    }
-
     .status {
       margin: 0 16px;
     }
@@ -438,6 +382,7 @@ export class Settings implements OnInit {
   private readonly host: HTMLElement = inject(ElementRef).nativeElement;
   private readonly injector = inject(Injector);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   protected readonly templates = signal<Note[]>([]);
   protected readonly build = signal('…');
@@ -445,9 +390,14 @@ export class Settings implements OnInit {
   protected readonly variablesHint = 'V textu šablony lze použít {{date}}, {{time}} a {{weekday}}; {{cursor}} označí místo kurzoru.';
 
   async ngOnInit(): Promise<void> {
+    // Starý odkaz na sekci zkratek (záložka, deep link) se přesměruje na jejich podstránku
+    if (this.route.snapshot.fragment === 'shortcuts') {
+      void this.router.navigate(['/settings/zkratky'], { replaceUrl: true });
+      return;
+    }
     void loadBuildStamp().then((stamp) => this.build.set(stamp));
     await this.loadTemplates();
-    // Odkaz se sekcí (zkratka ? ze seznamu → #shortcuts, Zálohovat → #backup) zaměří její nadpis až po načtení šablon, které ho jinak odsunou mimo obrazovku
+    // Odkaz se sekcí (Zálohovat ze seznamu → #backup) zaměří její nadpis až po načtení šablon, které ho jinak odsunou mimo obrazovku
     const fragment = this.route.snapshot.fragment;
     if (fragment) {
       afterNextRender(() => this.focusSection(fragment), { injector: this.injector });
@@ -496,12 +446,12 @@ export class Settings implements OnInit {
   protected readonly canShare = typeof navigator.canShare === 'function';
   protected readonly icons = ICONS_REGULAR;
   protected readonly themeLabel = THEMES.find((item) => item.id === readTheme())?.label;
-  // Řádky rozcestníku s nadpisy sekcí; fragment + '-heading' je id nadpisu
+  // Řádky rozcestníku s nadpisy sekcí; fragment + '-heading' je id nadpisu, řádek bez fragmentu vede na podstránku
   protected readonly rows = [
-    { label: 'Šablony', fragment: 'templates', icon: 'copy' },
-    { label: 'Záloha', fragment: 'backup', icon: 'cloudArrowUp' },
-    { label: 'Klávesové zkratky', fragment: 'shortcuts', icon: 'keyboard' },
-    { label: 'O aplikaci', fragment: 'about', icon: 'info' },
+    { label: 'Šablony', link: '/settings', fragment: 'templates', icon: 'copy' },
+    { label: 'Záloha', link: '/settings', fragment: 'backup', icon: 'cloudArrowUp' },
+    { label: 'Klávesové zkratky', link: '/settings/zkratky', fragment: undefined, icon: 'keyboard' },
+    { label: 'O aplikaci', link: '/settings', fragment: 'about', icon: 'info' },
   ] as const;
   private readonly lastBackup = signal(readLastBackup());
   protected readonly lastBackupText = computed(() => {
@@ -512,14 +462,6 @@ export class Settings implements OnInit {
   protected readonly busy = signal(false);
   protected readonly status = signal('');
   protected readonly failed = signal(false);
-
-  protected readonly shortcutList = SHORTCUTS;
-  protected readonly shortcuts = signal(readShortcutsEnabled());
-
-  protected setShortcuts(enabled: boolean): void {
-    writeShortcutsEnabled(enabled);
-    this.shortcuts.set(enabled);
-  }
 
   protected async exportNotes(target: 'download' | 'share'): Promise<void> {
     await this.run(async () => {

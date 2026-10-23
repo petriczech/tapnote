@@ -713,7 +713,7 @@ describe('NotesList', () => {
 
       expect(navigate).toHaveBeenCalledWith(['/new']);
       expect(navigate).toHaveBeenCalledWith(['/today']);
-      expect(navigate).toHaveBeenCalledWith(['/settings'], { fragment: 'shortcuts' });
+      expect(navigate).toHaveBeenCalledWith(['/settings/zkratky']);
     });
 
     it('reacts beside the editor only with focus inside the list', async () => {

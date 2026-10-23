@@ -56,14 +56,19 @@ test('nastavení: rozcestník a aktuální záložka v liště', async ({ page, 
   await expect(current).toHaveAttribute('aria-current', 'page');
 });
 
-// Deep linky ze seznamu: klávesa ? na zkratky a „Zálohovat“ na zálohu, vždy s fokusem na nadpisu sekce
-test('nastavení: ? a Zálohovat ze seznamu vedou na sekci', async ({ page, seed }) => {
+// Deep linky ze seznamu: klávesa ? na stránku zkratek a „Zálohovat“ na zálohu, vždy s fokusem na nadpisu; starý #shortcuts se přesměruje
+test('nastavení: ? vede na stránku zkratek a Zálohovat na sekci', async ({ page, seed, axe }) => {
   await seed({ notes: [{ id: 'stara', content: 'Stará poznámka', createdAt: '2026-09-01T09:00:00.000Z', updatedAt: '2026-09-01T09:00:00.000Z' }] });
   await page.goto('/notes');
   await expect(page.getByRole('link', { name: 'Zálohovat' })).toBeVisible();
   await page.keyboard.press('?');
-  await expect(page).toHaveURL(/\/settings#shortcuts$/);
-  await expect(page.getByRole('heading', { name: 'Klávesové zkratky' })).toBeFocused();
+  await expect(page).toHaveURL(/\/settings\/zkratky$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Klávesové zkratky' })).toBeFocused();
+
+  await page.goto('/settings#shortcuts');
+  await expect(page).toHaveURL(/\/settings\/zkratky$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Klávesové zkratky' })).toBeFocused();
+  await axe('nastavení – zkratky');
 
   await page.goto('/notes');
   await page.getByRole('link', { name: 'Zálohovat' }).click();

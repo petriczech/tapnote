@@ -23,7 +23,7 @@ test('desktop: axe na Úkolech a Poznámkách v mřížce', async ({ page, seed,
 });
 
 // Nastavení a podstránky na střed sloupce bez chyb axe
-test('desktop: axe v Nastavení, Vzhledu a Kategoriích', async ({ page, seed, axe }) => {
+test('desktop: axe v Nastavení, Vzhledu, Kategoriích a Zkratkách', async ({ page, seed, axe }) => {
   await seed({ categories: [{ id: 'c1', name: 'Domov' }] });
   await page.goto('/settings');
   await expect(page.getByRole('heading', { level: 1, name: 'Nastavení' })).toBeVisible();
@@ -37,6 +37,10 @@ test('desktop: axe v Nastavení, Vzhledu a Kategoriích', async ({ page, seed, a
   await expect(page.getByRole('heading', { level: 1, name: 'Kategorie' })).toBeVisible();
   await expect(page.getByText('Domov')).toBeVisible();
   await axe('kategorie na desktopu');
+
+  await page.goto('/settings/zkratky');
+  await expect(page.getByRole('heading', { level: 1, name: 'Klávesové zkratky' })).toBeFocused();
+  await axe('zkratky na desktopu');
 });
 
 // Tab vede na „Přeskočit na obsah“, pak panelem a z obsahu dál; přeskočení dá fokus na nadpis stránky

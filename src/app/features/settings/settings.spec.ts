@@ -10,7 +10,6 @@ import { TasksRepository } from '../../core/storage/tasks-repository';
 import { InMemoryCategoriesRepository } from '../../core/storage/testing/in-memory-categories-repository';
 import { InMemoryNotesRepository } from '../../core/storage/testing/in-memory-notes-repository';
 import { InMemoryTasksRepository } from '../../core/storage/testing/in-memory-tasks-repository';
-import { SHORTCUTS_KEY } from '../../core/shortcuts/shortcuts';
 import { THEME_KEY } from '../../core/theme/theme';
 import { MAX_IMPORT_BYTES, Settings } from './settings';
 import { VersionsRepository } from '../../core/storage/versions-repository';
@@ -69,7 +68,6 @@ describe('Settings', () => {
 
   afterEach(() => {
     localStorage.removeItem(LAST_BACKUP_KEY);
-    localStorage.removeItem(SHORTCUTS_KEY);
     vi.restoreAllMocks();
     URL.createObjectURL = createObjectURL;
     URL.revokeObjectURL = revokeObjectURL;
@@ -88,7 +86,7 @@ describe('Settings', () => {
 
     afterEach(() => localStorage.removeItem(THEME_KEY));
 
-    it('lists the sections with Vzhled and Kategorie as sub-pages, Vzhled showing the current theme', async () => {
+    it('lists the sections with Vzhled, Kategorie and Klávesové zkratky as sub-pages, Vzhled showing the current theme', async () => {
       localStorage.setItem(THEME_KEY, 'paper');
       await render();
 
@@ -106,7 +104,7 @@ describe('Settings', () => {
       expect(rows().slice(2).map((row) => row.getAttribute('href'))).toEqual([
         '/settings#templates',
         '/settings#backup',
-        '/settings#shortcuts',
+        '/settings/zkratky',
         '/settings#about',
       ]);
     });
@@ -121,10 +119,21 @@ describe('Settings', () => {
     });
   });
 
-  // Deep linky: zkratka ? ze seznamu (#shortcuts), Zálohovat (#backup) a ostatní sekce
+  // Deep linky: Zálohovat (#backup) a ostatní sekce; starý #shortcuts vede na podstránku zkratek
   describe('deep links', () => {
+    it('redirects the old #shortcuts link to the shortcuts page', async () => {
+      TestBed.inject(Router).resetConfig([
+        { path: 'settings', component: Settings },
+        { path: 'settings/zkratky', children: [] },
+      ]);
+      const harness = await RouterTestingHarness.create();
+
+      await harness.navigateByUrl('/settings#shortcuts');
+
+      await vi.waitFor(() => expect(TestBed.inject(Router).url).toBe('/settings/zkratky'));
+    });
+
     it.each([
-      ['shortcuts', 'Klávesové zkratky'],
       ['backup', 'Záloha'],
       ['templates', 'Šablony'],
     ])('focuses the heading of #%s', async (fragment, heading) => {
@@ -352,18 +361,5 @@ describe('Settings', () => {
     expect(about?.querySelector('dt')?.textContent?.trim()).toBe('Verze');
     // Bez ngsw.json a hashovaného skriptu (test) se hlásí vývojový build
     await vi.waitFor(() => expect(about?.querySelector('dd')?.textContent?.trim()).toBe('dev'));
-  });
-
-  it('turns keyboard shortcuts off and lists them', async () => {
-    await render();
-    const box = [...root.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')].find(
-      (input) => input.labels?.[0]?.textContent?.trim() === 'Zapnout klávesové zkratky',
-    ) as HTMLInputElement;
-
-    expect(box.checked).toBe(true);
-    expect(root.querySelectorAll('.shortcuts tbody tr').length).toBeGreaterThan(0);
-    box.click();
-
-    expect(localStorage.getItem(SHORTCUTS_KEY)).toBe('off');
   });
 });

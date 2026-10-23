@@ -51,7 +51,7 @@ import { readShortcutsEnabled } from '../../core/shortcuts/shortcuts';
       </a>
     </nav>
     @if (shortcuts) {
-      <a class="action keys" routerLink="/settings" fragment="shortcuts" (click)="leave.emit(); focusShortcuts()">
+      <a class="action keys" routerLink="/settings/zkratky" (click)="leave.emit(); focusShortcuts()">
         <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.keyboard" /></svg>
         Přehled zkratek
         @if (listKeys()) {
@@ -376,8 +376,8 @@ export class BottomNav {
     document.getElementById('obsah')?.focus();
   }
 
-  // Na Nastavení se komponenta znovu nevytvoří, sekci proto zaměří odkaz sám (jinde to po navigaci udělá Nastavení)
+  // Na stránce zkratek se komponenta znovu nevytvoří, nadpis proto zaměří odkaz sám (jinde to po navigaci udělá stránka)
   protected focusShortcuts(): void {
-    document.getElementById('shortcuts-heading')?.focus();
+    document.querySelector<HTMLElement>('tn-shortcuts h1')?.focus();
   }
 }

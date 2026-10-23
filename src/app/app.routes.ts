@@ -28,5 +28,6 @@ export const routes: Routes = [
   { path: 'settings', loadComponent: () => import('./features/settings/settings').then((m) => m.Settings) },
   { path: 'settings/vzhled', loadComponent: () => import('./features/settings/appearance').then((m) => m.Appearance) },
   { path: 'settings/kategorie', loadComponent: () => import('./features/settings/categories').then((m) => m.Categories) },
+  { path: 'settings/zkratky', loadComponent: () => import('./features/settings/shortcuts').then((m) => m.Shortcuts) },
   { path: '**', redirectTo: '' },
 ];
