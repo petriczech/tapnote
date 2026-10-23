@@ -447,7 +447,7 @@ describe('NoteEditor', () => {
 
       press({ key: 'Escape' });
 
-      expect(navigate).toHaveBeenCalledWith(['/notes']);
+      expect(navigate).toHaveBeenCalledWith(['/notes'], { queryParamsHandling: 'preserve', state: undefined });
     });
 
     it('switches modes with Ctrl+Enter and adds an item with Ctrl+Shift+L', async () => {

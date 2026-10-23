@@ -4,6 +4,7 @@ import {
   Component,
   computed,
   DestroyRef,
+  effect,
   ElementRef,
   inject,
   Injector,
@@ -24,6 +25,7 @@ import { NoteActions } from '../../core/notes/note-actions';
 import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { NotesRepository } from '../../core/storage/notes-repository';
 import { readShortcutsEnabled } from '../../core/shortcuts/shortcuts';
+import { Split } from '../list/split';
 import { NoteDraft } from './note-draft';
 import { NoteView } from './note-view';
 import { ICONS_FILL, ICONS_REGULAR } from '../../core/icons/icons';
@@ -44,7 +46,7 @@ type EditorAction = 'pin' | 'archive' | 'template' | 'trash' | 'color' | 'catego
   template: `
     <!-- Horní lišta jako obrazovka 03 návrhu D: zpět, Uloženo, vpravo přechodové tlačítko -->
     <div class="toolbar">
-      <a class="icon-btn" routerLink="/notes" title="Seznam">
+      <a class="icon-btn" routerLink="/notes" queryParamsHandling="preserve" [state]="back()" title="Seznam">
         <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.back" /></svg>
         <span class="visually-hidden">Seznam</span>
       </a>
@@ -481,6 +483,9 @@ export class NoteEditor implements OnInit {
   private readonly injector = inject(Injector);
   private readonly textarea = viewChild<ElementRef<HTMLTextAreaElement>>('textarea');
   private readonly editButton = viewChild<ElementRef<HTMLButtonElement>>('editButton');
+  // Vedle seznamu (od 1200 px) si návrat na seznam nese id poznámky pro fokus na její kartu
+  private readonly split = inject(Split, { optional: true });
+  protected readonly back = computed(() => (this.split?.wide() ? { focus: this.draft.noteId() } : undefined));
 
   protected readonly mode = signal<'edit' | 'view'>('edit');
   protected readonly actionFailed = signal(false);
@@ -521,9 +526,14 @@ export class NoteEditor implements OnInit {
 
   constructor() {
     afterNextRender(() => this.textarea()?.nativeElement.focus());
+    // Seznam vedle editoru se obnoví po uložení (nová poznámka, název, připnutí) i po zavření editoru a označí otevřenou poznámku
+    effect(() => {
+      this.split?.openId.set(this.draft.stored()?.id);
+      this.split?.saves.update((count) => count + 1);
+    });
     this.destroyRef.onDestroy(() => {
       clearTimeout(this.midnightTimer);
-      void this.draft.flush();
+      void this.draft.flush().then(() => this.split?.saves.update((count) => count + 1));
     });
   }
 
@@ -685,7 +695,7 @@ export class NoteEditor implements OnInit {
     this.draft.update(textarea.value);
   }
 
-  // Esc zpět na seznam (uloží se při zavření editoru), Ctrl+Enter přepne režim, Ctrl+Shift+L checklist
+  // Esc zpět na seznam se stejným pohledem a hledáním (uloží se při zavření editoru), Ctrl+Enter přepne režim, Ctrl+Shift+L checklist
   protected onKey(event: KeyboardEvent): void {
     if (!readShortcutsEnabled() || event.isComposing || event.defaultPrevented) {
       return;
@@ -696,7 +706,7 @@ export class NoteEditor implements OnInit {
       return;
     }
     if (event.key === 'Escape' && !ctrl && !event.shiftKey && !event.altKey) {
-      void this.router.navigate(['/notes']);
+      void this.router.navigate(['/notes'], { queryParamsHandling: 'preserve', state: this.back() });
     } else if (event.key === 'Enter' && ctrl && !event.shiftKey && !event.altKey && !event.repeat) {
       this.setMode(this.mode() === 'edit' ? 'view' : 'edit');
     } else if (event.code === 'KeyL' && ctrl && event.shiftKey && !event.altKey && !event.repeat && this.mode() === 'edit') {

@@ -1,8 +1,10 @@
 import {
   afterNextRender,
+  booleanAttribute,
   Component,
   computed,
   DestroyRef,
+  effect,
   ElementRef,
   inject,
   Injector,
@@ -10,6 +12,7 @@ import {
   linkedSignal,
   OnInit,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { Location, NgOptimizedImage, NgTemplateOutlet } from '@angular/common';
@@ -65,9 +68,10 @@ function dateLabel(iso: string, today: string): string {
 @Component({
   selector: 'tn-notes-list',
   host: {
-    '[class.with-templates]': 'templates().length > 0',
+    '[class.with-templates]': 'templates().length > 0 && !pane()',
     // Mřížka má na desktopu širší obsah (styles.scss)
-    '[class.grid]': 'grid()',
+    '[class.grid]': 'grid() && !pane()',
+    '[class.pane]': 'pane()',
     '(document:keydown)': 'onKey($event)',
     '(document:visibilitychange)': 'refreshToday()',
   },
@@ -75,38 +79,41 @@ function dateLabel(iso: string, today: string): string {
   template: `
     <tn-bottom-nav [current]="current().view" [q]="queryParam()" (leave)="flushQuery()" />
 
+    <!-- Vedle editoru (pane) bez nadpisu a filtrů, zůstává hledání a kompaktní řádky; panel tn-bottom-nav je na stránce jen tady -->
     <header class="header">
-      <div class="app-bar">
-        <div class="heading">
-          <p class="eyebrow">{{ countLine() }}</p>
-          <h1 #heading id="obsah" tabindex="-1">
-            <img class="app-logo" ngSrc="icons/icon-96x96.png" width="32" height="32" alt="" />
-            @if (current().view === 'notes') {
-              <span class="app-name">Tapnote<span class="visually-hidden"> – </span></span>
-              <span class="view-name visually-hidden">{{ current().label }}</span>
-            } @else {
-              {{ current().label }}
-            }
-          </h1>
+      @if (!pane()) {
+        <div class="app-bar">
+          <div class="heading">
+            <p class="eyebrow">{{ countLine() }}</p>
+            <h1 #heading id="obsah" tabindex="-1">
+              <img class="app-logo" ngSrc="icons/icon-96x96.png" width="32" height="32" alt="" />
+              @if (current().view === 'notes') {
+                <span class="app-name">Tapnote<span class="visually-hidden"> – </span></span>
+                <span class="view-name visually-hidden">{{ current().label }}</span>
+              } @else {
+                {{ current().label }}
+              }
+            </h1>
+          </div>
+          <a class="icon-btn" routerLink="/today" title="Dnešní poznámka" (click)="flushQuery()">
+            <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.calendar" /></svg>
+            <span class="visually-hidden">Dnešní poznámka</span>
+          </a>
+          <button
+            type="button"
+            class="icon-btn"
+            title="Mřížka"
+            [class.on]="grid()"
+            [attr.aria-pressed]="grid()"
+            (click)="toggleGrid()"
+          >
+            <svg class="icon" viewBox="0 0 256 256" aria-hidden="true">
+              <path [attr.d]="iconsRegular.grid" />
+            </svg>
+            <span class="visually-hidden">Mřížka</span>
+          </button>
         </div>
-        <a class="icon-btn" routerLink="/today" title="Dnešní poznámka" (click)="flushQuery()">
-          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.calendar" /></svg>
-          <span class="visually-hidden">Dnešní poznámka</span>
-        </a>
-        <button
-          type="button"
-          class="icon-btn"
-          title="Mřížka"
-          [class.on]="grid()"
-          [attr.aria-pressed]="grid()"
-          (click)="toggleGrid()"
-        >
-          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true">
-            <path [attr.d]="iconsRegular.grid" />
-          </svg>
-          <span class="visually-hidden">Mřížka</span>
-        </button>
-      </div>
+      }
       <div role="search" class="search">
         <svg class="icon" viewBox="0 0 256 256" aria-hidden="true">
           <path [attr.d]="icons.search" />
@@ -118,14 +125,14 @@ function dateLabel(iso: string, today: string): string {
           placeholder="Hledat"
           [value]="query()"
           (input)="onQuery(field.value)"
-          (keydown.escape)="onQuery('')"
+          (keydown.escape)="onQuery(''); pane() && $event.preventDefault()"
         />
         @if (shortcuts) {
           <kbd class="key-hint" aria-hidden="true">/</kbd>
           <kbd aria-hidden="true">Ctrl F</kbd>
         }
       </div>
-      @if (categories().length > 0) {
+      @if (!pane() && categories().length > 0) {
         <nav class="chips categories" aria-label="Kategorie">
           @for (item of categories(); track item.id) {
             <a
@@ -141,7 +148,7 @@ function dateLabel(iso: string, today: string): string {
           }
         </nav>
       }
-      @if (tags().length > 0) {
+      @if (!pane() && tags().length > 0) {
         <nav class="chips" aria-label="Tagy">
           @for (name of tags(); track name) {
             <a
@@ -219,7 +226,7 @@ function dateLabel(iso: string, today: string): string {
             <span aria-hidden="true">{{ group.items.length }}</span>
           </div>
         }
-        <ul class="notes" [class.grid]="grid()">
+        <ul class="notes" [class.grid]="grid() && !pane()">
           @for (item of group.items; track item.note.id) {
             <li
               [attr.data-id]="item.note.id"
@@ -234,7 +241,13 @@ function dateLabel(iso: string, today: string): string {
                   <ng-container [ngTemplateOutlet]="preview" [ngTemplateOutletContext]="{ $implicit: item }" />
                 </div>
               } @else {
-                <a class="body" [routerLink]="['/note', item.note.id]" (click)="flushQuery()">
+                <a
+                  class="body"
+                  [routerLink]="['/note', item.note.id]"
+                  queryParamsHandling="preserve"
+                  [attr.aria-current]="item.note.id === openId() ? 'page' : null"
+                  (click)="flushQuery()"
+                >
                   <span class="title">
                     @if (item.note.pinned) {
                       <span class="visually-hidden">Připnuto: </span>
@@ -249,67 +262,70 @@ function dateLabel(iso: string, today: string): string {
                   <ng-container [ngTemplateOutlet]="preview" [ngTemplateOutletContext]="{ $implicit: item }" />
                 </a>
               }
-              <button
-                type="button"
-                class="icon-btn actions"
-                [attr.popovertarget]="'menu-' + item.note.id"
-                [attr.aria-label]="'Akce pro ' + item.title"
-              >
-                <svg class="icon" viewBox="0 0 256 256" aria-hidden="true">
-                  <path [attr.d]="icons.more" />
-                </svg>
-              </button>
-              <div #menu class="menu" popover [id]="'menu-' + item.note.id" (toggle)="onMenuToggle($event)">
-                @if (current().view === 'trash') {
-                  <button type="button" (click)="run(item.note, 'restore', menu)">Obnovit</button>
-                  <button type="button" (click)="run(item.note, 'delete', menu)">Smazat trvale</button>
-                } @else {
-                  <button type="button" (click)="run(item.note, 'pin', menu)">
-                    {{ item.note.pinned ? 'Odepnout' : 'Připnout' }}
-                  </button>
-                  @if (item.note.archived) {
-                    <button type="button" (click)="run(item.note, 'unarchive', menu)">Vrátit z archivu</button>
+              <!-- Akce otevřené poznámky jsou v editoru vedle (jeho další uložení by je přepsalo) -->
+              @if (item.note.id !== openId()) {
+                <button
+                  type="button"
+                  class="icon-btn actions"
+                  [attr.popovertarget]="'menu-' + item.note.id"
+                  [attr.aria-label]="'Akce pro ' + item.title"
+                >
+                  <svg class="icon" viewBox="0 0 256 256" aria-hidden="true">
+                    <path [attr.d]="icons.more" />
+                  </svg>
+                </button>
+                <div #menu class="menu" popover [id]="'menu-' + item.note.id" (toggle)="onMenuToggle($event)">
+                  @if (current().view === 'trash') {
+                    <button type="button" (click)="run(item.note, 'restore', menu)">Obnovit</button>
+                    <button type="button" (click)="run(item.note, 'delete', menu)">Smazat trvale</button>
                   } @else {
-                    <button type="button" (click)="run(item.note, 'archive', menu)">Archivovat</button>
-                  }
-                  <button type="button" (click)="run(item.note, 'template', menu)">Uložit jako šablonu</button>
-                  <button type="button" (click)="run(item.note, 'trash', menu)">Smazat</button>
-                  <div class="swatches" role="group" aria-label="Barva">
-                    <button
-                      type="button"
-                      class="swatch none"
-                      aria-label="Bez barvy"
-                      [attr.aria-pressed]="colorVar(item.note.color) === null"
-                      (click)="run(item.note, 'color', menu)"
-                    ></button>
-                    @for (color of colors; track color.id) {
+                    <button type="button" (click)="run(item.note, 'pin', menu)">
+                      {{ item.note.pinned ? 'Odepnout' : 'Připnout' }}
+                    </button>
+                    @if (item.note.archived) {
+                      <button type="button" (click)="run(item.note, 'unarchive', menu)">Vrátit z archivu</button>
+                    } @else {
+                      <button type="button" (click)="run(item.note, 'archive', menu)">Archivovat</button>
+                    }
+                    <button type="button" (click)="run(item.note, 'template', menu)">Uložit jako šablonu</button>
+                    <button type="button" (click)="run(item.note, 'trash', menu)">Smazat</button>
+                    <div class="swatches" role="group" aria-label="Barva">
                       <button
                         type="button"
-                        class="swatch"
-                        [attr.aria-label]="color.label"
-                        [attr.aria-pressed]="item.note.color === color.id"
-                        [style.--swatch]="colorVar(color.id)"
-                        (click)="run(item.note, 'color', menu, color.id)"
+                        class="swatch none"
+                        aria-label="Bez barvy"
+                        [attr.aria-pressed]="colorVar(item.note.color) === null"
+                        (click)="run(item.note, 'color', menu)"
                       ></button>
-                    }
-                  </div>
-                  @if (categories().length > 0) {
-                    <div class="menu-categories" role="group" aria-label="Kategorie">
-                      @for (cat of categories(); track cat.id) {
+                      @for (color of colors; track color.id) {
                         <button
                           type="button"
-                          [style.--cat]="catVar(cat)"
-                          [attr.aria-pressed]="item.note.categoryId === cat.id"
-                          (click)="run(item.note, 'category', menu, undefined, item.note.categoryId === cat.id ? undefined : cat.id)"
-                        >
-                          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconPath(cat.icon)" /></svg>
-                          {{ cat.name }}
-                        </button>
+                          class="swatch"
+                          [attr.aria-label]="color.label"
+                          [attr.aria-pressed]="item.note.color === color.id"
+                          [style.--swatch]="colorVar(color.id)"
+                          (click)="run(item.note, 'color', menu, color.id)"
+                        ></button>
                       }
                     </div>
+                    @if (categories().length > 0) {
+                      <div class="menu-categories" role="group" aria-label="Kategorie">
+                        @for (cat of categories(); track cat.id) {
+                          <button
+                            type="button"
+                            [style.--cat]="catVar(cat)"
+                            [attr.aria-pressed]="item.note.categoryId === cat.id"
+                            (click)="run(item.note, 'category', menu, undefined, item.note.categoryId === cat.id ? undefined : cat.id)"
+                          >
+                            <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconPath(cat.icon)" /></svg>
+                            {{ cat.name }}
+                          </button>
+                        }
+                      </div>
+                    }
                   }
-                }
-              </div>
+                </div>
+              }
             </li>
           }
         </ul>
@@ -337,7 +353,7 @@ function dateLabel(iso: string, today: string): string {
       }
     }
 
-    @if (templates().length > 0) {
+    @if (!pane() && templates().length > 0) {
       <button type="button" class="icon-btn from-template" popovertarget="templates-menu" title="Ze šablony">
         <svg class="icon" viewBox="0 0 256 256" aria-hidden="true">
           <path [attr.d]="icons.template" />
@@ -353,10 +369,12 @@ function dateLabel(iso: string, today: string): string {
       </div>
     }
 
-    <a class="fab" routerLink="/new" aria-label="Nová poznámka" (click)="flushQuery()">
-      <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.plus" /></svg>
-      Nová
-    </a>
+    @if (!pane()) {
+      <a class="fab" routerLink="/new" aria-label="Nová poznámka" (click)="flushQuery()">
+        <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.plus" /></svg>
+        Nová
+      </a>
+    }
   `,
   styles: `
     :host {
@@ -810,6 +828,11 @@ export class NotesList implements OnInit {
   // Filtr podle kategorie z ?category=
   readonly category = input<string>();
   readonly q = input<string>();
+  // Kompaktní seznam vedle editoru (tn-split)
+  readonly pane = input(false, { transform: booleanAttribute });
+  // Počet uložení v editoru vedle seznamu a id poznámky v něm otevřené
+  readonly saves = input(0);
+  readonly openId = input<string>();
 
   private readonly repository = inject(NotesRepository);
   private readonly categoriesRepository = inject(CategoriesRepository);
@@ -821,9 +844,11 @@ export class NotesList implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly location = inject(Location);
+  // Po návratu z editoru vedle seznamu se fokus vrátí na kartu poznámky (bez ní na nadpis); navigace běží jen při vytvoření
+  private readonly returnFocus: unknown = this.router.currentNavigation()?.extras.state?.['focus'];
   private urlTimer?: ReturnType<typeof setTimeout>;
   private midnightTimer?: ReturnType<typeof setTimeout>;
-  private readonly heading = viewChild.required<ElementRef<HTMLElement>>('heading');
+  private readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
   private readonly field = viewChild.required<ElementRef<HTMLInputElement>>('field');
 
   protected readonly notes = signal<Note[]>([]);
@@ -915,16 +940,26 @@ export class NotesList implements OnInit {
   });
 
   constructor() {
+    // Po uložení v editoru vedle se seznam načte znovu (první načtení dělá ngOnInit)
+    effect(() => {
+      if (this.saves() > 0) {
+        untracked(() => void this.load());
+      }
+    });
     inject(DestroyRef).onDestroy(() => {
       clearTimeout(this.urlTimer);
       clearTimeout(this.midnightTimer);
     });
   }
 
-  ngOnInit(): Promise<void> {
+  async ngOnInit(): Promise<void> {
     this.query.set(this.q() ?? '');
     this.refreshToday();
-    return this.load();
+    await this.load();
+    const focus = this.returnFocus;
+    if (typeof focus === 'string') {
+      afterNextRender(() => this.restoreFocus(focus, -1, true), { injector: this.injector });
+    }
   }
 
   protected refreshToday(): void {
@@ -974,6 +1009,10 @@ export class NotesList implements OnInit {
     if (!readShortcutsEnabled() || event.isComposing || event.defaultPrevented) {
       return;
     }
+    // Vedle editoru jen s fokusem v seznamu, zkratky editoru zůstávají jeho
+    if (this.pane() && !this.host.contains(document.activeElement)) {
+      return;
+    }
     // Ctrl+F hledá v poznámkách místo hledání na stránce
     if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'f') {
       this.field().nativeElement.focus();
@@ -1002,7 +1041,7 @@ export class NotesList implements OnInit {
       case 'ArrowDown':
       case 'ArrowUp': {
         // Šipky jen na poznámce nebo bez fokusu; v nabídce ⋮, se Shiftem (výběr) a jinde zůstává výchozí chování
-        const free = active === document.body || active === this.heading().nativeElement;
+        const free = active === document.body || active === this.heading()?.nativeElement;
         if (event.shiftKey || active?.closest('.menu') || (!item && !free)) {
           return;
         }
@@ -1132,13 +1171,13 @@ export class NotesList implements OnInit {
       this.actionFailed.set(true);
     }
     await this.load();
-    afterNextRender(() => this.heading().nativeElement.focus(), { injector: this.injector });
+    afterNextRender(() => this.heading()?.nativeElement.focus(), { injector: this.injector });
   }
 
   // Fokus na tutéž poznámku, jinak na položku na stejné pozici, jinak na nadpis
   private restoreFocus(id: string, index: number, focusLink: boolean): void {
     const items = [...this.host.querySelectorAll<HTMLElement>('li[data-id]')];
     const target = items.find((item) => item.dataset['id'] === id) ?? items[Math.min(index, items.length - 1)];
-    (target?.querySelector<HTMLElement>(focusLink ? 'a.body, .actions' : '.actions') ?? this.heading().nativeElement).focus();
+    (target?.querySelector<HTMLElement>(focusLink ? 'a.body, .actions' : '.actions') ?? this.heading()?.nativeElement)?.focus();
   }
 }

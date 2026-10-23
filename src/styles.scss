@@ -895,6 +895,37 @@ body {
   }
 }
 
+// Seznam vedle editoru (tn-split): kompaktní řádky s jedním řádkem náhledu, bez checklistu a kategorie
+// (styly tady kvůli rozpočtu stylů komponenty); otevřená poznámka má obrys, ten zůstává i ve vysokém kontrastu
+tn-notes-list.pane {
+  .notes {
+    padding: 0 8px;
+  }
+
+  li {
+    margin-bottom: 4px;
+  }
+
+  .body {
+    gap: 2px;
+    padding: 10px 12px;
+  }
+
+  .snippet {
+    -webkit-line-clamp: 1;
+  }
+
+  .rows,
+  .note-cat {
+    display: none;
+  }
+}
+
+tn-notes-list li:has(> [aria-current='page']) {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
 // Hover jen pro ukazatel, který umí najet: karta se zvedne, řádek a ⋮ se zvýrazní (⋮ je vidět i bez hoveru)
 @media (hover: hover) {
   tn-notes-list .notes li:has(> a.body):hover {

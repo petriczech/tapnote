@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Location } from '@angular/common';
 import { provideRouter, Router } from '@angular/router';
+import { RouterTestingHarness } from '@angular/router/testing';
 import { LAST_BACKUP_KEY } from '../../core/backup/notes-backup';
 import { createNote, Note } from '../../core/model/note';
 import { SHORTCUTS_KEY } from '../../core/shortcuts/shortcuts';
@@ -26,7 +27,7 @@ describe('NotesList', () => {
   let fixture: ComponentFixture<NotesList>;
   let root: HTMLElement;
 
-  async function render(inputs: { view?: string; tag?: string; q?: string; category?: string } = {}): Promise<void> {
+  async function render(inputs: { view?: string; tag?: string; q?: string; category?: string; pane?: boolean; openId?: string } = {}): Promise<void> {
     fixture = TestBed.createComponent(NotesList);
     root = fixture.nativeElement;
     Object.entries(inputs).forEach(([name, value]) => fixture.componentRef.setInput(name, value));
@@ -580,6 +581,66 @@ describe('NotesList', () => {
     await vi.waitFor(() => expect(root.querySelector('[role="alert"]')?.textContent).toContain('nepodařilo'));
   });
 
+  describe('beside the editor (pane)', () => {
+    afterEach(() => localStorage.removeItem(LAYOUT_KEY));
+
+    it('shows compact rows without the heading, filters, FAB and template button and keeps one panel', async () => {
+      localStorage.setItem(LAYOUT_KEY, 'grid');
+      await repository.put(note('tpl', { isTemplate: true }));
+      await categories.put({ id: 'c1', name: 'Práce', icon: 'home', color: 'blue', order: 0, createdAt: '', updatedAt: '' });
+      await render({ pane: true });
+
+      expect(titles()).toEqual(['Poznámka new', 'Bez názvu', 'Poznámka old']);
+      expect(root.classList).toContain('pane');
+      expect(root.classList).not.toContain('grid');
+      expect(root.classList).not.toContain('with-templates');
+      expect(root.querySelector('ul.notes.grid')).toBeNull();
+      expect(root.querySelector('h1, #obsah, .chips, .fab, .from-template')).toBeNull();
+      expect(root.querySelector('input[type="search"]')).not.toBeNull();
+      expect(root.querySelectorAll('tn-bottom-nav')).toHaveLength(1);
+    });
+
+    it('keeps the view and search in card links', async () => {
+      await TestBed.inject(Router).navigateByUrl('/?view=archive&q=Pozn');
+      await render({ view: 'archive', q: 'Pozn', pane: true });
+
+      expect(root.querySelector('li[data-id="archived"] a.body')?.getAttribute('href')).toBe('/note/archived?view=archive&q=Pozn');
+    });
+
+    it('marks the note open in the editor and leaves its actions to the editor', async () => {
+      await render({ pane: true, openId: 'old' });
+      const link = root.querySelector<HTMLElement>('li[data-id="old"] a.body');
+
+      expect(link?.getAttribute('aria-current')).toBe('page');
+      expect(root.querySelector('li[data-id="old"] .actions, #menu-old')).toBeNull();
+      expect(root.querySelector('li[data-id="new"] a.body')?.hasAttribute('aria-current')).toBe(false);
+      link?.focus();
+      link?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true, cancelable: true }));
+      await fixture.whenStable();
+      expect(repository.notes.get('old')?.deletedAt).toBeUndefined();
+    });
+
+    it('clears the search with Escape without closing the editor', async () => {
+      await render({ pane: true, q: 'mléko' });
+      const search = root.querySelector('input[type="search"]') as HTMLInputElement;
+      const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+      search.dispatchEvent(event);
+      await fixture.whenStable();
+
+      expect(event.defaultPrevented).toBe(true);
+      expect(search.value).toBe('');
+    });
+  });
+
+  it('returns focus to the card of the note closed beside the list', async () => {
+    TestBed.inject(Router).resetConfig([{ path: 'notes', component: NotesList }]);
+    const harness = await RouterTestingHarness.create();
+    await TestBed.inject(Router).navigate(['/notes'], { state: { focus: 'old' } });
+    await harness.fixture.whenStable();
+
+    await vi.waitFor(() => expect(document.activeElement?.matches('li[data-id="old"] a.body')).toBe(true));
+  });
+
   describe('keyboard shortcuts', () => {
     afterEach(() => localStorage.removeItem(SHORTCUTS_KEY));
 
@@ -653,6 +714,21 @@ describe('NotesList', () => {
       expect(navigate).toHaveBeenCalledWith(['/new']);
       expect(navigate).toHaveBeenCalledWith(['/today']);
       expect(navigate).toHaveBeenCalledWith(['/settings'], { fragment: 'shortcuts' });
+    });
+
+    it('reacts beside the editor only with focus inside the list', async () => {
+      const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+      await render({ pane: true });
+
+      expect(press('n', document.body).defaultPrevented).toBe(false);
+      expect(press('/', document.body).defaultPrevented).toBe(false);
+      expect(navigate).not.toHaveBeenCalled();
+
+      root.querySelector<HTMLElement>('li[data-id="new"] a.body')?.focus();
+      press('ArrowDown');
+      expect(focusedId()).toBe('untitled');
+      press('n');
+      expect(navigate).toHaveBeenCalledWith(['/new']);
     });
 
     it('does nothing when turned off', async () => {

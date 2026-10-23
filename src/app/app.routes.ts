@@ -1,12 +1,20 @@
 import { Routes } from '@angular/router';
 import { openToday } from './core/notes/daily-note';
 import { NoteEditor } from './features/editor/note-editor';
+import { Split } from './features/list/split';
 
 export const routes: Routes = [
-  { path: '', component: NoteEditor, data: { resume: true } },
-  { path: 'new', component: NoteEditor },
+  // Rodič bez segmentu: od 1200 px vedle editoru seznam poznámek, URL beze změny
+  {
+    path: '',
+    component: Split,
+    children: [
+      { path: '', component: NoteEditor, data: { resume: true } },
+      { path: 'new', component: NoteEditor },
+      { path: 'note/:id', component: NoteEditor },
+    ],
+  },
   { path: 'today', children: [], canActivate: [openToday] },
-  { path: 'note/:id', component: NoteEditor },
   { path: 'note/:id/history', loadComponent: () => import('./features/editor/note-history').then((m) => m.NoteHistory) },
   { path: 'tasks', loadComponent: () => import('./features/tasks/tasks-page').then((m) => m.TasksPage) },
   { path: 'task/:id', loadComponent: () => import('./features/tasks/task-detail').then((m) => m.TaskDetail) },
