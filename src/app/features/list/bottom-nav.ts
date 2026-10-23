@@ -151,8 +151,8 @@ import { ICONS, ICONS_REGULAR } from '../../core/icons/icons';
         flex-direction: column;
         gap: 2px;
         box-sizing: border-box;
-        width: 84px;
-        padding: 14px 8px calc(14px + env(safe-area-inset-bottom));
+        width: calc(84px + env(safe-area-inset-left));
+        padding: 14px 8px calc(14px + env(safe-area-inset-bottom)) calc(8px + env(safe-area-inset-left));
         border-right: 1px solid var(--nav-border);
         background: var(--nav-bg);
         backdrop-filter: var(--glass-blur);
@@ -242,8 +242,8 @@ import { ICONS, ICONS_REGULAR } from '../../core/icons/icons';
     // Od 1200 px panel 256 px s popisky vedle ikon a „Nová poznámka“ jako tlačítko s přechodem
     @media (min-width: 1200px) {
       :host {
-        width: 256px;
-        padding: 18px 12px calc(16px + env(safe-area-inset-bottom));
+        width: calc(256px + env(safe-area-inset-left));
+        padding: 18px 12px calc(16px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
       }
 
       nav a,
@@ -290,10 +290,30 @@ import { ICONS, ICONS_REGULAR } from '../../core/icons/icons';
       }
     }
 
+    // Najetí myší zvýrazní odkaz jemným tónem (aktivní a „Nová poznámka“ mají vlastní plochu)
+    @media (hover: hover) {
+      nav a:not([aria-current]):hover,
+      .today:hover {
+        background: color-mix(in srgb, var(--on-surface) 5%, transparent);
+        color: var(--on-surface);
+      }
+    }
+
+    // Ve vysokém kontrastu se plocha „Nová poznámka“ zahodí, tvar tlačítka proto nese obrys
     @media (forced-colors: active) {
       a[aria-current] .pip {
         background: Highlight;
         forced-color-adjust: none;
+      }
+
+      .tile {
+        border: 1px solid ButtonText;
+      }
+
+      @media (min-width: 1200px) {
+        .new {
+          border: 1px solid ButtonText;
+        }
       }
     }
   `,

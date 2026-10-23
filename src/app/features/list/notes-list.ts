@@ -66,6 +66,8 @@ function dateLabel(iso: string, today: string): string {
   selector: 'tn-notes-list',
   host: {
     '[class.with-templates]': 'templates().length > 0',
+    // Mřížka má na desktopu širší obsah (styles.scss)
+    '[class.grid]': 'grid()',
     '(document:keydown)': 'onKey($event)',
     '(document:visibilitychange)': 'refreshToday()',
   },
@@ -394,10 +396,11 @@ function dateLabel(iso: string, today: string): string {
       outline: none;
     }
 
-    // Od 900 px nese značku panel: nadpis je jen „Poznámky“ a FAB nahradí „Nová poznámka“ v panelu
+    // Od 900 px nese značku panel: nadpis je jen „Poznámky“, FAB a „Dnešní poznámku“ v hlavičce nahradí odkazy v panelu
     @media (min-width: 900px) {
       .app-logo,
       .app-name,
+      .app-bar a,
       .fab {
         display: none;
       }
@@ -411,8 +414,8 @@ function dateLabel(iso: string, today: string): string {
     }
 
     .app-bar .icon-btn {
-      width: 44px;
-      height: 44px;
+      width: var(--target);
+      height: var(--target);
       border: 1px solid var(--glass-border);
       border-radius: 14px;
       background: var(--glass);
@@ -742,8 +745,8 @@ function dateLabel(iso: string, today: string): string {
       position: absolute;
       top: 2px;
       right: 2px;
-      width: 44px;
-      height: 44px;
+      width: var(--target);
+      height: var(--target);
     }
 
     .from-template {
@@ -753,6 +756,32 @@ function dateLabel(iso: string, today: string): string {
       background: var(--surface-high);
       color: var(--on-surface);
       box-shadow: 0 3px 8px rgb(0 0 0 / 25%);
+    }
+
+    // Od 900 px dole lišta ani FAB nejsou: „Ze šablony“ sedí 24 px nad spodkem, mřížka má sloupce podle šířky
+    @media (min-width: 900px) {
+      :host {
+        padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+      }
+
+      :host(.with-templates) {
+        padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+      }
+
+      .from-template {
+        bottom: calc(24px + env(safe-area-inset-bottom));
+      }
+
+      .notes.grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+        gap: 10px;
+        align-items: start;
+      }
+
+      .notes.grid li {
+        margin: 0;
+      }
     }
 
     // Ve vysokém kontrastu se zapnutý stav (tónovaná plocha, plný čtvereček) kreslí systémovými barvami

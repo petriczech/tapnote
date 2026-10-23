@@ -75,7 +75,7 @@ h1:focus:not(:focus-visible) {
   flex: none;
   align-items: center;
   gap: 6px;
-  min-height: 44px;
+  min-height: var(--target);
   padding: 0 12px;
   border: 1px solid var(--glass-border);
   border-radius: 14px;
@@ -141,7 +141,7 @@ h1:focus:not(:focus-visible) {
 .add input {
   flex: 1;
   min-width: 0;
-  min-height: 44px;
+  min-height: var(--target);
   border: 0;
   background: none;
   color: var(--on-surface);
@@ -159,8 +159,8 @@ h1:focus:not(:focus-visible) {
 .add-btn {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: var(--target);
+  height: var(--target);
   border: 0;
   border-radius: 13px;
   background: var(--grad);
@@ -183,7 +183,7 @@ h1:focus:not(:focus-visible) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 44px;
+  min-height: var(--target);
   padding: 0 12px;
   border: 1px dashed var(--outline);
   border-radius: 12px;
@@ -313,8 +313,8 @@ li.late::before {
   --c: var(--cat, var(--primary));
 
   flex: none;
-  width: 44px;
-  height: 44px;
+  width: var(--target);
+  height: var(--target);
   margin: 0;
   border-radius: 50%;
   background: radial-gradient(circle, transparent 9.5px, var(--c) 10px 11.5px, transparent 12px);
@@ -392,8 +392,8 @@ li.late::before {
 
 .star {
   flex: none;
-  width: 44px;
-  height: 44px;
+  width: var(--target);
+  height: var(--target);
 }
 
 .star.on {
@@ -448,8 +448,12 @@ details[open] summary::before {
   cursor: pointer;
 }
 
-// Od 900 px se FAB skryje, pole „Přidat úkol“ je vidět stále
+// Od 900 px se FAB skryje, pole „Přidat úkol“ je vidět stále; bez spodní lišty stačí menší odsazení
 @media (min-width: 900px) {
+  :host {
+    padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+  }
+
   .fab {
     display: none;
   }

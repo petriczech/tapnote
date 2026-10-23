@@ -4,6 +4,13 @@
   padding: env(safe-area-inset-top) 0 calc(172px + env(safe-area-inset-bottom));
 }
 
+// Od 900 px lišta dole není a FAB sedí 24 px nad spodkem (styles.scss)
+@media (min-width: 900px) {
+  :host {
+    padding-bottom: calc(104px + env(safe-area-inset-bottom));
+  }
+}
+
 // Drobečky „Nastavení ›“ nad velkým nadpisem jako ve Vzhledu
 .app-bar {
   padding: 8px 16px 0;

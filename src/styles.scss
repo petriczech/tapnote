@@ -71,6 +71,8 @@
   --radius-s: 12px;
   --radius-m: 16px;
   --radius-l: 24px;
+  // Velikost cíle ovládacích prvků; s myší na desktopu kompaktní (blok za vzhledy)
+  --target: 44px;
   // Obrys fokusu; Noir ho má sytější než primary
   --ring: var(--primary);
   // Rozostření pod pevnými vrstvami (lišta); jen Noir, ostatní vzhledy mají plné plochy
@@ -474,8 +476,8 @@
   --editor-bg: var(--surface-high);
   --editor-lines: repeating-linear-gradient(
     to bottom,
-    transparent 0 calc(1.55em - 1px),
-    var(--outline-variant) calc(1.55em - 1px) 1.55em
+    transparent 0 calc(1lh - 1px),
+    var(--outline-variant) calc(1lh - 1px) 1lh
   );
   --note-yellow: #fbe9a8;
   --note-blue: #d7e6ee;
@@ -574,21 +576,44 @@
   }
 }
 
+// Kompaktní cíle 40 px jen s myší na desktopu; dotyk (pointer: coarse) a úzké okno drží 44 px
+@media (min-width: 900px) and (pointer: fine) {
+  :root {
+    --target: 40px;
+  }
+}
+
 // Plovoucí spodní lišta a FAB nad ní nezakrývají prvek s fokusem (WCAG 2.4.11)
 html:has(tn-bottom-nav) {
   scroll-padding-bottom: calc(172px + env(safe-area-inset-bottom));
 }
 
-// Od 900 px se stránky odsadí od levé kolejnice (84 px), od 1200 px od panelu (256 px)
+// Od 900 px se stránky odsadí od levé kolejnice (84 px a výřez displeje), od 1200 px od panelu (256 px);
+// dole lišta není, místo stačí na FAB Kategorií a „Ze šablony“ 24 px nad spodkem
 @media (min-width: 900px) {
+  html:has(tn-bottom-nav) {
+    scroll-padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+
   html:has(tn-bottom-nav) body {
-    padding-left: 84px;
+    padding-left: calc(84px + env(safe-area-inset-left));
+  }
+
+  // Úkoly a seznam poznámek mají čtecí šířku, mřížka poznámek širší obsah; obojí na střed plochy vedle panelu
+  tn-notes-list,
+  tn-tasks-page {
+    max-width: 760px;
+    margin-inline: auto;
+  }
+
+  tn-notes-list.grid {
+    max-width: 1240px;
   }
 }
 
 @media (min-width: 1200px) {
   html:has(tn-bottom-nav) body {
-    padding-left: 256px;
+    padding-left: calc(256px + env(safe-area-inset-left));
   }
 }
 
@@ -610,6 +635,16 @@ body {
     radial-gradient(circle 300px at 100% 100%, var(--blob-3), transparent);
   content: '';
   pointer-events: none;
+}
+
+// Na desktopu se záře škáluje podle plochy (elipsy v %), aby na širokém okně nezůstala jen v rozích
+@media (min-width: 900px) {
+  :root:not([data-theme], [data-ambient='off']) body::before {
+    background:
+      radial-gradient(ellipse 42% 58% at 100% 0%, var(--blob-1), transparent 70%),
+      radial-gradient(ellipse 30% 55% at 0% 38%, var(--blob-2), transparent 70%),
+      radial-gradient(ellipse 40% 50% at 92% 100%, var(--blob-3), transparent 70%);
+  }
 }
 
 // Řádek nad nadpisem stránky (datum, počet) jako v návrhu D
@@ -680,7 +715,7 @@ body {
   flex: none;
   align-items: center;
   gap: 6px;
-  min-height: 44px;
+  min-height: var(--target);
   padding: 0 14px;
   border: 1px solid var(--glass-border);
   border-radius: var(--chip-radius);
@@ -807,6 +842,63 @@ body {
   font-weight: 600;
   text-decoration: none;
   box-shadow: 0 3px 8px rgb(0 0 0 / 25%);
+}
+
+// Od 900 px dole lišta není, FAB (zůstává jen v Kategoriích) sedí níž
+@media (min-width: 900px) {
+  .fab {
+    bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+}
+
+// S myší na desktopu se zmenší ikonová tlačítka a položky nabídek (za základními pravidly kvůli pořadí)
+@media (min-width: 900px) and (pointer: fine) {
+  .icon-btn {
+    width: var(--target);
+    height: var(--target);
+  }
+
+  .menu button,
+  .menu a {
+    min-height: var(--target);
+  }
+}
+
+// Hover jen pro ukazatel, který umí najet: karta se zvedne, řádek a ⋮ se zvýrazní (⋮ je vidět i bez hoveru)
+@media (hover: hover) {
+  tn-notes-list .notes li:has(> a.body):hover {
+    border-color: var(--outline);
+  }
+
+  // Grafit má řádky místo karet: jen obrys, bez zvednutí a stínu přes sousední řádky
+  :root:not([data-theme='graphite']) tn-notes-list .notes li:has(> a.body):hover {
+    z-index: 1;
+    transform: translateY(-2px);
+    box-shadow:
+      0 2px 4px rgb(0 0 0 / 10%),
+      0 18px 40px -16px rgb(0 0 0 / 45%);
+  }
+
+  tn-notes-list .notes li.colored:has(> a.body):hover {
+    border-top-color: var(--note-edge);
+  }
+
+  tn-notes-list .notes li:hover .actions {
+    background: color-mix(in srgb, var(--on-surface) 8%, transparent);
+    color: var(--on-surface);
+  }
+
+  tn-tasks-page .tasks li:hover {
+    border-color: var(--outline);
+  }
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  tn-notes-list .notes li {
+    transition:
+      transform 0.15s,
+      box-shadow 0.15s;
+  }
 }
 
 :focus-visible {

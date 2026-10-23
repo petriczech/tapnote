@@ -219,7 +219,7 @@ type EditorAction = 'pin' | 'archive' | 'template' | 'trash' | 'color' | 'catego
     .tool {
       box-sizing: border-box;
       flex: none;
-      height: 44px;
+      height: var(--target);
       border: 1px solid var(--glass-border);
       border-radius: 14px;
       background: var(--glass);
@@ -227,7 +227,7 @@ type EditorAction = 'pin' | 'archive' | 'template' | 'trash' | 'color' | 'catego
     }
 
     .toolbar .icon-btn {
-      width: 44px;
+      width: var(--target);
     }
 
     .tool {
@@ -425,6 +425,23 @@ type EditorAction = 'pin' | 'archive' | 'template' | 'trash' | 'color' | 'catego
       bottom: calc(92px + env(safe-area-inset-bottom));
       margin: 0;
       color: var(--error);
+    }
+
+    /* Od 900 px čtecí šířka 720 px na střed (posuvník a pozadí zůstávají přes celé okno) a volnější řádkování */
+    @media (min-width: 900px) {
+      .toolbar {
+        padding-inline: max(12px, calc(50% - 348px));
+      }
+
+      .editor,
+      .view {
+        padding-inline: max(22px, calc(50% - 338px));
+        line-height: 1.65;
+      }
+
+      .backlinks {
+        margin-inline: max(16px, calc(50% - 360px));
+      }
     }
 
     /* Ve vysokém kontrastu se přechod zahodí, tlačítko proto dostane obrys */
