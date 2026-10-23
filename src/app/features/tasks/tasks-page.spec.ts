@@ -171,6 +171,25 @@ describe('TasksPage', () => {
     expect(root.querySelector('[aria-live="polite"]')?.textContent).toBe('Úkol Úkol eeeee hotov');
   });
 
+  it('skips the task open in the detail beside the list and focuses the quick-add field', async () => {
+    await repository.put(task('eeeee', { myDay: TODAY }));
+    fixture = TestBed.createComponent(TasksPage);
+    root = fixture.nativeElement;
+    fixture.componentRef.setInput('pane', true);
+    fixture.componentRef.setInput('openId', 'a');
+    await fixture.whenStable();
+    await vi.waitFor(() => expect(root.querySelector('li[data-id="eeeee"] .check')).not.toBeNull());
+    const first = root.querySelector<HTMLInputElement>('li[data-id="eeeee"] .check') as HTMLInputElement;
+    first.focus();
+
+    first.click();
+    await vi.waitFor(() => expect(repository.tasks.get('eeeee')?.done).toBe(true));
+    await fixture.whenStable();
+
+    expect(root.querySelector<HTMLInputElement>('li[data-id="a"] .check')?.disabled).toBe(true);
+    await vi.waitFor(() => expect(document.activeElement).toBe(root.querySelector('.add input')));
+  });
+
   it('filters by category and adds new tasks to the filtered category', async () => {
     fixture = TestBed.createComponent(TasksPage);
     root = fixture.nativeElement;

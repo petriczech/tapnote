@@ -184,7 +184,7 @@ describe('TaskDetail', () => {
     (root.querySelector('.danger') as HTMLButtonElement).click();
 
     await vi.waitFor(() => expect(stored().deletedAt).toBeDefined());
-    expect(navigate).toHaveBeenCalledWith(['/tasks']);
+    expect(navigate).toHaveBeenCalledWith(['/tasks'], { queryParamsHandling: 'preserve' });
   });
 
   it('returns to the list for an unknown or trashed task', async () => {

@@ -11,6 +11,7 @@ import { VersionsRepository } from '../../core/storage/versions-repository';
 import { InMemoryVersionsRepository } from '../../core/storage/testing/in-memory-versions-repository';
 import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { InMemoryCategoriesRepository } from '../../core/storage/testing/in-memory-categories-repository';
+import { SHORTCUTS, SHORTCUTS_KEY } from '../../core/shortcuts/shortcuts';
 
 describe('NoteEditor', () => {
   let repository: InMemoryNotesRepository;
@@ -260,12 +261,34 @@ describe('NoteEditor', () => {
       const fixture = TestBed.createComponent(NoteEditor);
       await fixture.whenStable();
       const root: HTMLElement = fixture.nativeElement;
-      expect([...toolbarOf(root).querySelectorAll('button')].map((button) => button.textContent?.trim())).toEqual(['Checklist', 'Tag', 'Barva']);
+      expect(
+        [...toolbarOf(root).querySelectorAll('button')].map((button) =>
+          button.textContent?.replace(button.querySelector('kbd')?.textContent ?? '', '').trim(),
+        ),
+      ).toEqual(['Checklist', 'Tag', 'Barva']);
 
       type(textareaOf(root), 'ahoj');
       await fixture.debugElement.injector.get(NoteDraft).flush();
       await fixture.whenStable();
       expect(buttonOf(toolbarOf(root), 'Další akce').getAttribute('popovertarget')).toBe('more-menu');
+    });
+
+    it('shows the Checklist shortcut hint only with shortcuts on', async () => {
+      const fixture = TestBed.createComponent(NoteEditor);
+      await fixture.whenStable();
+      const hint = buttonOf(toolbarOf(fixture.nativeElement), 'Checklist').querySelector('kbd.key-hint');
+      expect(hint?.textContent).toBe('Ctrl + Shift + L');
+      expect(hint?.getAttribute('aria-hidden')).toBe('true');
+      expect(SHORTCUTS.some((item) => item.keys === hint?.textContent)).toBe(true);
+
+      localStorage.setItem(SHORTCUTS_KEY, 'off');
+      try {
+        const off = TestBed.createComponent(NoteEditor);
+        await off.whenStable();
+        expect(toolbarOf(off.nativeElement).querySelector('kbd')).toBeNull();
+      } finally {
+        localStorage.removeItem(SHORTCUTS_KEY);
+      }
     });
 
     it('inserts # at the cursor, with a space after a word', async () => {

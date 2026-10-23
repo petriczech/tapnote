@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router, RouteReuseStrategy, withComponentInputBinding } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { createNote } from '../../core/model/note';
+import { createTask } from '../../core/model/task';
 import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { NotesRepository } from '../../core/storage/notes-repository';
 import { TasksRepository } from '../../core/storage/tasks-repository';
@@ -12,6 +13,8 @@ import { InMemoryVersionsRepository } from '../../core/storage/testing/in-memory
 import { VersionsRepository } from '../../core/storage/versions-repository';
 import { NoteEditor } from '../editor/note-editor';
 import { ParamsRouteReuseStrategy } from '../../params-route-reuse-strategy';
+import { TaskDetail } from '../tasks/task-detail';
+import { TasksPage } from '../tasks/tasks-page';
 import { Split } from './split';
 
 describe('Split', () => {
@@ -161,5 +164,155 @@ describe('Split', () => {
     textarea(root).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
 
     expect(navigate).toHaveBeenCalledWith(['/notes'], { queryParamsHandling: 'preserve', state: { focus: 'a' } });
+  });
+});
+
+describe('Split with tasks', () => {
+  let wide: boolean;
+  let listeners: ((event: { matches: boolean }) => void)[];
+  let tasks: InMemoryTasksRepository;
+
+  beforeEach(async () => {
+    wide = true;
+    listeners = [];
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      get matches() {
+        return query.includes('1200') ? wide : false;
+      },
+      addEventListener: (_: string, listener: (event: { matches: boolean }) => void) => listeners.push(listener),
+      removeEventListener: (_: string, listener: (event: { matches: boolean }) => void) =>
+        (listeners = listeners.filter((item) => item !== listener)),
+    }));
+    tasks = new InMemoryTasksRepository();
+    await tasks.put({ ...createTask('a', 'První úkol', '2026-10-15T10:00:00.000Z'), important: true });
+    await tasks.put(createTask('b', 'Druhý úkol', '2026-10-15T11:00:00.000Z'));
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter(
+          [
+            { path: '', component: Split, data: { list: 'tasks' }, children: [{ path: 'task/:id', component: TaskDetail }] },
+            { path: 'tasks', component: TasksPage },
+          ],
+          withComponentInputBinding(),
+        ),
+        { provide: RouteReuseStrategy, useClass: ParamsRouteReuseStrategy },
+        { provide: TasksRepository, useValue: tasks },
+        { provide: CategoriesRepository, useClass: InMemoryCategoriesRepository },
+      ],
+    });
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  async function open(url: string): Promise<{ harness: RouterTestingHarness; root: HTMLElement }> {
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl(url);
+    const root: HTMLElement = harness.fixture.nativeElement;
+    await vi.waitFor(() => expect(root.querySelector('tn-tasks-page li[data-id="a"]')).not.toBeNull());
+    return { harness, root };
+  }
+
+  const title = (root: HTMLElement) => root.querySelector<HTMLTextAreaElement>('tn-task-detail textarea.title');
+  const row = (root: HTMLElement, id: string) => root.querySelector(`tn-tasks-page li[data-id="${id}"]`) as HTMLElement;
+
+  it('shows the tasks list beside the detail with one panel and one skip target', async () => {
+    const { root } = await open('/task/a?view=all');
+
+    const list = root.querySelector('section.list');
+    expect(root.querySelector('tn-split')?.classList).toContain('tasks');
+    expect(list?.getAttribute('aria-label')).toBe('Úkoly');
+    expect(list?.querySelector('tn-tasks-page')?.classList).toContain('pane');
+    expect(root.querySelectorAll('[id="obsah"]')).toHaveLength(1);
+    expect(root.querySelector('#obsah')).toBe(list);
+    expect(root.querySelectorAll('tn-bottom-nav')).toHaveLength(1);
+    expect(root.querySelector('tn-tasks-page .fab, tn-tasks-page h1, tn-tasks-page nav.views, tn-tasks-page nav.filters')).toBeNull();
+    await vi.waitFor(() => expect(title(root)?.value).toBe('První úkol'));
+    expect(row(root, 'b').querySelector('a.title')?.getAttribute('href')).toBe('/task/b?view=all');
+  });
+
+  it('marks the open task and leaves its checkbox and star to the detail', async () => {
+    const { root } = await open('/task/a?view=all');
+
+    await vi.waitFor(() => expect(row(root, 'a').querySelector('a.title')?.getAttribute('aria-current')).toBe('page'));
+    expect(row(root, 'a').querySelector<HTMLInputElement>('.check')?.disabled).toBe(true);
+    expect(row(root, 'a').querySelector<HTMLButtonElement>('.star')?.disabled).toBe(true);
+    expect(row(root, 'b').querySelector('a.title')?.hasAttribute('aria-current')).toBe(false);
+    expect(row(root, 'b').querySelector<HTMLInputElement>('.check')?.disabled).toBe(false);
+    expect(row(root, 'b').querySelector<HTMLButtonElement>('.star')?.disabled).toBe(false);
+  });
+
+  it('keeps the layout and the list and creates a new detail for another task', async () => {
+    const { harness, root } = await open('/task/a?view=all');
+    const split = root.querySelector('tn-split');
+    const list = root.querySelector('tn-tasks-page');
+    const detail = root.querySelector('tn-task-detail');
+
+    await harness.navigateByUrl('/task/b?view=all');
+    await vi.waitFor(() => expect(title(root)?.value).toBe('Druhý úkol'));
+
+    expect(root.querySelector('tn-split')).toBe(split);
+    expect(root.querySelector('tn-tasks-page')).toBe(list);
+    expect(root.querySelector('tn-task-detail')).not.toBe(detail);
+    await vi.waitFor(() => expect(row(root, 'b').querySelector('a.title')?.getAttribute('aria-current')).toBe('page'));
+    expect(row(root, 'a').querySelector<HTMLInputElement>('.check')?.disabled).toBe(false);
+  });
+
+  it('refreshes the list after a change in the detail', async () => {
+    const { root } = await open('/task/a?view=all');
+    await vi.waitFor(() => expect(title(root)?.value).toBe('První úkol'));
+
+    const field = title(root) as HTMLTextAreaElement;
+    field.value = 'Přejmenovaný úkol';
+    field.dispatchEvent(new Event('input'));
+
+    await vi.waitFor(() => expect(row(root, 'a').querySelector('a.title')?.textContent?.trim()).toBe('Přejmenovaný úkol'), {
+      timeout: 3000,
+    });
+  });
+
+  it('removes and returns the list across 1200 px without touching the typed title', async () => {
+    const { harness, root } = await open('/task/a?view=all');
+    await vi.waitFor(() => expect(title(root)?.value).toBe('První úkol'));
+    const field = title(root) as HTMLTextAreaElement;
+    field.focus();
+    field.value = 'Rozepsaný název';
+    field.dispatchEvent(new Event('input'));
+
+    listeners.forEach((listener) => listener({ matches: false }));
+    await harness.fixture.whenStable();
+    expect(root.querySelector('tn-tasks-page, section.list')).toBeNull();
+    expect(title(root)).toBe(field);
+    expect(document.activeElement).toBe(field);
+
+    listeners.forEach((listener) => listener({ matches: true }));
+    await harness.fixture.whenStable();
+    await vi.waitFor(() => expect(root.querySelector('tn-tasks-page')).not.toBeNull());
+    expect(title(root)).toBe(field);
+    expect(field.value).toBe('Rozepsaný název');
+    expect(document.activeElement).toBe(field);
+    await vi.waitFor(() => expect(tasks.tasks.get('a')?.title).toBe('Rozepsaný název'));
+  });
+
+  it('renders only the detail in a narrow window', async () => {
+    wide = false;
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/task/a');
+    const root: HTMLElement = harness.fixture.nativeElement;
+    await vi.waitFor(() => expect(title(root)?.value).toBe('První úkol'));
+
+    expect(root.querySelector('tn-tasks-page, section.list, tn-bottom-nav')).toBeNull();
+    expect(root.querySelector('tn-task-detail a.icon-btn')?.getAttribute('href')).toBe('/tasks');
+  });
+
+  it('returns from the detail to the list with focus on the task title', async () => {
+    const { harness, root } = await open('/task/b?view=all');
+    await vi.waitFor(() => expect(title(root)?.value).toBe('Druhý úkol'));
+
+    (root.querySelector('tn-task-detail a.icon-btn') as HTMLAnchorElement).click();
+    await harness.fixture.whenStable();
+
+    expect(TestBed.inject(Router).url).toBe('/tasks?view=all');
+    await vi.waitFor(() => expect(document.activeElement).toBe(root.querySelector('tn-tasks-page li[data-id="b"] a.title')));
+    expect(root.querySelector('tn-split')).toBeNull();
   });
 });

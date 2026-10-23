@@ -1,6 +1,20 @@
-import { afterNextRender, Component, computed, DestroyRef, ElementRef, inject, Injector, input, OnInit, signal } from '@angular/core';
+import {
+  afterNextRender,
+  booleanAttribute,
+  Component,
+  computed,
+  DestroyRef,
+  effect,
+  ElementRef,
+  inject,
+  Injector,
+  input,
+  OnInit,
+  signal,
+  untracked,
+} from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { Category } from '../../core/model/category';
 import { categoryIconPath } from '../../core/model/category-icons';
 import { Task } from '../../core/model/task';
@@ -18,62 +32,65 @@ const CONFETTI_MS = 800;
 @Component({
   selector: 'tn-tasks-page',
   imports: [BottomNav, Confetti, NgTemplateOutlet, RouterLink],
-  host: { '(document:visibilitychange)': 'refreshToday()' },
+  host: { '(document:visibilitychange)': 'refreshToday()', '[class.pane]': 'pane()' },
   template: `
     <tn-bottom-nav current="tasks" />
 
-    <header class="header">
-      <div class="app-bar">
-        <div>
-          <p class="eyebrow">{{ dateLine() }}</p>
-          <h1 id="obsah" tabindex="-1">{{ heading()[0] }}@if (heading()[1]) {<span class="title-accent">{{ heading()[1] }}</span>}</h1>
+    <!-- Vedle detailu (pane) bez nadpisu, pohledů a kategorií: odkazy na /tasks by detail zavřely; panel tn-bottom-nav je na stránce jen tady -->
+    @if (!pane()) {
+      <header class="header">
+        <div class="app-bar">
+          <div>
+            <p class="eyebrow">{{ dateLine() }}</p>
+            <h1 id="obsah" tabindex="-1">{{ heading()[0] }}@if (heading()[1]) {<span class="title-accent">{{ heading()[1] }}</span>}</h1>
+          </div>
+          @if (progress().total > 0) {
+            <span class="ring" role="img" [attr.aria-label]="'Hotovo ' + progress().done + ' z ' + progress().total">
+              <svg viewBox="0 0 52 52" aria-hidden="true">
+                <circle class="track" cx="26" cy="26" r="22" pathLength="100" />
+                <circle class="value" cx="26" cy="26" r="22" pathLength="100" [attr.stroke-dasharray]="progress().dash + ' 100'" />
+              </svg>
+              <span aria-hidden="true">{{ progress().done }}/{{ progress().total }}</span>
+            </span>
+          }
         </div>
-        @if (progress().total > 0) {
-          <span class="ring" role="img" [attr.aria-label]="'Hotovo ' + progress().done + ' z ' + progress().total">
-            <svg viewBox="0 0 52 52" aria-hidden="true">
-              <circle class="track" cx="26" cy="26" r="22" pathLength="100" />
-              <circle class="value" cx="26" cy="26" r="22" pathLength="100" [attr.stroke-dasharray]="progress().dash + ' 100'" />
-            </svg>
-            <span aria-hidden="true">{{ progress().done }}/{{ progress().total }}</span>
-          </span>
-        }
-      </div>
-      <nav class="views" aria-label="Pohledy úkolů">
-        @for (item of views; track item.view) {
-          <a
-            routerLink="/tasks"
-            queryParamsHandling="merge"
-            [queryParams]="{ view: item.view === 'today' ? null : item.view }"
-            [attr.aria-current]="item.view === current().view ? 'page' : null"
-          >
-            {{ item.label }} <span class="count">{{ counts()[item.view] }}</span>
-          </a>
-        }
-      </nav>
-      @if (categories().length > 0) {
-        <nav class="filters" aria-label="Kategorie">
-          <a
-            routerLink="/tasks"
-            queryParamsHandling="merge"
-            [queryParams]="{ category: null }"
-            [attr.aria-current]="filter() === undefined ? 'true' : null"
-            >Vše</a
-          >
-          @for (item of categories(); track item.id) {
+        <nav class="views" aria-label="Pohledy úkolů">
+          @for (item of views; track item.view) {
             <a
               routerLink="/tasks"
               queryParamsHandling="merge"
-              [queryParams]="{ category: item.id }"
-              [style.--cat]="catVar(item)"
-              [attr.aria-current]="filter()?.id === item.id ? 'true' : null"
+              [queryParams]="{ view: item.view === 'today' ? null : item.view }"
+              [attr.aria-current]="item.view === current().view ? 'page' : null"
             >
-              <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconPath(item.icon)" /></svg>
-              {{ item.name }}
+              {{ item.label }} <span class="count">{{ counts()[item.view] }}</span>
             </a>
           }
         </nav>
-      }
-    </header>
+        @if (categories().length > 0) {
+          <nav class="filters" aria-label="Kategorie">
+            <a
+              routerLink="/tasks"
+              queryParamsHandling="merge"
+              [queryParams]="{ category: null }"
+              [attr.aria-current]="filter() === undefined ? 'true' : null"
+              >Vše</a
+            >
+            @for (item of categories(); track item.id) {
+              <a
+                routerLink="/tasks"
+                queryParamsHandling="merge"
+                [queryParams]="{ category: item.id }"
+                [style.--cat]="catVar(item)"
+                [attr.aria-current]="filter()?.id === item.id ? 'true' : null"
+              >
+                <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconPath(item.icon)" /></svg>
+                {{ item.name }}
+              </a>
+            }
+          </nav>
+        }
+      </header>
+    }
 
     <form class="add" (submit)="add($event, title)">
       <input
@@ -147,9 +164,23 @@ const CONFETTI_MS = 800;
         [class.late]="!task.done && task.dueDate && task.dueDate < today()"
         [style.--cat]="catVar(categoryOf(task))"
       >
-        <input type="checkbox" class="check" [checked]="task.done" [attr.aria-label]="'Hotovo: ' + task.title" (change)="toggleDone(task, $event)" />
+        <!-- Úkol otevřený v detailu vedle se mění jen tam (jinak by detail ukládal ze starého stavu) -->
+        <input
+          type="checkbox"
+          class="check"
+          [checked]="task.done"
+          [disabled]="task.id === openId()"
+          [attr.aria-label]="'Hotovo: ' + task.title"
+          (change)="toggleDone(task, $event)"
+        />
         <div class="body">
-          <a class="title" [routerLink]="['/task', task.id]">{{ task.title }}</a>
+          <a
+            class="title"
+            [routerLink]="['/task', task.id]"
+            queryParamsHandling="preserve"
+            [attr.aria-current]="task.id === openId() ? 'page' : null"
+            >{{ task.title }}</a
+          >
           @if (meta(task)) {
             <span class="meta">
               @if (task.dueDate) {
@@ -172,6 +203,7 @@ const CONFETTI_MS = 800;
           type="button"
           class="icon-btn star"
           [class.on]="task.important"
+          [disabled]="task.id === openId()"
           [attr.aria-pressed]="task.important"
           [attr.aria-label]="'Důležité: ' + task.title"
           (click)="toggleImportant(task)"
@@ -206,10 +238,12 @@ const CONFETTI_MS = 800;
       <tn-confetti [x]="burst.x" [y]="burst.y" />
     }
 
-    <button type="button" class="fab" aria-label="Přidat nový úkol" (click)="focusAdd(title)">
-      <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.plus" /></svg>
-      Nový
-    </button>
+    @if (!pane()) {
+      <button type="button" class="fab" aria-label="Přidat nový úkol" (click)="focusAdd(title)">
+        <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.plus" /></svg>
+        Nový
+      </button>
+    }
   `,
   styleUrl: './tasks-page.scss',
 })
@@ -219,12 +253,19 @@ export class TasksPage implements OnInit {
   readonly view = input<string>();
   // Filtr podle kategorie z ?category=
   readonly category = input<string>();
+  // Seznam vedle detailu úkolu (tn-split)
+  readonly pane = input(false, { transform: booleanAttribute });
+  // Počet uložení v detailu vedle seznamu a id úkolu v něm otevřeného
+  readonly saves = input(0);
+  readonly openId = input<string>();
 
   private readonly repository = inject(TasksRepository);
   private readonly categoriesRepository = inject(CategoriesRepository);
   private readonly actions = inject(TaskActions);
   private readonly host: HTMLElement = inject(ElementRef).nativeElement;
   private readonly injector = inject(Injector);
+  // Po návratu z detailu vedle seznamu se fokus vrátí na název úkolu; navigace běží jen při vytvoření
+  private readonly returnFocus: unknown = inject(Router).currentNavigation()?.extras.state?.['focus'];
 
   protected readonly views = TASK_VIEWS;
 
@@ -240,6 +281,12 @@ export class TasksPage implements OnInit {
   private midnightTimer?: ReturnType<typeof setTimeout>;
 
   constructor() {
+    // Po uložení v detailu vedle se seznam načte znovu (první načtení dělá ngOnInit)
+    effect(() => {
+      if (this.saves() > 0) {
+        untracked(() => void this.load());
+      }
+    });
     inject(DestroyRef).onDestroy(() => {
       clearTimeout(this.burstTimer);
       clearTimeout(this.midnightTimer);
@@ -289,9 +336,15 @@ export class TasksPage implements OnInit {
     return { done: done.length, total, dash: total ? Math.round((done.length / total) * 100) : 0 };
   });
 
-  ngOnInit(): Promise<void> {
+  async ngOnInit(): Promise<void> {
     this.refreshToday();
-    return this.load();
+    await this.load();
+    const focus = this.returnFocus;
+    if (typeof focus === 'string') {
+      afterNextRender(() => this.host.querySelector<HTMLElement>(`li[data-id="${CSS.escape(focus)}"] .title`)?.focus(), {
+        injector: this.injector,
+      });
+    }
   }
 
   protected get dueMenu(): HTMLElement {
@@ -430,15 +483,15 @@ export class TasksPage implements OnInit {
   }
 
   // Úkol se po změně může přesunout (do sbalených Hotových, z pohledu Důležité): fokus pak na otevřený úkol
-  // na stejné pozici, bez úkolů na nadpis
+  // na stejné pozici (ne zakázaný úkol otevřený v detailu vedle), bez úkolů na nadpis, v pane na pole nového úkolu
   private focusTask(id: string, selector: string, index: number): void {
     afterNextRender(
       () => {
         const target = this.host.querySelector<HTMLElement>(`li[data-id="${id}"] ${selector}`);
         const open = [...this.host.querySelectorAll<HTMLElement>('ul[aria-label="Úkoly"] li')];
-        const neighbour = open[Math.min(Math.max(index, 0), open.length - 1)]?.querySelector<HTMLElement>(selector);
+        const neighbour = open[Math.min(Math.max(index, 0), open.length - 1)]?.querySelector<HTMLElement>(`${selector}:not(:disabled)`);
         const visible = target && !target.closest('details:not([open])');
-        (visible ? target : (neighbour ?? this.host.querySelector<HTMLElement>('h1')))?.focus();
+        (visible ? target : (neighbour ?? this.host.querySelector<HTMLElement>('h1, .add input')))?.focus();
       },
       { injector: this.injector },
     );

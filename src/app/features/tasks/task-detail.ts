@@ -1,4 +1,4 @@
-import { afterNextRender, Component, computed, DestroyRef, ElementRef, inject, Injector, input, OnInit, signal } from '@angular/core';
+import { afterNextRender, Component, computed, DestroyRef, effect, ElementRef, inject, Injector, input, OnInit, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { Category } from '../../core/model/category';
 import { Task, TaskStep } from '../../core/model/task';
@@ -6,6 +6,7 @@ import { localDate } from '../../core/model/task-query';
 import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { TasksRepository } from '../../core/storage/tasks-repository';
 import { TaskActions } from '../../core/tasks/task-actions';
+import { Split } from '../list/split';
 import { ICONS, ICONS_FILL, ICONS_REGULAR } from '../../core/icons/icons';
 
 type TaskChanges = Parameters<TaskActions['update']>[1];
@@ -24,7 +25,7 @@ const TEXT_DEBOUNCE_MS = 400;
   template: `
     <!-- Horní lišta jako v editoru: zpět, stav uložení, Smazat -->
     <div class="toolbar">
-      <a class="icon-btn" routerLink="/tasks" title="Úkoly">
+      <a class="icon-btn" routerLink="/tasks" queryParamsHandling="preserve" [state]="back()" title="Úkoly">
         <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.back" /></svg>
         <span class="visually-hidden">Úkoly</span>
       </a>
@@ -129,6 +130,9 @@ export class TaskDetail implements OnInit {
   private readonly categoriesRepository = inject(CategoriesRepository);
   private readonly actions = inject(TaskActions);
   private readonly router = inject(Router);
+  // Vedle seznamu (od 1200 px) si návrat na seznam nese id úkolu pro fokus na jeho řádek
+  private readonly split = inject(Split, { optional: true });
+  protected readonly back = computed(() => (this.split?.wide() ? { focus: this.id() } : undefined));
 
   protected readonly today = localDate(new Date());
 
@@ -155,7 +159,12 @@ export class TaskDetail implements OnInit {
   private saving = Promise.resolve();
 
   constructor() {
-    inject(DestroyRef).onDestroy(() => this.flushText());
+    // Seznam vedle detailu se obnoví po každém uložení i po zavření detailu a označí otevřený úkol
+    effect(() => {
+      this.split?.openId.set(this.task()?.id);
+      this.split?.saves.update((count) => count + 1);
+    });
+    inject(DestroyRef).onDestroy(() => void this.flushText().then(() => this.split?.saves.update((count) => count + 1)));
   }
 
   async ngOnInit(): Promise<void> {
@@ -243,7 +252,7 @@ export class TaskDetail implements OnInit {
     }
     try {
       await this.actions.trash(task);
-      await this.router.navigate(['/tasks']);
+      await this.router.navigate(['/tasks'], { queryParamsHandling: 'preserve' });
     } catch {
       this.failed.set(true);
       this.status.set('Úkol se nepodařilo smazat.');

@@ -129,6 +129,9 @@ type EditorAction = 'pin' | 'archive' | 'template' | 'trash' | 'color' | 'catego
         <button type="button" class="icon-btn" title="Checklist" (pointerdown)="$event.preventDefault()" (click)="toggleChecklistLine()">
           <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.checklist" /></svg>
           <span class="visually-hidden">Checklist</span>
+          @if (shortcuts) {
+            <kbd class="key-hint" aria-hidden="true">Ctrl + Shift + L</kbd>
+          }
         </button>
       }
       <button type="button" class="icon-btn" title="Tag" (pointerdown)="$event.preventDefault()" (click)="insertTag()">
@@ -454,6 +457,32 @@ type EditorAction = 'pin' | 'archive' | 'template' | 'trash' | 'color' | 'catego
 
       .backlinks {
         margin-inline: max(16px, calc(50% - 360px));
+      }
+
+      /* Panel jen na šířku tlačítek s viditelnými popisky (ze skrytého textu), dole ve sloupci editoru;
+         všechna čtyři tlačítka se vejdou i do nejužšího sloupce vedle seznamu (604 px na 1200 px) */
+      .format {
+        justify-content: center;
+        gap: 4px;
+        width: fit-content;
+        max-width: none;
+      }
+
+      .format .icon-btn {
+        gap: 8px;
+        width: auto;
+        padding: 0 10px;
+        border-radius: 12px;
+        font: inherit;
+        font-size: 0.875rem;
+        font-weight: 600;
+      }
+
+      .format .visually-hidden {
+        position: static;
+        width: auto;
+        height: auto;
+        clip-path: none;
       }
     }
 

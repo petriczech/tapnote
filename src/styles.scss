@@ -921,9 +921,21 @@ tn-notes-list.pane {
   }
 }
 
-tn-notes-list li:has(> [aria-current='page']) {
+tn-notes-list li:has(> [aria-current='page']),
+tn-tasks-page li:has(.title[aria-current='page']) {
   outline: 2px solid var(--primary);
   outline-offset: -2px;
+}
+
+// Seznam úkolů vedle detailu (tn-split): bez hlavičky a bez místa pro spodní lištu a FAB, které od 1200 px nejsou;
+// hotovo a hvězda otevřeného úkolu se mění jen v detailu
+tn-tasks-page.pane {
+  padding: 16px 0 24px;
+}
+
+tn-tasks-page li :disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 // Hover jen pro ukazatel, který umí najet: karta se zvedne, řádek a ⋮ se zvýrazní (⋮ je vidět i bez hoveru)

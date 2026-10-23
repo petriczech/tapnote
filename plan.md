@@ -316,7 +316,7 @@ Rozhodnutí (v závorce návrh):
 16. ✅ **Desktop 2 – šířky a myš:** mřížka max. 1240 px (`auto-fill`), max. šířky stránek, hover jen pod `hover: hover`, kompaktní cíle 36–40 px pod `pointer: fine`, typografie editoru 17 / 1,65, záře podle plochy
 17. ✅ **Desktop 3 – štítky zkratek:** `kbd` u existujících zkratek (jen `pointer: fine` a zapnuté zkratky), „Přehled zkratek“ v panelu
 18. ✅ **Desktop 4 – poznámky vedle editoru:** rodičovská routa `tn-split` s prázdnou cestou, `NotesList` s `pane`, URL beze změny, návrat fokusu
-19. **Desktop 5 – úkoly vedle detailu a panel nástrojů:** `tn-split` pro `task/:id`, panel nástrojů editoru ukotvený dole ve sloupci editoru s popisky
+19. ✅ **Desktop 5 – úkoly vedle detailu a panel nástrojů:** `tn-split` pro `task/:id`, panel nástrojů editoru ukotvený dole ve sloupci editoru s popisky
 20. **Desktop 6 – Nastavení S2 a e2e 1440 × 900:** podstránky na střed, projekt e2e 1440 × 900 světlý/tmavý, axe, průchod klávesnicí, změna šířky přes 1200 px
 21. **D&D 1 – direktiva `tnReorder` + kategorie (pilot):** úchyt ⠿, Pointer Events, autoscroll, klávesové uchopení, live region; ▲▼ u kategorií zůstávají
 22. **D&D 2 – checklist:** `moveGroup` v `checklist.ts`, jen otevřené položky nejvyšší úrovně s podpoložkami, menu úchytu (nahoru / dolů / na začátek / na konec)
