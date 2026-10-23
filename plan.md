@@ -318,9 +318,11 @@ Rozhodnutí (v závorce návrh):
 18. ✅ **Desktop 4 – poznámky vedle editoru:** rodičovská routa `tn-split` s prázdnou cestou, `NotesList` s `pane`, URL beze změny, návrat fokusu
 19. ✅ **Desktop 5 – úkoly vedle detailu a panel nástrojů:** `tn-split` pro `task/:id`, panel nástrojů editoru ukotvený dole ve sloupci editoru s popisky
 20. ✅ **Desktop 6 – Nastavení S2 a e2e 1440 × 900:** podstránky na střed, projekt e2e 1440 × 900 světlý/tmavý, axe, průchod klávesnicí, změna šířky přes 1200 px
-21. **D&D 1 – direktiva `tnReorder` + kategorie (pilot):** úchyt ⠿, Pointer Events, autoscroll, klávesové uchopení, live region; ▲▼ u kategorií zůstávají
+21. ✅ **D&D 1 – direktiva `tnReorder` + kategorie (pilot):** úchyt ⠿, Pointer Events, autoscroll, klávesové uchopení, live region; ▲▼ u kategorií zůstávají
 22. **D&D 2 – checklist:** `moveGroup` v `checklist.ts`, jen otevřené položky nejvyšší úrovně s podpoložkami, menu úchytu (nahoru / dolů / na začátek / na konec)
 23. **D&D 3 – úkoly:** pole `order` (migrace Dexie, záloha a import), ruční pořadí v Můj den, Důležité a Vše, nový úkol nahoru, menu úchytu
+
+24. **Zkratky na samostatné stránce:** sekce „Klávesové zkratky“ (přepínač „Zapnout klávesové zkratky“ a tabulka) se z rozcestníku Nastavení přesune na `/settings/zkratky` podle vzoru Vzhledu a Kategorií; řádek rozcestníku, zkratka `?`, odkaz „Přehled zkratek“ v panelu a starý odkaz `/settings#shortcuts` vedou na novou stránku s fokusem na nadpisu
 
 ### Hlídat v každém kroku
 - Kontrast: bílá na oranžovém konci přechodu má 2,5–3,0 : 1 (nepoužívat pro text), světlý přechodový nadpis končit `#c2410c`, okraje polí přes `--outline`; axe za `backdrop-filter` kontrast nespočítá → ruční vzorkování pixelů a druhý průchod bez průhlednosti

@@ -67,6 +67,24 @@ describe('CategoryActions', () => {
     expect((await categories.getAll()).map((item) => item.order)).toEqual([0, 1, 2]);
   });
 
+  it('moves a category to an index and renumbers only the changed ones', async () => {
+    for (const name of ['A', 'B', 'C', 'D']) {
+      await actions.add({ name, icon: 'home', color: 'blue' });
+    }
+    const [a, , , d] = await categories.getAll();
+    const put = vi.spyOn(categories, 'bulkPut');
+
+    await actions.moveTo(a, 2);
+    expect(await names()).toEqual(['B', 'C', 'A', 'D']);
+    expect((await categories.getAll()).map((item) => item.order)).toEqual([0, 1, 2, 3]);
+    expect(put.mock.calls[0][0].map((item) => item.name)).toEqual(['B', 'C', 'A']);
+
+    await actions.moveTo(d, 0);
+    expect(await names()).toEqual(['D', 'B', 'C', 'A']);
+    await actions.moveTo(d, 4);
+    expect(await names()).toEqual(['D', 'B', 'C', 'A']);
+  });
+
   it('removes a category and keeps its tasks and notes without it', async () => {
     const work = await actions.add({ name: 'Práce', icon: 'briefcase', color: 'blue' });
     await tasks.put({ ...createTask('t', 'Úkol', '2026-10-15T10:00:00.000Z'), categoryId: work.id });

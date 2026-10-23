@@ -61,3 +61,43 @@ test('kategorie: založit v nastavení a filtrovat úkoly', async ({ page, axe }
   await page.goto('/settings/kategorie');
   await expect(page.getByRole('button', { name: 'Upravit: Práce' })).toHaveAccessibleDescription('Položek: 1');
 });
+
+// Řazení kategorií úchytem ⠿: klávesnicí (Esc vrátí pozici) i myší; pořadí vydrží reload, ▲▼ zůstávají
+test('kategorie: řazení úchytem klávesnicí a myší', async ({ page, seed, axe }) => {
+  await seed({
+    categories: [
+      { id: 'a', name: 'Domov', order: 0 },
+      { id: 'b', name: 'Práce', order: 1 },
+      { id: 'c', name: 'Škola', order: 2 },
+    ],
+  });
+  await page.goto('/settings/kategorie');
+  const names = page.locator('ul.categories .item-name');
+  const grip = page.getByRole('button', { name: 'Přesunout: Domov' });
+  await expect(names).toHaveText(['Domov', 'Práce', 'Škola']);
+
+  await grip.focus();
+  await page.keyboard.press('Space');
+  await expect(grip).toHaveAttribute('aria-pressed', 'true');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Escape');
+  await expect(grip).toHaveAttribute('aria-pressed', 'false');
+  await page.keyboard.press('Space');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Space');
+  await expect(names).toHaveText(['Práce', 'Domov', 'Škola']);
+  await expect(grip).toBeFocused();
+  await axe('kategorie po řazení klávesnicí');
+
+  const from = (await page.getByRole('button', { name: 'Přesunout: Práce' }).boundingBox())!;
+  const to = (await page.getByRole('button', { name: 'Přesunout: Škola' }).boundingBox())!;
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(from.x + from.width / 2, to.y + to.height - 4, { steps: 10 });
+  await page.mouse.up();
+  await expect(names).toHaveText(['Domov', 'Škola', 'Práce']);
+
+  await page.reload();
+  await expect(names).toHaveText(['Domov', 'Škola', 'Práce']);
+  await expect(page.getByRole('button', { name: 'Posunout nahoru: Škola' })).toBeVisible();
+});

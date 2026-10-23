@@ -1,8 +1,9 @@
-import { afterNextRender, Component, ElementRef, inject, Injector, OnInit, signal, viewChild } from '@angular/core';
+import { afterNextRender, Component, computed, ElementRef, inject, Injector, OnInit, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CategoryActions, CategoryFields } from '../../core/categories/category-actions';
 import { Category, CATEGORY_COLORS } from '../../core/model/category';
 import { CATEGORY_ICONS, categoryIconPath } from '../../core/model/category-icons';
+import { Reorder, ReorderMove } from '../../core/reorder/reorder';
 import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { NotesRepository } from '../../core/storage/notes-repository';
 import { TasksRepository } from '../../core/storage/tasks-repository';
@@ -15,7 +16,7 @@ type Draft = CategoryFields & { id: string | null };
 // Podstránka Nastavení › Kategorie (obrazovka 04 návrhu D): seznam s počty, úprava ve spodním panelu na <dialog>
 @Component({
   selector: 'tn-categories',
-  imports: [BottomNav, RouterLink],
+  imports: [BottomNav, Reorder, RouterLink],
   template: `
     <tn-bottom-nav current="settings" />
 
@@ -31,7 +32,7 @@ type Draft = CategoryFields & { id: string | null };
       <p class="info">Kategorie mají ikonu a barvu a dají se přiřadit úkolům.</p>
     } @else {
       <h2 id="mine-heading" class="section-h">Moje kategorie</h2>
-      <ul class="categories" aria-labelledby="mine-heading">
+      <ul class="categories" aria-labelledby="mine-heading" [tnReorder]="names()" (moved)="moveTo($event)">
         @for (item of categories(); track item.id; let i = $index, first = $first, last = $last) {
           <li [attr.data-id]="item.id" [style.--cat]="colorVar(item.color)">
             <button
@@ -65,9 +66,19 @@ type Draft = CategoryFields & { id: string | null };
             >
               <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="uiIcons.caretDown" /></svg>
             </button>
+            <button
+              type="button"
+              class="grip"
+              [attr.aria-label]="'Přesunout: ' + item.name"
+              aria-describedby="reorder-hint"
+              aria-pressed="false"
+            >
+              <span aria-hidden="true">⠿</span>
+            </button>
           </li>
         }
       </ul>
+      <p id="reorder-hint" hidden>Úchyt se táhne prstem nebo myší. Mezerník nebo Enter řádek uchopí, šipky ho posunou, další stisk ho pustí a Esc přesun zruší.</p>
     }
     <p class="status" [class.error]="failed()" aria-live="polite">{{ status() }}</p>
 
@@ -163,6 +174,7 @@ export class Categories implements OnInit {
   protected readonly colors = CATEGORY_COLORS;
   protected readonly iconPath = categoryIconPath;
   protected readonly categories = signal<Category[]>([]);
+  protected readonly names = computed(() => this.categories().map((item) => item.name));
   // Počet úkolů a poznámek mimo koš (bez šablon) podle id kategorie
   protected readonly counts = signal(new Map<string, number>());
   protected readonly draft = signal<Draft | null>(null);
@@ -271,6 +283,23 @@ export class Categories implements OnInit {
     });
     if (moved) {
       this.focus(`li[data-id="${CSS.escape(category.id)}"] [aria-label^="${step < 0 ? 'Posunout nahoru' : 'Posunout dolů'}"]`);
+    }
+  }
+
+  // Přetažení úchytem; pořadí se přepíše hned, aby řádky po puštění neposkočily zpět, než se načte uložené
+  protected async moveTo({ from, to }: ReorderMove): Promise<void> {
+    const category = this.categories()[from];
+    this.categories.update((list) => {
+      const next = [...list];
+      next.splice(to, 0, ...next.splice(from, 1));
+      return next;
+    });
+    const moved = await this.run(async () => {
+      await this.actions.moveTo(category, to);
+      return category.id;
+    });
+    if (moved) {
+      this.focus(`li[data-id="${CSS.escape(category.id)}"] .grip`);
     }
   }
 

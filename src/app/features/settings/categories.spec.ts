@@ -291,6 +291,33 @@ describe('Categories', () => {
     expect(status()).toBe('Kategorie je smazaná.');
   });
 
+  it('reorders by the handle with the keyboard, saves the order and keeps the focus on the handle', async () => {
+    await categories.bulkPut([category('prace', 'Práce', 0), category('domov', 'Domov', 1), category('skola', 'Škola', 2)]);
+    // jsdom scrollIntoView nemá, náhrada se po testu odstraní
+    HTMLElement.prototype.scrollIntoView = vi.fn();
+    onTestFinished(() => {
+      Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
+    });
+    await render();
+    const grip = byLabel('Přesunout: Práce');
+    expect(grip.getAttribute('aria-pressed')).toBe('false');
+    expect(root.querySelector(`#${grip.getAttribute('aria-describedby')}`)?.textContent).toContain('Esc přesun zruší');
+    const key = (name: string) => document.activeElement?.dispatchEvent(new KeyboardEvent('keydown', { key: name, bubbles: true }));
+
+    grip.focus();
+    key(' ');
+    key('ArrowDown');
+    key('ArrowDown');
+    key(' ');
+
+    await vi.waitFor(async () => expect((await categories.getAll()).map((item) => item.id)).toEqual(['domov', 'skola', 'prace']));
+    await fixture.whenStable();
+    expect(names()).toEqual(['Domov', 'Škola', 'Práce']);
+    expect(document.activeElement).toBe(byLabel('Přesunout: Práce'));
+    // Šipky zůstávají jako alternativa bez tažení (WCAG 2.5.7)
+    expect(byLabel('Posunout nahoru: Práce')).toBeTruthy();
+  });
+
   it('keeps the category when the delete is not confirmed', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(false);
     await categories.bulkPut([category('prace', 'Práce', 0)]);

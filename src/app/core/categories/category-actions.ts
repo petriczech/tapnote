@@ -28,12 +28,18 @@ export class CategoryActions {
   // Prohození se sousední kategorií (-1 nahoru, 1 dolů); pořadí se přečísluje, aby posun fungoval
   // i při stejných hodnotách order (třeba ze zálohy)
   async move(category: Category, step: -1 | 1): Promise<void> {
+    const index = (await this.repository.getAll()).findIndex((item) => item.id === category.id);
+    return this.moveTo(category, index + step);
+  }
+
+  // Přesun na pozici index (přetažení úchytem); mimo rozsah se nic nemění
+  async moveTo(category: Category, index: number): Promise<void> {
     const all = await this.repository.getAll();
-    const index = all.findIndex((item) => item.id === category.id);
-    if (index < 0 || !all[index + step]) {
+    const from = all.findIndex((item) => item.id === category.id);
+    if (from < 0 || !all[index]) {
       return;
     }
-    [all[index], all[index + step]] = [all[index + step], all[index]];
+    all.splice(index, 0, ...all.splice(from, 1));
     const now = new Date().toISOString();
     // Uloží se jen kategorie, kterým se pořadí změnilo
     await this.repository.bulkPut(all.flatMap((item, order) => (item.order === order ? [] : [{ ...item, order, updatedAt: now }])));
