@@ -18,7 +18,8 @@ import { Router, RouterLink } from '@angular/router';
 import { Category } from '../../core/model/category';
 import { categoryIconPath } from '../../core/model/category-icons';
 import { Task } from '../../core/model/task';
-import { addDays, dueLabel, isTasksView, localDate, queryTasks, TASK_VIEWS, TasksView } from '../../core/model/task-query';
+import { addDays, dueLabel, isTasksView, localDate, queryTasks, reorderTasks, TASK_VIEWS, TasksView } from '../../core/model/task-query';
+import { Reorder, ReorderMove } from '../../core/reorder/reorder';
 import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { TasksRepository } from '../../core/storage/tasks-repository';
 import { NewTaskFields, TaskActions } from '../../core/tasks/task-actions';
@@ -31,7 +32,7 @@ const CONFETTI_MS = 800;
 
 @Component({
   selector: 'tn-tasks-page',
-  imports: [BottomNav, Confetti, NgTemplateOutlet, RouterLink],
+  imports: [BottomNav, Confetti, NgTemplateOutlet, Reorder, RouterLink],
   host: { '(document:visibilitychange)': 'refreshToday()', '[class.pane]': 'pane()' },
   template: `
     <tn-bottom-nav current="tasks" />
@@ -210,6 +211,21 @@ const CONFETTI_MS = 800;
         >
           <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="task.important ? iconsFill.star : icons.star" /></svg>
         </button>
+        <!-- Ruční pořadí jen v Můj den, Důležité a Vše u otevřených úkolů (R5), od dvou úkolů; i u úkolu otevřeného
+             vedle, protože se zapisuje jen pořadí, které detail neukládá -->
+        @if (manual() && !task.done && list().open.length > 1) {
+          <button
+            type="button"
+            class="grip"
+            [attr.aria-label]="'Přesunout: ' + task.title"
+            aria-describedby="task-reorder-hint"
+            aria-pressed="false"
+            popovertarget="task-grip-menu"
+            (click)="menuFor.set(task.id)"
+          >
+            <span aria-hidden="true">⠿</span>
+          </button>
+        }
       </li>
     </ng-template>
 
@@ -217,12 +233,24 @@ const CONFETTI_MS = 800;
       <p class="empty">{{ current().empty }}</p>
     }
     @if (list().open.length > 0) {
-      <ul class="tasks" aria-label="Úkoly">
+      <ul class="tasks" aria-label="Úkoly" [tnReorder]="names()" [tnReorderMenu]="true" (moved)="onMoved($event)">
         @for (task of list().open; track task.id) {
           <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: task }" />
         }
       </ul>
     }
+    <!-- Nabídka úchytu jako alternativa tažení (WCAG 2.5.7); nedostupný směr je jen aria-disabled, aby fokus měl kam padnout -->
+    <div #gripMenu id="task-grip-menu" class="menu grip-menu" popover (toggle)="onMenuToggle($event)">
+      @let at = menuIndex();
+      @let last = list().open.length - 1;
+      <button type="button" [attr.aria-disabled]="at === 0" (click)="moveTo(gripMenu, at - 1)">Posunout nahoru</button>
+      <button type="button" [attr.aria-disabled]="at === last" (click)="moveTo(gripMenu, at + 1)">Posunout dolů</button>
+      <button type="button" [attr.aria-disabled]="at === 0" (click)="moveTo(gripMenu, 0)">Posunout na začátek</button>
+      <button type="button" [attr.aria-disabled]="at === last" (click)="moveTo(gripMenu, last)">Posunout na konec</button>
+    </div>
+    <p id="task-reorder-hint" hidden>
+      Úchyt se táhne prstem nebo myší. Klepnutí nebo Enter otevře nabídku přesunu. Mezerník řádek uchopí, šipky ho posunou, další stisk ho pustí a Esc přesun zruší.
+    </p>
     @if (list().done.length > 0) {
       <details class="done-section">
         <summary>Hotové ({{ list().done.length }})</summary>
@@ -330,6 +358,12 @@ export class TasksPage implements OnInit {
         TASK_VIEWS.map((item) => [item.view, queryTasks(this.filtered(), item.view, this.today()).open.length]),
       ) as Record<TasksView, number>,
   );
+  // Ruční pořadí (úchyt a nabídka úchytu) mimo Naplánované, které se řadí podle termínu
+  protected readonly manual = computed(() => this.current().view !== 'planned');
+  protected readonly names = computed(() => this.list().open.map((task) => task.title));
+  // Úkol, u jehož úchytu je otevřená nabídka; pozice se dopočítá z aktuálního seznamu
+  protected readonly menuFor = signal<string | undefined>(undefined);
+  protected readonly menuIndex = computed(() => this.list().open.findIndex((task) => task.id === this.menuFor()));
   protected readonly progress = computed(() => {
     const { open, done } = this.list();
     const total = open.length + done.length;
@@ -375,11 +409,29 @@ export class TasksPage implements OnInit {
     return task.dueDate !== undefined || this.categoryOf(task) !== undefined || task.steps.length > 0;
   }
 
-  // Fokus na první položku otevřené nabídky
+  // Fokus na první položku otevřené nabídky; zavřením se zapomene úkol nabídky úchytu
   protected onMenuToggle(event: Event): void {
     if ('newState' in event && event.newState === 'open') {
       (event.target as HTMLElement).querySelector<HTMLElement>('button, input, [tabindex]')?.focus();
+    } else {
+      this.menuFor.set(undefined);
     }
+  }
+
+  // Puštění úchytem (tah nebo klávesnice); nabídka otevřená u jiného úkolu by mířila na starou pozici
+  protected onMoved({ from, to }: ReorderMove): void {
+    this.host.querySelector<HTMLElement>('#task-grip-menu')?.hidePopover?.();
+    void this.move(from, to);
+  }
+
+  // Volba v nabídce úchytu; nedostupný směr nic nedělá
+  protected moveTo(menu: HTMLElement, to: number): void {
+    const from = this.menuIndex();
+    if (from < 0 || to < 0 || to >= this.list().open.length || to === from) {
+      return;
+    }
+    menu.hidePopover?.();
+    void this.move(from, to);
   }
 
   protected setDue(date: string | undefined, menu: HTMLElement): void {
@@ -453,6 +505,31 @@ export class TasksPage implements OnInit {
       this.announcement.set(task.important ? `Úkol ${task.title} už není důležitý` : `Úkol ${task.title} je důležitý`);
     }
     this.focusTask(task.id, '.star', index);
+  }
+
+  // Pořadí se přepíše hned, aby řádky po puštění neposkočily zpět, než se načte uložené; fokus zůstane na úchytu
+  private async move(from: number, to: number): Promise<void> {
+    const open = this.list().open;
+    const task = open[from];
+    const target = open[to];
+    if (!task || !target) {
+      return;
+    }
+    const orders = new Map(reorderTasks(this.tasks(), task.id, target.id, to > from).map((item) => [item.id, item.order]));
+    this.tasks.update((tasks) => tasks.map((item) => ({ ...item, order: orders.get(item.id) ?? item.order })));
+    await this.run(() => this.saveOrder(task.id, target.id, to > from));
+    this.focusTask(task.id, '.grip', to);
+  }
+
+  // Pořadí z uložených úkolů v jedné transakci; zapíše se jen order, takže se nepřepíše nic, co mezitím uložil
+  // detail otevřený vedle seznamu. updatedAt dostane jen přesunutý úkol: přečíslovaný soused by jinak při
+  // sloučení zálohy přebil skutečnou úpravu z jiného zařízení. Mimo TaskActions, které jsou v úvodním balíku
+  private async saveOrder(id: string, targetId: string, after: boolean): Promise<void> {
+    const updatedAt = new Date().toISOString();
+    const changes = reorderTasks(await this.repository.getAll(), id, targetId, after);
+    await this.repository.bulkUpdate(
+      changes.map(({ id: changed, order }) => ({ id: changed, changes: changed === id ? { order, updatedAt } : { order } })),
+    );
   }
 
   private celebrate(x: number, y: number): void {

@@ -229,7 +229,7 @@ describe('Settings', () => {
     const file = createUrl.mock.calls[0][0];
     expect(file.name).toMatch(/^tapnote-\d{4}-\d{2}-\d{2}\.json$/);
     const exported = JSON.parse(await file.text());
-    expect(exported.schemaVersion).toBe(2);
+    expect(exported.schemaVersion).toBe(3);
     expect(exported.tasks).toEqual([]);
     expect(exported.notes.map((item: Note) => item.id).sort()).toEqual(['a', 'b']);
     expect(localStorage.getItem(LAST_BACKUP_KEY)).not.toBeNull();
@@ -288,6 +288,18 @@ describe('Settings', () => {
     expect(status()).toBe('Obnoveno poznámek: 1, úkolů: 1');
   });
 
+  it('imports tasks from a version 2 backup with the order from the newest', async () => {
+    await render();
+    const old = (id: string, createdAt: string) => ({ ...createTask(id, id, createdAt), order: undefined });
+    const backup = { schemaVersion: 2, exportedAt: new Date().toISOString(), notes: [], categories: [] };
+
+    await chooseFile(JSON.stringify({ ...backup, tasks: [old('t1', '2026-10-15T10:00:00.000Z'), old('t2', '2026-10-16T10:00:00.000Z')] }));
+
+    expect(status()).toBe('Přidáno nebo aktualizováno poznámek: 0, úkolů: 2');
+    expect(tasks.tasks.get('t1')?.order).toBe(1);
+    expect(tasks.tasks.get('t2')?.order).toBe(0);
+  });
+
   it('refuses to replace with an empty backup', async () => {
     const confirm = vi.spyOn(window, 'confirm');
     await render();
@@ -318,7 +330,7 @@ describe('Settings', () => {
 
   it.each([
     ['{', 'Soubor není platná záloha Tapnote.'],
-    [JSON.stringify({ schemaVersion: 3, exportedAt: '', notes: [] }), 'Záloha je z novější verze aplikace.'],
+    [JSON.stringify({ schemaVersion: 4, exportedAt: '', notes: [] }), 'Záloha je z novější verze aplikace.'],
   ])('reports an invalid file %s', async (content, message) => {
     await render();
 

@@ -12,6 +12,7 @@ describe('task', () => {
       important: false,
       steps: [],
       note: '',
+      order: 0,
       createdAt: '2026-10-15T10:00:00.000Z',
       updatedAt: '2026-10-15T10:00:00.000Z',
     });
@@ -22,6 +23,9 @@ describe('task', () => {
     expect(isTask({ ...task, done: 'ne' })).toBe(false);
     expect(isTask({ ...task, steps: [{ id: 's', title: 'krok' }] })).toBe(false);
     expect(isTask({ ...task, dueDate: 20 })).toBe(false);
+    expect(isTask({ ...task, order: '1' })).toBe(false);
+    expect(isTask({ ...task, order: Infinity })).toBe(false);
+    expect(isTask({ ...task, order: undefined })).toBe(true);
     expect(isTask(null)).toBe(false);
   });
 });

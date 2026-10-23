@@ -36,7 +36,7 @@ describe('createExport', () => {
   it('wraps the data with the schema version and time', () => {
     const data = { notes: [note('a', '2026-10-15T10:00:00.000Z')], tasks: [task('t')], categories: [category] };
 
-    expect(createExport(data, NOW)).toEqual({ schemaVersion: 2, exportedAt: NOW.toISOString(), ...data });
+    expect(createExport(data, NOW)).toEqual({ schemaVersion: 3, exportedAt: NOW.toISOString(), ...data });
   });
 
   it('names the file by the local date', () => {
@@ -51,8 +51,8 @@ describe('parseExport', () => {
     expect(parseExport(JSON.stringify(valid))).toEqual({ ok: true, notes: valid.notes, tasks: [], categories: [] });
   });
 
-  it('keeps tasks and categories', () => {
-    const tasks = [task('t', { dueDate: '2026-10-20', steps: [{ id: 's', title: 'krok', done: true }], categoryId: 'c1' })];
+  it('keeps tasks with their order and categories', () => {
+    const tasks = [task('t', { dueDate: '2026-10-20', steps: [{ id: 's', title: 'krok', done: true }], categoryId: 'c1', order: -2 })];
     const text = JSON.stringify({ ...valid, tasks, categories: [category] });
 
     expect(parseExport(text)).toEqual({ ok: true, notes: valid.notes, tasks, categories: [category] });
@@ -64,12 +64,45 @@ describe('parseExport', () => {
     expect(parseExport(text)).toEqual({ ok: true, notes: valid.notes, tasks: [], categories: [] });
   });
 
+  it('fills the task order of a version 2 backup from the newest', () => {
+    const old = [
+      task('older', { createdAt: '2026-10-14T10:00:00.000Z' }),
+      task('newest', { createdAt: '2026-10-16T12:00:00+02:00' }),
+      task('middle'),
+    ].map((item) => ({ ...item, order: undefined }));
+    const text = JSON.stringify({ ...valid, schemaVersion: 2, tasks: old });
+
+    const parsed = parseExport(text);
+
+    expect(parsed.ok && parsed.tasks.map((item) => [item.id, item.order])).toEqual([
+      ['older', 2],
+      ['newest', 0],
+      ['middle', 1],
+    ]);
+  });
+
+  it('keeps a version 3 task without order (saved by an older app version in another tab)', () => {
+    const text = JSON.stringify({ ...valid, tasks: [{ ...task('t'), order: undefined }] });
+
+    const parsed = parseExport(text);
+
+    expect(parsed.ok && parsed.tasks.map((item) => 'order' in item)).toEqual([false]);
+  });
+
+  it('keeps an order already present in a version 2 backup', () => {
+    const text = JSON.stringify({ ...valid, schemaVersion: 2, tasks: [task('t', { order: -3 })] });
+
+    const parsed = parseExport(text);
+
+    expect(parsed.ok && parsed.tasks[0].order).toBe(-3);
+  });
+
   it('rejects invalid JSON', () => {
     expect(parseExport('{')).toEqual({ ok: false, error: 'json' });
   });
 
   it('rejects an export from a newer version', () => {
-    expect(parseExport(JSON.stringify({ ...valid, schemaVersion: 3 }))).toEqual({ ok: false, error: 'version' });
+    expect(parseExport(JSON.stringify({ ...valid, schemaVersion: 4 }))).toEqual({ ok: false, error: 'version' });
   });
 
   it('normalizes dates to UTC and drops unknown fields', () => {
@@ -101,6 +134,8 @@ describe('parseExport', () => {
     [JSON.stringify({ ...valid, tasks: [{ ...task('t'), done: 'ne' }] })],
     [JSON.stringify({ ...valid, tasks: [task('t', { dueDate: '20. 10.' })] })],
     [JSON.stringify({ ...valid, tasks: [task('t', { myDay: '2026-13-45' })] })],
+    [JSON.stringify({ ...valid, tasks: [{ ...task('t'), order: '1' }] })],
+    [JSON.stringify({ ...valid, schemaVersion: 2, tasks: [{ ...task('t'), done: 'ne' }] })],
     [JSON.stringify({ ...valid, categories: [{ ...category, color: 'neon' }] })],
   ])('rejects %s', (text) => {
     expect(parseExport(text)).toEqual({ ok: false, error: 'format' });

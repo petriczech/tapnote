@@ -11,7 +11,7 @@ type Data = Partial<Record<'notes' | 'tasks' | 'categories', Item[]>>;
 const at = NOW.toISOString();
 const DEFAULTS: Record<keyof Data, object> = {
   notes: { title: '', content: '', tags: [], pinned: false, archived: false, isTemplate: false, createdAt: at, updatedAt: at },
-  tasks: { done: false, important: false, steps: [], note: '', createdAt: at, updatedAt: at },
+  tasks: { done: false, important: false, steps: [], note: '', order: 0, createdAt: at, updatedAt: at },
   categories: { icon: 'home', color: 'green', order: 0, createdAt: at, updatedAt: at },
 };
 

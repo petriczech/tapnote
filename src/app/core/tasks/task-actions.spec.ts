@@ -23,6 +23,20 @@ describe('TaskActions', () => {
     expect(stored(task.id)).toMatchObject({ title: 'Nakoupit', important: true, dueDate: '2026-10-21', done: false });
   });
 
+  it('puts a new task at the top', async () => {
+    await repository.put({ ...createTask('old', 'Starý', '2026-10-15T10:00:00.000Z'), order: 3 });
+
+    const first = await actions.add('První', {});
+    const second = await actions.add('Druhý', {});
+
+    expect(stored(first.id).order).toBe(2);
+    expect(stored(second.id).order).toBe(1);
+  });
+
+  it('starts the order at zero', async () => {
+    expect(stored((await actions.add('Jediný', {})).id).order).toBe(0);
+  });
+
   it('completes and reopens a task', async () => {
     const task = await actions.add('Nakoupit', {});
 

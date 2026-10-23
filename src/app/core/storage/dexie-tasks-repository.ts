@@ -27,6 +27,10 @@ export class DexieTasksRepository extends TasksRepository {
     await this.db.tasks.update(id, changes);
   }
 
+  async bulkUpdate(updates: { id: string; changes: Partial<Omit<Task, 'id'>> }[]): Promise<void> {
+    await this.db.tasks.bulkUpdate(updates.map(({ id, changes }) => ({ key: id, changes })));
+  }
+
   delete(id: string): Promise<void> {
     return this.db.tasks.delete(id);
   }

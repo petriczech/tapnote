@@ -19,6 +19,9 @@ export interface Task {
   // Markdown
   note: string;
   categoryId?: string;
+  // Ruční pořadí v Můj den, Důležité a Vše (vzestupně, nový úkol nahoře); chybí jen u úkolu, který uložila
+  // starší verze aplikace otevřená v jiné záložce, a pak se bere jako 0
+  order?: number;
   // ISO 8601
   createdAt: string;
   updatedAt: string;
@@ -27,8 +30,8 @@ export interface Task {
   deletedAt?: string;
 }
 
-export function createTask(id: string, title: string, now: string): Task {
-  return { id, title, done: false, important: false, steps: [], note: '', createdAt: now, updatedAt: now };
+export function createTask(id: string, title: string, now: string, order = 0): Task {
+  return { id, title, done: false, important: false, steps: [], note: '', order, createdAt: now, updatedAt: now };
 }
 
 function isTaskStep(value: unknown): value is TaskStep {
@@ -50,6 +53,7 @@ export function isTask(value: unknown): value is Task {
     value['steps'].every(isTaskStep) &&
     typeof value['note'] === 'string' &&
     isOptionalString(value['categoryId']) &&
+    (value['order'] === undefined || Number.isFinite(value['order'])) &&
     typeof value['createdAt'] === 'string' &&
     typeof value['updatedAt'] === 'string' &&
     isOptionalString(value['completedAt']) &&

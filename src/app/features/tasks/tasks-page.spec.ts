@@ -265,6 +265,68 @@ describe('TasksPage', () => {
     expect(root.querySelector('tn-confetti')).toBeNull();
   });
 
+  it('shows grips only for open tasks outside the planned view', async () => {
+    await repository.put(task('eeeee', { dueDate: TODAY }));
+    await render('all');
+
+    expect([...root.querySelectorAll('.grip')].map((grip) => grip.getAttribute('aria-label'))).toEqual([
+      'Přesunout: Úkol eeeee',
+      'Přesunout: Úkol bb',
+      'Přesunout: Úkol a',
+    ]);
+    expect(root.querySelector('li[data-id="ccc"] .grip')).toBeNull();
+
+    fixture.componentRef.setInput('view', 'planned');
+    await fixture.whenStable();
+    expect(titles()).toEqual(['Úkol eeeee']);
+    expect(root.querySelector('.grip')).toBeNull();
+  });
+
+  it('moves a task from the grip menu and keeps the focus on its grip', async () => {
+    await render('all');
+    expect(titles()).toEqual(['Úkol bb', 'Úkol a']);
+
+    root.querySelector<HTMLButtonElement>('li[data-id="a"] .grip')?.click();
+    await fixture.whenStable();
+    expect(button('Posunout dolů').getAttribute('aria-disabled')).toBe('true');
+    button('Posunout na začátek').click();
+
+    await vi.waitFor(() => expect(titles()).toEqual(['Úkol a', 'Úkol bb']));
+    await vi.waitFor(() => expect(document.activeElement).toBe(root.querySelector('li[data-id="a"] .grip')));
+    expect((repository.tasks.get('a')?.order ?? 0) < (repository.tasks.get('bb')?.order ?? 0)).toBe(true);
+  });
+
+  it('writes only the order, keeping a title saved meanwhile by the detail beside the list', async () => {
+    await render('all');
+    // Detail vedle seznamu uloží název až po načtení seznamu
+    await repository.update('a', { title: 'Upraveno v detailu' });
+
+    root.querySelector<HTMLButtonElement>('li[data-id="a"] .grip')?.click();
+    await fixture.whenStable();
+    button('Posunout nahoru').click();
+
+    await vi.waitFor(() => expect(titles()).toEqual(['Upraveno v detailu', 'Úkol bb']));
+    // Pořadí všech (i hotového ccc a smazaného dddd) od nejnovějšího: dddd, ccc, a, bb
+    expect(repository.tasks.get('a')).toMatchObject({ title: 'Upraveno v detailu', order: 2 });
+    expect([...repository.tasks.values()].map((item) => [item.id, item.order])).toEqual([
+      ['a', 2],
+      ['bb', 3],
+      ['ccc', 1],
+      ['dddd', 0],
+    ]);
+    // updatedAt jen u přesunutého úkolu, přečíslovaní sousedé ho nechají
+    expect(repository.tasks.get('a')?.updatedAt).not.toBe('2026-10-11T10:00:00.000Z');
+    expect(repository.tasks.get('bb')?.updatedAt).toBe('2026-10-12T10:00:00.000Z');
+  });
+
+  it('adds a new task at the top', async () => {
+    await render('all');
+
+    await type('Nový úkol');
+
+    expect(titles()[0]).toBe('Nový úkol');
+  });
+
   it('toggles importance', async () => {
     await render('all');
 

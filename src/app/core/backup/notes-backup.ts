@@ -2,8 +2,8 @@ import { Category, isCategory } from '../model/category';
 import { isNote, isRecord, Note } from '../model/note';
 import { isTask, Task } from '../model/task';
 
-// Verze 2 přidala úkoly a kategorie; zálohy verze 1 se převedou při importu
-export const EXPORT_SCHEMA_VERSION = 2;
+// Verze 2 přidala úkoly a kategorie, verze 3 pořadí úkolů; starší zálohy se převedou při importu
+export const EXPORT_SCHEMA_VERSION = 3;
 
 export interface BackupData {
   notes: Note[];
@@ -49,11 +49,11 @@ export function parseExport(text: string): ParsedExport {
   if (typeof version === 'number' && version > EXPORT_SCHEMA_VERSION) {
     return { ok: false, error: 'version' };
   }
-  // Verze 1 má jen poznámky
+  // Verze 1 má jen poznámky, verze 2 úkoly bez pořadí (doplní se níž)
   const tasks = version === 1 ? [] : value['tasks'];
   const categories = version === 1 ? [] : value['categories'];
   if (
-    (version !== 1 && version !== EXPORT_SCHEMA_VERSION) ||
+    (version !== 1 && version !== 2 && version !== EXPORT_SCHEMA_VERSION) ||
     typeof value['exportedAt'] !== 'string' ||
     !Array.isArray(value['notes']) ||
     !value['notes'].every(isNote) ||
@@ -65,11 +65,18 @@ export function parseExport(text: string): ParsedExport {
     return { ok: false, error: 'format' };
   }
   const notes = value['notes'].map(normalizeNote);
-  const normalizedTasks = tasks.map(normalizeTask);
+  const normalizedTasks = version === 2 ? newestFirst(tasks.map(normalizeTask)) : tasks.map(normalizeTask);
   const normalizedCategories = categories.map(normalizeCategory);
   return allDefined(notes) && allDefined(normalizedTasks) && allDefined(normalizedCategories)
     ? { ok: true, notes, tasks: normalizedTasks, categories: normalizedCategories }
     : { ok: false, error: 'format' };
+}
+
+// Pořadí úkolů ze zálohy verze 2 podle tehdejšího řazení od nejnovějšího; pořadí v poli zůstává. Pořadí,
+// které už v záloze je (export starší verze z jiné záložky po migraci databáze), se nechá
+function newestFirst(tasks: (Task | undefined)[]): (Task | undefined)[] {
+  const sorted = tasks.filter((task) => task !== undefined).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return tasks.map((task) => task && { ...task, order: task.order ?? sorted.indexOf(task) });
 }
 
 function allDefined<T>(items: (T | undefined)[]): items is T[] {
@@ -127,7 +134,7 @@ function normalizeTask(task: Task): Task | undefined {
   ) {
     return undefined;
   }
-  const { id, title, done, important, dueDate, myDay, note, categoryId } = task;
+  const { id, title, done, important, dueDate, myDay, note, categoryId, order } = task;
   return {
     id,
     title,
@@ -138,6 +145,7 @@ function normalizeTask(task: Task): Task | undefined {
     steps: task.steps.map(({ id, title, done }) => ({ id, title, done })),
     note,
     ...(categoryId === undefined ? {} : { categoryId }),
+    ...(order === undefined ? {} : { order }),
     createdAt,
     updatedAt,
     ...(completedAt === undefined ? {} : { completedAt }),

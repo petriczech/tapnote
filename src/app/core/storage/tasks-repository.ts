@@ -7,6 +7,8 @@ export abstract class TasksRepository {
   abstract bulkPut(tasks: Task[]): Promise<void>;
   // Změní se jen uvedená pole, pole s undefined se odstraní
   abstract update(id: string, changes: Partial<Omit<Task, 'id'>>): Promise<void>;
+  // Úpravy více úkolů najednou (všechny, nebo žádná)
+  abstract bulkUpdate(updates: { id: string; changes: Partial<Omit<Task, 'id'>> }[]): Promise<void>;
   abstract delete(id: string): Promise<void>;
   // Trvalé smazání úkolů přesunutých do koše před `before`
   abstract purgeTrash(before: string): Promise<number>;

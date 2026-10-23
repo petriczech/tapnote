@@ -34,6 +34,12 @@ export class InMemoryTasksRepository extends TasksRepository {
     }
   }
 
+  async bulkUpdate(updates: { id: string; changes: Partial<Omit<Task, 'id'>> }[]): Promise<void> {
+    for (const { id, changes } of updates) {
+      await this.update(id, changes);
+    }
+  }
+
   async delete(id: string): Promise<void> {
     this.tasks.delete(id);
   }

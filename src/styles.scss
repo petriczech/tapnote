@@ -1048,8 +1048,33 @@ tn-tasks-page li :disabled {
   }
 }
 
-// Vysoký kontrast: uchopený úchyt v barvě výběru, tažený řádek s obrysem (stín se nekreslí)
+// Úkoly: úchyt nad odkazem přes celý řádek; nabídka úchytu pod úchytem (implicitní kotva z popovertarget),
+// bez podpory uprostřed obrazovky. Nedostupná volba přes id, aby přebila .menu button ze stylů stránky
+tn-tasks-page .grip {
+  position: relative;
+  z-index: 1;
+}
+
+#task-grip-menu [aria-disabled='true'] {
+  color: var(--on-surface-variant);
+  cursor: default;
+}
+
+@supports (position-area: bottom) {
+  #task-grip-menu {
+    margin: 4px 0;
+    inset: auto;
+    position-area: bottom span-left;
+    position-try-fallbacks: flip-block;
+  }
+}
+
+// Vysoký kontrast: uchopený úchyt v barvě výběru, tažený řádek s obrysem (stín se nekreslí), nedostupné volby nabídky úchytu systémovou barvou
 @media (forced-colors: active) {
+  #task-grip-menu [aria-disabled='true'] {
+    color: GrayText;
+  }
+
   .grip[aria-pressed='true'] {
     forced-color-adjust: none;
     background: Highlight;

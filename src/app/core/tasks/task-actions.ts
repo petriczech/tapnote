@@ -9,8 +9,11 @@ export type NewTaskFields = Partial<Pick<Task, 'dueDate' | 'myDay' | 'important'
 export class TaskActions {
   private readonly repository = inject(TasksRepository);
 
+  // Nový úkol nahoru (R6): pořadí před všemi úkoly
   async add(title: string, fields: NewTaskFields): Promise<Task> {
-    const task = { ...createTask(crypto.randomUUID(), title.trim(), new Date().toISOString()), ...fields };
+    const orders = (await this.repository.getAll()).map((task) => task.order ?? 0);
+    const order = orders.length > 0 ? Math.min(...orders) - 1 : 0;
+    const task = { ...createTask(crypto.randomUUID(), title.trim(), new Date().toISOString(), order), ...fields };
     await this.repository.put(task);
     return task;
   }

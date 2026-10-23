@@ -170,6 +170,36 @@ describe('Dexie tasks and categories', () => {
     expect(await db.tasks.count()).toBe(0);
   });
 
+  it('fills the task order when the version 3 database is upgraded', async () => {
+    await Dexie.delete('tapnote');
+    const old = new Dexie('tapnote');
+    old.version(1).stores({ notes: 'id, updatedAt, deletedAt, *tags' });
+    old.version(2).stores({ tasks: 'id, updatedAt, deletedAt, categoryId', categories: 'id, order' });
+    old.version(3).stores({ versions: 'id, noteId, createdAt' });
+    const legacy = (id: string, createdAt: string) => {
+      const task: Partial<ReturnType<typeof createTask>> = createTask(id, id, createdAt);
+      delete task.order;
+      return task;
+    };
+    await old.table('tasks').bulkPut([
+      legacy('a', '2026-10-15T10:00:00.000Z'),
+      legacy('b', '2026-10-17T10:00:00.000Z'),
+      { ...legacy('c', '2026-10-16T10:00:00.000Z'), done: true, deletedAt: '2026-10-18T10:00:00.000Z' },
+    ]);
+    old.close();
+
+    const db = TestBed.inject(TapnoteDb);
+    const tasks = await db.tasks.toArray();
+
+    expect(db.verno).toBe(4);
+    expect(tasks.map((task) => [task.id, task.order])).toEqual([
+      ['a', 2],
+      ['b', 0],
+      ['c', 1],
+    ]);
+    expect(tasks.every((task) => task.updatedAt === task.createdAt)).toBe(true);
+  });
+
   it('stores, updates and purges tasks', async () => {
     const repository = TestBed.inject(TasksRepository);
     await repository.replaceAll([
@@ -179,10 +209,15 @@ describe('Dexie tasks and categories', () => {
 
     await repository.update('a', { done: true, dueDate: '2026-10-20' });
     await repository.update('a', { dueDate: undefined });
+    await repository.bulkUpdate([
+      { id: 'a', changes: { order: 5 } },
+      { id: 'b', changes: { order: 6 } },
+    ]);
     expect(await repository.purgeTrash('2026-10-10T00:00:00.000Z')).toBe(1);
 
     const [task] = await repository.getAll();
     expect(task.done).toBe(true);
+    expect(task.order).toBe(5);
     expect('dueDate' in task).toBe(false);
   });
 
