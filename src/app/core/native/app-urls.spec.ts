@@ -4,7 +4,7 @@ import { provideRouter, Router } from '@angular/router';
 import { App, URLOpenListenerEvent } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import type { MockInstance } from 'vitest';
-import { listenForAppUrls, NEW_NOTE_URL } from './app-urls';
+import { listenForAppUrls, NEW_NOTE_URL, NEW_TASK_URL } from './app-urls';
 
 vi.mock('@capacitor/app', () => ({ App: { addListener: vi.fn(), getLaunchUrl: vi.fn() } }));
 vi.mock('@capacitor/core', () => ({ Capacitor: { isNativePlatform: vi.fn() } }));
@@ -47,6 +47,12 @@ describe('listenForAppUrls', () => {
     expect(replaceState).toHaveBeenCalledWith('/new');
   });
 
+  it('starts on a new task when launched from the shortcut', async () => {
+    await run(NEW_TASK_URL);
+
+    expect(replaceState).toHaveBeenCalledWith('/tasks', 'new=1');
+  });
+
   it('keeps the start page for a normal launch', async () => {
     await run();
 
@@ -59,7 +65,10 @@ describe('listenForAppUrls', () => {
     listener({ url: NEW_NOTE_URL });
     expect(navigate).toHaveBeenCalledWith('/new');
 
+    listener({ url: NEW_TASK_URL });
+    expect(navigate).toHaveBeenCalledWith('/tasks?new=1');
+
     listener({ url: 'tapnote://settings' });
-    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(navigate).toHaveBeenCalledTimes(2);
   });
 });

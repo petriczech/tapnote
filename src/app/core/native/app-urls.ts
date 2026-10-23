@@ -4,8 +4,9 @@ import { Router } from '@angular/router';
 import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 
-// Zkratka „Nová poznámka“ z Androidu (res/xml/shortcuts.xml)
+// Zkratky „Nová poznámka“ a „Nový úkol“ z Androidu (res/xml/shortcuts.xml)
 export const NEW_NOTE_URL = 'tapnote://new';
+export const NEW_TASK_URL = 'tapnote://new-task';
 
 // Start ze zkratky přepíše adresu před první navigací (statická zkratka spouští úlohu vždy znovu);
 // posluchač pokrývá odkazy do běžící aplikace
@@ -18,10 +19,14 @@ export async function listenForAppUrls(): Promise<void> {
   void App.addListener('appUrlOpen', (event) => {
     if (event.url === NEW_NOTE_URL) {
       void router.navigateByUrl('/new');
+    } else if (event.url === NEW_TASK_URL) {
+      void router.navigateByUrl('/tasks?new=1');
     }
   });
   const launch = await App.getLaunchUrl().catch(() => undefined);
   if (launch?.url === NEW_NOTE_URL) {
     location.replaceState('/new');
+  } else if (launch?.url === NEW_TASK_URL) {
+    location.replaceState('/tasks', 'new=1');
   }
 }

@@ -1,8 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { Category } from '../../core/model/category';
 import { createTask, Task } from '../../core/model/task';
 import { localDate } from '../../core/model/task-query';
+import { SHORTCUTS_KEY } from '../../core/shortcuts/shortcuts';
 import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { TasksRepository } from '../../core/storage/tasks-repository';
 import { InMemoryCategoriesRepository } from '../../core/storage/testing/in-memory-categories-repository';
@@ -333,5 +334,73 @@ describe('TasksPage', () => {
     root.querySelector<HTMLButtonElement>('li[data-id="a"] .star')?.click();
 
     await vi.waitFor(() => expect(repository.tasks.get('a')?.important).toBe(true));
+  });
+
+  describe('new task shortcut', () => {
+    const field = () => root.querySelector<HTMLInputElement>('.add input') as HTMLInputElement;
+
+    function press(key: string, target: Element = document.activeElement ?? document.body): KeyboardEvent {
+      const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+      target.dispatchEvent(event);
+      return event;
+    }
+
+    beforeEach(() => {
+      // jsdom matchMedia ani scrollIntoView nemá, náhrady se po testu odstraní
+      vi.stubGlobal('matchMedia', () => ({ matches: true }));
+      HTMLElement.prototype.scrollIntoView = vi.fn();
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
+      localStorage.removeItem(SHORTCUTS_KEY);
+      (document.activeElement as HTMLElement | null)?.blur();
+    });
+
+    it('focuses the field from ?new and drops the parameter from the address', async () => {
+      const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+      fixture = TestBed.createComponent(TasksPage);
+      root = fixture.nativeElement;
+      fixture.componentRef.setInput('new', '1');
+      await fixture.whenStable();
+
+      await vi.waitFor(() => expect(document.activeElement).toBe(field()));
+      expect(navigate).toHaveBeenCalledWith(['/tasks'], { queryParams: { new: null }, queryParamsHandling: 'merge', replaceUrl: true });
+    });
+
+    it('focuses the field with N outside typing', async () => {
+      await render();
+      expect(root.querySelector('.add .key-hint')?.textContent).toBe('N');
+
+      expect(press('n', document.body).defaultPrevented).toBe(true);
+      expect(document.activeElement).toBe(field());
+
+      // Psaní v poli zkratku nespustí
+      expect(press('n').defaultPrevented).toBe(false);
+    });
+
+    it('ignores N with shortcuts turned off', async () => {
+      localStorage.setItem(SHORTCUTS_KEY, 'off');
+      await render();
+      expect(root.querySelector('.key-hint')).toBeNull();
+
+      expect(press('n', document.body).defaultPrevented).toBe(false);
+      expect(document.activeElement).not.toBe(field());
+    });
+
+    it('beside the detail reacts to N only with the focus in the list', async () => {
+      fixture = TestBed.createComponent(TasksPage);
+      root = fixture.nativeElement;
+      fixture.componentRef.setInput('pane', true);
+      await fixture.whenStable();
+      await vi.waitFor(() => expect(root.querySelector('li[data-id="a"] .title')).not.toBeNull());
+
+      expect(press('n', document.body).defaultPrevented).toBe(false);
+
+      root.querySelector<HTMLElement>('li[data-id="a"] .title')?.focus();
+      expect(press('n').defaultPrevented).toBe(true);
+      expect(document.activeElement).toBe(field());
+    });
   });
 });

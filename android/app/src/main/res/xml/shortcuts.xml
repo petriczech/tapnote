@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Dlouhý stisk ikony: nová poznámka (tapnote://new zpracuje AppUrls) -->
+<!-- Dlouhý stisk ikony: nový úkol a nová poznámka (tapnote://new-task a tapnote://new zpracuje AppUrls) -->
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="new_task"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_task"
+        android:shortcutShortLabel="@string/shortcut_task_short"
+        android:shortcutLongLabel="@string/shortcut_task_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="tapnote://new-task"
+            android:targetClass="cz.petriczech.tapnote.MainActivity"
+            android:targetPackage="cz.petriczech.tapnote" />
+    </shortcut>
     <shortcut
         android:shortcutId="new_note"
         android:enabled="true"

@@ -22,6 +22,7 @@ import { addDays, dueLabel, isTasksView, localDate, queryTasks, reorderTasks, TA
 import { Reorder, ReorderMove } from '../../core/reorder/reorder';
 import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { TasksRepository } from '../../core/storage/tasks-repository';
+import { isPlainKey, readShortcutsEnabled } from '../../core/shortcuts/shortcuts';
 import { NewTaskFields, TaskActions } from '../../core/tasks/task-actions';
 import { BottomNav } from '../list/bottom-nav';
 import { Confetti } from './confetti';
@@ -33,7 +34,7 @@ const CONFETTI_MS = 800;
 @Component({
   selector: 'tn-tasks-page',
   imports: [BottomNav, Confetti, NgTemplateOutlet, Reorder, RouterLink],
-  host: { '(document:visibilitychange)': 'refreshToday()', '[class.pane]': 'pane()' },
+  host: { '(document:visibilitychange)': 'refreshToday()', '(document:keydown)': 'onKey($event)', '[class.pane]': 'pane()' },
   template: `
     <tn-bottom-nav current="tasks" />
 
@@ -102,6 +103,9 @@ const CONFETTI_MS = 800;
         [value]="draft()"
         (input)="draft.set(title.value)"
       />
+      @if (shortcuts) {
+        <kbd class="key-hint" aria-hidden="true">N</kbd>
+      }
       <button type="submit" class="add-btn" aria-label="Přidat úkol" [attr.aria-disabled]="!draft().trim()">
         <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.plus" /></svg>
       </button>
@@ -286,16 +290,21 @@ export class TasksPage implements OnInit {
   // Počet uložení v detailu vedle seznamu a id úkolu v něm otevřeného
   readonly saves = input(0);
   readonly openId = input<string>();
+  // Zkratka „Nový úkol“ (/tasks?new=1 z manifestu a z Androidu): fokus do pole nového úkolu
+  readonly new = input<string>();
 
   private readonly repository = inject(TasksRepository);
   private readonly categoriesRepository = inject(CategoriesRepository);
   private readonly actions = inject(TaskActions);
   private readonly host: HTMLElement = inject(ElementRef).nativeElement;
   private readonly injector = inject(Injector);
+  private readonly router = inject(Router);
   // Po návratu z detailu vedle seznamu se fokus vrátí na název úkolu; navigace běží jen při vytvoření
-  private readonly returnFocus: unknown = inject(Router).currentNavigation()?.extras.state?.['focus'];
+  private readonly returnFocus: unknown = this.router.currentNavigation()?.extras.state?.['focus'];
 
   protected readonly views = TASK_VIEWS;
+  // Nápověda N u pole nového úkolu jen se zapnutými zkratkami
+  protected readonly shortcuts = readShortcutsEnabled();
 
   protected readonly tasks = signal<Task[]>([]);
   protected readonly categories = signal<Category[]>([]);
@@ -313,6 +322,15 @@ export class TasksPage implements OnInit {
     effect(() => {
       if (this.saves() > 0) {
         untracked(() => void this.load());
+      }
+    });
+    // Parametr zkratky se po fokusu z adresy odstraní (replaceUrl), aby návrat zpět nebo vpřed znovu nefokusoval
+    effect(() => {
+      if (this.new() !== undefined) {
+        untracked(() => {
+          afterNextRender(() => this.focusAdd(this.host.querySelector('.add input') as HTMLInputElement), { injector: this.injector });
+          void this.router.navigate(['/tasks'], { queryParams: { new: null }, queryParamsHandling: 'merge', replaceUrl: true });
+        });
       }
     });
     inject(DestroyRef).onDestroy(() => {
@@ -449,6 +467,19 @@ export class TasksPage implements OnInit {
     const smooth = !matchMedia('(prefers-reduced-motion: reduce)').matches;
     input.scrollIntoView({ block: 'center', behavior: smooth ? 'smooth' : 'auto' });
     input.focus({ preventScroll: true });
+  }
+
+  // Zkratka N přesune fokus do pole nového úkolu; vedle detailu jen s fokusem v seznamu jako zkratky poznámek,
+  // v otevřené nabídce ne (zůstala by otevřená nad polem)
+  protected onKey(event: KeyboardEvent): void {
+    if (!readShortcutsEnabled() || !isPlainKey(event) || event.key.toLowerCase() !== 'n') {
+      return;
+    }
+    if ((this.pane() && !this.host.contains(document.activeElement)) || document.activeElement?.closest('.menu')) {
+      return;
+    }
+    this.focusAdd(this.host.querySelector('.add input') as HTMLInputElement);
+    event.preventDefault();
   }
 
   // Výchozí vlastnosti podle pohledu; fokus zůstane v poli pro další úkol

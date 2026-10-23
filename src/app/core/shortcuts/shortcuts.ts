@@ -10,6 +10,7 @@ export const SHORTCUTS = [
   { place: 'Seznam', keys: 'A', label: 'Archivovat nebo vrátit z archivu' },
   { place: 'Seznam', keys: 'Delete', label: 'Smazat (do koše)' },
   { place: 'Seznam', keys: '?', label: 'Přehled zkratek' },
+  { place: 'Úkoly', keys: 'N', label: 'Nový úkol' },
   { place: 'Editor', keys: 'Esc', label: 'Zpět na seznam' },
   { place: 'Editor', keys: 'Ctrl + Enter', label: 'Hotovo / Upravit' },
   { place: 'Editor', keys: 'Ctrl + Shift + L', label: 'Checklist na řádku' },

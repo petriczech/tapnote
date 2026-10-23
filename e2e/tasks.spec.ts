@@ -90,3 +90,43 @@ test('úkoly: řazení úchytem a nabídkou úchytu', async ({ page, seed, axe }
   await page.reload();
   await expect(titles).toHaveText(['Vejce', 'Chleba', 'Sýr', 'Mléko']);
 });
+
+// Zkratka „Nový úkol“ (manifest, Android): Můj den s fokusem v poli; parametr z adresy zmizí a zpět/vpřed znovu nefokusuje
+test('úkoly: zkratka Nový úkol a klávesa N', async ({ page, axe }) => {
+  await page.goto('/notes');
+  await page.goto('/tasks?new=1');
+  await expect(page.getByRole('heading', { level: 1, name: 'Můj den' })).toBeVisible();
+  const input = page.getByRole('textbox', { name: 'Nový úkol' });
+  await expect(input).toBeFocused();
+  await expect(page).toHaveURL(/\/tasks$/);
+
+  await page.keyboard.type('Zavolat domů');
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('list', { name: 'Úkoly' }).getByRole('link', { name: 'Zavolat domů' })).toBeVisible();
+  await axe('úkoly po zkratce Nový úkol');
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/notes$/);
+  await page.goForward();
+  await expect(page.getByRole('link', { name: 'Zavolat domů' })).toBeVisible();
+  await expect(input).not.toBeFocused();
+
+  // N mimo pole přesune fokus do pole, v poli se píše
+  await page.keyboard.press('n');
+  await expect(input).toBeFocused();
+  await page.keyboard.press('n');
+  await expect(input).toHaveValue('n');
+
+  // V otevřené nabídce N nic nedělá, nabídka by jinak zůstala otevřená nad polem
+  await page.getByRole('button', { name: 'Termín' }).click();
+  await expect(page.getByRole('button', { name: 'Dnes' })).toBeFocused();
+  await page.keyboard.press('n');
+  await expect(page.getByRole('button', { name: 'Dnes' })).toBeFocused();
+  await page.keyboard.press('Escape');
+
+  await page.evaluate(() => localStorage.setItem('tapnote.shortcuts', 'off'));
+  await page.reload();
+  await expect(page.getByRole('link', { name: 'Zavolat domů' })).toBeVisible();
+  await page.keyboard.press('n');
+  await expect(input).not.toBeFocused();
+});

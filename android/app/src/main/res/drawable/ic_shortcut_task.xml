@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ikona zkratky „Nový úkol“: fajfka na modrém kruhu -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:fillColor="#1A56B8"
+        android:pathData="M24,0A24,24 0,1 1,24,48A24,24 0,1 1,24,0z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M21,28.17L16.83,24l-1.42,1.41L21,31L33,19l-1.41,-1.41z" />
+</vector>

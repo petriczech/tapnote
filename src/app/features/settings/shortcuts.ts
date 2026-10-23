@@ -33,7 +33,7 @@ import { BottomNav } from '../list/bottom-nav';
           </tr>
         </thead>
         <tbody>
-          @for (item of shortcutList; track item.keys) {
+          @for (item of shortcutList; track item.place + item.keys) {
             <tr>
               <td>{{ item.place }}</td>
               <td><kbd>{{ item.keys }}</kbd></td>
