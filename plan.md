@@ -281,7 +281,7 @@ Hlavní vzhled je návrh D „Tapnote Noir“ (`.tmp/mockup/soutez/D-dark.png`, 
 
     Pokrýt dotyk, myš i klávesnici. Šipky ▲▼ nebo menu zůstávají jako alternativa kvůli WCAG 2.5.7. Porovná se nativní HTML5 DnD a Angular CDK drag-drop a zhodnotí se dopad na balík a na Android WebView. Výstupem bude návrh ke schválení (navazuje na odložený bod 6 rozhodnutí).
 
-### Desktop – společný směr (čeká na schválení)
+### Desktop – společný směr (schváleno 23. 10. 2026 podle návrhu v závorce)
 Podklady: `.tmp/mockup/desktop/A/` (UX), `.tmp/mockup/desktop/B/` (grafika), vzájemná hodnocení `A/hodnoceni-B.md` a `B/hodnoceni-A.md`. Oba návrhy dostaly 62 / 80; oba hodnotitelé se shodli na kombinaci: struktura a klávesnice z A, vizuál z B.
 
 Rozhodnutí (v závorce návrh):
@@ -298,7 +298,7 @@ Rozhodnutí (v závorce návrh):
 
 Pracnost: panel, šířky a štítky 1–1,5 dne; seznam vedle detailu (poznámky + úkoly) 3–5 dní podle B, A odhadoval méně. Riziko: při změně šířky přes 1200 px se seznam odpojí a ztratí posunutí i fokus, nutný e2e test 1440 × 900.
 
-### Drag & drop – návrh (čeká na schválení)
+### Drag & drop – návrh (schváleno 23. 10. 2026 podle návrhu v závorce)
 Podklady: `.tmp/dnd/analyza.md`, `.tmp/dnd/proto.html`. Pořadí: kategorie (pilot), checklist, úkoly; odhad 3,5–5,5 dne.
 
 Rozhodnutí (v závorce návrh):
@@ -310,6 +310,17 @@ Rozhodnutí (v závorce návrh):
 - R6 Nový úkol nahoru, nebo dolů? (nahoru)
 - R7 Přetažení na kategorii až s desktopem, mezi pohledy vůbec? (ano)
 - R8 Pořadí kroků úkolu taky? (později)
+
+### Kroky desktop a drag & drop (každý s plným lifecyclem a vlastním commitem)
+15. **Desktop 1 – panel a kolejnice:** `bottom-nav` od 900 px jako kolejnice 84 px, od 1200 px panel 256 px se sklem; odkazy „Nová poznámka“ a „Dnešní poznámka“ v panelu, „Přeskočit na obsah“, FAB od 900 px skrytý, nadpis „Poznámky“ místo loga
+16. **Desktop 2 – šířky a myš:** mřížka max. 1240 px (`auto-fill`), max. šířky stránek, hover jen pod `hover: hover`, kompaktní cíle 36–40 px pod `pointer: fine`, typografie editoru 17 / 1,65, záře podle plochy
+17. **Desktop 3 – štítky zkratek:** `kbd` u existujících zkratek (jen `pointer: fine` a zapnuté zkratky), „Přehled zkratek“ v panelu
+18. **Desktop 4 – poznámky vedle editoru:** rodičovská routa `tn-split` s prázdnou cestou, `NotesList` s `pane`, URL beze změny, návrat fokusu
+19. **Desktop 5 – úkoly vedle detailu a panel nástrojů:** `tn-split` pro `task/:id`, panel nástrojů editoru ukotvený dole ve sloupci editoru s popisky
+20. **Desktop 6 – Nastavení S2 a e2e 1440 × 900:** podstránky na střed, projekt e2e 1440 × 900 světlý/tmavý, axe, průchod klávesnicí, změna šířky přes 1200 px
+21. **D&D 1 – direktiva `tnReorder` + kategorie (pilot):** úchyt ⠿, Pointer Events, autoscroll, klávesové uchopení, live region; ▲▼ u kategorií zůstávají
+22. **D&D 2 – checklist:** `moveGroup` v `checklist.ts`, jen otevřené položky nejvyšší úrovně s podpoložkami, menu úchytu (nahoru / dolů / na začátek / na konec)
+23. **D&D 3 – úkoly:** pole `order` (migrace Dexie, záloha a import), ruční pořadí v Můj den, Důležité a Vše, nový úkol nahoru, menu úchytu
 
 ### Hlídat v každém kroku
 - Kontrast: bílá na oranžovém konci přechodu má 2,5–3,0 : 1 (nepoužívat pro text), světlý přechodový nadpis končit `#c2410c`, okraje polí přes `--outline`; axe za `backdrop-filter` kontrast nespočítá → ruční vzorkování pixelů a druhý průchod bez průhlednosti
