@@ -125,8 +125,11 @@ describe('NoteEditor', () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
+  // Štítek zkratky (kbd, skrytý čtečkám) do názvu tlačítka nepatří
   function buttonOf(root: HTMLElement, text: string): HTMLButtonElement {
-    return [...root.querySelectorAll('button')].find((button) => button.textContent?.trim() === text) as HTMLButtonElement;
+    return [...root.querySelectorAll('button')].find(
+      (button) => button.textContent?.replace(button.querySelector('kbd')?.textContent ?? '', '').trim() === text,
+    ) as HTMLButtonElement;
   }
 
   function type(textarea: HTMLTextAreaElement, value: string): void {

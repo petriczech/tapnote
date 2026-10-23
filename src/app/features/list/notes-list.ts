@@ -121,6 +121,7 @@ function dateLabel(iso: string, today: string): string {
           (keydown.escape)="onQuery('')"
         />
         @if (shortcuts) {
+          <kbd class="key-hint" aria-hidden="true">/</kbd>
           <kbd aria-hidden="true">Ctrl F</kbd>
         }
       </div>
@@ -463,7 +464,8 @@ function dateLabel(iso: string, today: string): string {
       color: var(--on-surface-variant);
     }
 
-    kbd {
+    // Štítek „/“ má sdílený vzhled ze styles.scss
+    kbd:not(.key-hint) {
       padding: 0 6px;
       border: 1px solid var(--outline-variant);
       border-radius: 4px;
@@ -887,7 +889,7 @@ export class NotesList implements OnInit {
     const count = this.items().length;
     return `${count} ${count === 1 ? 'poznámka' : count >= 2 && count <= 4 ? 'poznámky' : 'poznámek'}`;
   });
-  // Nápověda Ctrl F v hledání jen se zapnutými zkratkami
+  // Nápověda / a Ctrl F v hledání jen se zapnutými zkratkami
   protected readonly shortcuts = readShortcutsEnabled();
   // Připnuté zvlášť, jen v poznámkách bez hledání (výsledky drží pořadí podle relevance)
   protected readonly groups = computed(() => {

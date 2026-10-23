@@ -1,9 +1,10 @@
 import { NgOptimizedImage } from '@angular/common';
-import { Component, input, output } from '@angular/core';
+import { Component, computed, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NotesView } from '../../core/model/note-query';
 import { VIEWS } from './views';
 import { ICONS, ICONS_REGULAR } from '../../core/icons/icons';
+import { readShortcutsEnabled } from '../../core/shortcuts/shortcuts';
 
 @Component({
   selector: 'tn-bottom-nav',
@@ -14,10 +15,16 @@ import { ICONS, ICONS_REGULAR } from '../../core/icons/icons';
     <a class="action new" routerLink="/new" (click)="leave.emit()">
       <span class="tile"><svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="bold.plus" /></svg></span>
       Nová poznámka
+      @if (listKeys()) {
+        <kbd class="key-hint" aria-hidden="true">N</kbd>
+      }
     </a>
     <a class="action today" routerLink="/today" (click)="leave.emit()">
       <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.calendar" /></svg>
       Dnešní poznámka
+      @if (listKeys()) {
+        <kbd class="key-hint" aria-hidden="true">D</kbd>
+      }
     </a>
     <nav aria-label="Pohledy">
       <a routerLink="/tasks" [attr.aria-current]="current() === 'tasks' ? 'page' : null" (click)="leave.emit()">
@@ -43,6 +50,15 @@ import { ICONS, ICONS_REGULAR } from '../../core/icons/icons';
         <span class="pip"></span>
       </a>
     </nav>
+    @if (shortcuts) {
+      <a class="action keys" routerLink="/settings" fragment="shortcuts" (click)="leave.emit(); focusShortcuts()">
+        <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.keyboard" /></svg>
+        Přehled zkratek
+        @if (listKeys()) {
+          <kbd class="key-hint" aria-hidden="true">?</kbd>
+        }
+      </a>
+    }
   `,
   styles: `
     // Plovoucí lišta jako v návrhu D; nad gesture barem drží odstup safe area
@@ -194,6 +210,11 @@ import { ICONS, ICONS_REGULAR } from '../../core/icons/icons';
         margin-bottom: 14px;
       }
 
+      // V kolejnici bez popisků se „Přehled zkratek“ nevejde
+      .keys {
+        display: none;
+      }
+
       .brand {
         display: flex;
         align-items: center;
@@ -236,6 +257,13 @@ import { ICONS, ICONS_REGULAR } from '../../core/icons/icons';
 
       a[aria-current] .pip {
         width: 4px;
+      }
+    }
+
+    // Štítky zkratek jen v panelu s popisky; v kolejnici se nevejdou (zobrazení řídí styles.scss)
+    @media (max-width: 1199.98px) {
+      kbd {
+        display: none;
       }
     }
 
@@ -285,6 +313,15 @@ import { ICONS, ICONS_REGULAR } from '../../core/icons/icons';
         display: contents;
       }
 
+      .keys {
+        display: flex;
+        margin-top: 8px;
+      }
+
+      kbd {
+        margin-left: auto;
+      }
+
       .pip {
         left: -12px;
       }
@@ -293,7 +330,8 @@ import { ICONS, ICONS_REGULAR } from '../../core/icons/icons';
     // Najetí myší zvýrazní odkaz jemným tónem (aktivní a „Nová poznámka“ mají vlastní plochu)
     @media (hover: hover) {
       nav a:not([aria-current]):hover,
-      .today:hover {
+      .today:hover,
+      .keys:hover {
         background: color-mix(in srgb, var(--on-surface) 5%, transparent);
         color: var(--on-surface);
       }
@@ -328,10 +366,18 @@ export class BottomNav {
   readonly leave = output();
 
   protected readonly views = VIEWS;
+  // Odkaz na přehled jen se zapnutými zkratkami; N, D a ? fungují jen na seznamu poznámek (ne v Úkolech a Nastavení)
+  protected readonly shortcuts = readShortcutsEnabled();
+  protected readonly listKeys = computed(() => this.shortcuts && this.current() !== 'tasks' && this.current() !== 'settings');
 
   // Fokus se přesune na začátek obsahu stránky bez změny URL (fragment by spustil navigaci routeru)
   protected skip(event: Event): void {
     event.preventDefault();
     document.getElementById('obsah')?.focus();
+  }
+
+  // Na Nastavení se komponenta znovu nevytvoří, sekci proto zaměří odkaz sám (jinde to po navigaci udělá Nastavení)
+  protected focusShortcuts(): void {
+    document.getElementById('shortcuts-heading')?.focus();
   }
 }

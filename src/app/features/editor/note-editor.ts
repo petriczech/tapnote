@@ -48,16 +48,27 @@ type EditorAction = 'pin' | 'archive' | 'template' | 'trash' | 'color' | 'catego
         <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.back" /></svg>
         <span class="visually-hidden">Seznam</span>
       </a>
+      @if (shortcuts) {
+        <kbd class="key-hint" aria-hidden="true">Esc</kbd>
+      }
       @if (draft.content().trim() && draft.saved()) {
         <span class="saved"><span class="dot" aria-hidden="true"></span>Uloženo</span>
       }
       <span class="actions">
         @if (mode() === 'edit') {
-          <button type="button" class="tool grad" (click)="setMode('view')">Hotovo</button>
+          <button type="button" class="tool grad" (click)="setMode('view')">
+            Hotovo
+            @if (shortcuts) {
+              <kbd class="key-hint" aria-hidden="true">Ctrl + Enter</kbd>
+            }
+          </button>
         } @else {
           <button #editButton type="button" class="tool grad" (click)="setMode('edit')">
             <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.pencil" /></svg>
             Upravit
+            @if (shortcuts) {
+              <kbd class="key-hint" aria-hidden="true">Ctrl + Enter</kbd>
+            }
           </button>
         }
       </span>
@@ -473,6 +484,8 @@ export class NoteEditor implements OnInit {
 
   protected readonly mode = signal<'edit' | 'view'>('edit');
   protected readonly actionFailed = signal(false);
+  // Štítky Esc a Ctrl + Enter jen se zapnutými zkratkami
+  protected readonly shortcuts = readShortcutsEnabled();
   protected readonly colors = NOTE_COLORS;
   protected readonly colorVar = noteColorVar;
   protected readonly noteBg = computed(() => noteColorVar(this.draft.color()));
