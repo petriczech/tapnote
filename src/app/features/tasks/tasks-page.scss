@@ -440,22 +440,17 @@ details[open] summary::before {
   transform: rotate(90deg);
 }
 
-// Tlačítko pro nový úkol, stejné jako u poznámek
+// Tlačítko pro nový úkol: tvar a poloha z globálního .fab (jako u poznámek), tady jen reset tlačítka
 .fab {
-  position: fixed;
-  right: 16px;
-  bottom: calc(102px + env(safe-area-inset-bottom));
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  height: 56px;
-  padding: 0 20px 0 16px;
   border: 0;
-  border-radius: var(--fab-radius);
-  background: var(--fab-bg);
-  color: var(--fab-text);
   font: inherit;
   font-weight: 600;
-  box-shadow: 0 3px 8px rgb(0 0 0 / 25%);
   cursor: pointer;
+}
+
+// Od 900 px se FAB skryje, pole „Přidat úkol“ je vidět stále
+@media (min-width: 900px) {
+  .fab {
+    display: none;
+  }
 }

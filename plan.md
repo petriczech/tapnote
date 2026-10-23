@@ -312,7 +312,7 @@ Rozhodnutí (v závorce návrh):
 - R8 Pořadí kroků úkolu taky? (později)
 
 ### Kroky desktop a drag & drop (každý s plným lifecyclem a vlastním commitem)
-15. **Desktop 1 – panel a kolejnice:** `bottom-nav` od 900 px jako kolejnice 84 px, od 1200 px panel 256 px se sklem; odkazy „Nová poznámka“ a „Dnešní poznámka“ v panelu, „Přeskočit na obsah“, FAB od 900 px skrytý, nadpis „Poznámky“ místo loga
+15. ✅ **Desktop 1 – panel a kolejnice:** `bottom-nav` od 900 px jako kolejnice 84 px, od 1200 px panel 256 px se sklem; odkazy „Nová poznámka“ a „Dnešní poznámka“ v panelu, „Přeskočit na obsah“, FAB od 900 px skrytý, nadpis „Poznámky“ místo loga
 16. **Desktop 2 – šířky a myš:** mřížka max. 1240 px (`auto-fill`), max. šířky stránek, hover jen pod `hover: hover`, kompaktní cíle 36–40 px pod `pointer: fine`, typografie editoru 17 / 1,65, záře podle plochy
 17. **Desktop 3 – štítky zkratek:** `kbd` u existujících zkratek (jen `pointer: fine` a zapnuté zkratky), „Přehled zkratek“ v panelu
 18. **Desktop 4 – poznámky vedle editoru:** rodičovská routa `tn-split` s prázdnou cestou, `NotesList` s `pane`, URL beze změny, návrat fokusu

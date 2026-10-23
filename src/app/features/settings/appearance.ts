@@ -20,7 +20,9 @@ import { BottomNav } from '../list/bottom-nav';
   selector: 'tn-appearance',
   imports: [BottomNav, RouterLink],
   template: `
-    <header class="app-bar">
+    <tn-bottom-nav current="settings" />
+
+    <header id="obsah" class="app-bar" tabindex="-1">
       <a class="crumbs" routerLink="/settings">
         Nastavení
         <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.caretRight" /></svg>
@@ -98,8 +100,6 @@ import { BottomNav } from '../list/bottom-nav';
         <p id="ambient-hint" class="info">Barevná záře za skleněnými panely</p>
       }
     </div>
-
-    <tn-bottom-nav current="settings" />
   `,
   styleUrl: './appearance.scss',
 })

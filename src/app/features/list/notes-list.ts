@@ -71,14 +71,17 @@ function dateLabel(iso: string, today: string): string {
   },
   imports: [NgOptimizedImage, NgTemplateOutlet, RouterLink, BottomNav],
   template: `
+    <tn-bottom-nav [current]="current().view" [q]="queryParam()" (leave)="flushQuery()" />
+
     <header class="header">
       <div class="app-bar">
         <div class="heading">
           <p class="eyebrow">{{ countLine() }}</p>
-          <h1 #heading tabindex="-1">
+          <h1 #heading id="obsah" tabindex="-1">
             <img class="app-logo" ngSrc="icons/icon-96x96.png" width="32" height="32" alt="" />
             @if (current().view === 'notes') {
-              Tapnote<span class="visually-hidden"> – {{ current().label }}</span>
+              <span class="app-name">Tapnote<span class="visually-hidden"> – </span></span>
+              <span class="view-name visually-hidden">{{ current().label }}</span>
             } @else {
               {{ current().label }}
             }
@@ -351,8 +354,6 @@ function dateLabel(iso: string, today: string): string {
       <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.plus" /></svg>
       Nová
     </a>
-
-    <tn-bottom-nav [current]="current().view" [q]="queryParam()" (leave)="flushQuery()" />
   `,
   styles: `
     :host {
@@ -391,6 +392,22 @@ function dateLabel(iso: string, today: string): string {
 
     h1:focus:not(:focus-visible) {
       outline: none;
+    }
+
+    // Od 900 px nese značku panel: nadpis je jen „Poznámky“ a FAB nahradí „Nová poznámka“ v panelu
+    @media (min-width: 900px) {
+      .app-logo,
+      .app-name,
+      .fab {
+        display: none;
+      }
+
+      .view-name {
+        position: static;
+        width: auto;
+        height: auto;
+        clip-path: none;
+      }
     }
 
     .app-bar .icon-btn {

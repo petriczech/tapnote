@@ -579,6 +579,19 @@ html:has(tn-bottom-nav) {
   scroll-padding-bottom: calc(172px + env(safe-area-inset-bottom));
 }
 
+// Od 900 px se stránky odsadí od levé kolejnice (84 px), od 1200 px od panelu (256 px)
+@media (min-width: 900px) {
+  html:has(tn-bottom-nav) body {
+    padding-left: 84px;
+  }
+}
+
+@media (min-width: 1200px) {
+  html:has(tn-bottom-nav) body {
+    padding-left: 256px;
+  }
+}
+
 body {
   margin: 0;
   background: var(--surface);

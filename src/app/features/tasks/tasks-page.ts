@@ -20,11 +20,13 @@ const CONFETTI_MS = 800;
   imports: [BottomNav, Confetti, NgTemplateOutlet, RouterLink],
   host: { '(document:visibilitychange)': 'refreshToday()' },
   template: `
+    <tn-bottom-nav current="tasks" />
+
     <header class="header">
       <div class="app-bar">
         <div>
           <p class="eyebrow">{{ dateLine() }}</p>
-          <h1 tabindex="-1">{{ heading()[0] }}@if (heading()[1]) {<span class="title-accent">{{ heading()[1] }}</span>}</h1>
+          <h1 id="obsah" tabindex="-1">{{ heading()[0] }}@if (heading()[1]) {<span class="title-accent">{{ heading()[1] }}</span>}</h1>
         </div>
         @if (progress().total > 0) {
           <span class="ring" role="img" [attr.aria-label]="'Hotovo ' + progress().done + ' z ' + progress().total">
@@ -208,8 +210,6 @@ const CONFETTI_MS = 800;
       <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.plus" /></svg>
       Nový
     </button>
-
-    <tn-bottom-nav current="tasks" />
   `,
   styleUrl: './tasks-page.scss',
 })

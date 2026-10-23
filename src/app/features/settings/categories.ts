@@ -17,7 +17,9 @@ type Draft = CategoryFields & { id: string | null };
   selector: 'tn-categories',
   imports: [BottomNav, RouterLink],
   template: `
-    <header class="app-bar">
+    <tn-bottom-nav current="settings" />
+
+    <header id="obsah" class="app-bar" tabindex="-1">
       <a class="crumbs" routerLink="/settings">
         Nastavení
         <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="regular.caretRight" /></svg>
@@ -74,8 +76,6 @@ type Draft = CategoryFields & { id: string | null };
       <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="uiIcons.plus" /></svg>
       Přidat kategorii
     </button>
-
-    <tn-bottom-nav current="settings" />
 
     <!-- Spodní panel: showModal() drží fokus uvnitř; Esc a klepnutí mimo panel (closedby="any", Safari zatím ne) ho zavřou -->
     <dialog #sheet class="sheet" aria-labelledby="sheet-title" closedby="any" (close)="dismiss()">

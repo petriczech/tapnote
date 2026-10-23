@@ -28,9 +28,11 @@ const REVOKE_DELAY_MS = 60_000;
   selector: 'tn-settings',
   imports: [BottomNav, RouterLink],
   template: `
+    <tn-bottom-nav current="settings" />
+
     <header class="app-bar">
       <p class="eyebrow">Tapnote</p>
-      <h1>Nastavení</h1>
+      <h1 id="obsah" tabindex="-1">Nastavení</h1>
     </header>
 
     <!-- Rozcestník: Vzhled a Kategorie jsou podstránky, ostatní řádky skočí na sekci níže -->
@@ -160,8 +162,6 @@ const REVOKE_DELAY_MS = 60_000;
         <dd>{{ build() }}</dd>
       </dl>
     </section>
-
-    <tn-bottom-nav current="settings" />
   `,
   styles: `
     :host {
