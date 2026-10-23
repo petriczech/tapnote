@@ -44,3 +44,34 @@ test('poznámky: poslední karta nad spodní lištou', async ({ page, seed }) =>
   expect(last!.y + last!.height).toBeLessThanOrEqual(nav!.y);
   expect(last!.y + last!.height).toBeLessThanOrEqual(fab!.y);
 });
+
+// Položka checklistu se přesune tahem za úchyt ⠿ i s podpoložkou a menu úchytu; hotové zůstávají dole, pořadí se uloží
+test('poznámky: řazení checklistu úchytem a menu úchytu', async ({ page, seed, axe }) => {
+  await seed({ notes: [{ id: 'nakup', title: 'Nákup', content: 'Nákup\n- [ ] mléko\n  - [ ] polotučné\n- [ ] chleba\n- [ ] sýr\n- [x] máslo' }] });
+  await page.goto('/note/nakup');
+  const items = page.locator('.group > label');
+  const grip = (name: string) => page.getByRole('button', { name: `Přesunout: ${name}`, exact: true });
+  await expect(items).toHaveText(['mléko', 'chleba', 'sýr']);
+  await axe('checklist s úchyty');
+
+  const from = (await grip('mléko').boundingBox())!;
+  const to = (await grip('chleba').boundingBox())!;
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(from.x + from.width / 2, to.y + to.height / 2, { steps: 10 });
+  await page.mouse.up();
+  await expect(items).toHaveText(['chleba', 'mléko', 'sýr']);
+  await expect(page.locator('.group').nth(1).locator('.sub label')).toHaveText('polotučné');
+  await expect(grip('mléko')).toBeFocused();
+
+  await page.keyboard.press('Enter');
+  await page.getByRole('button', { name: 'Posunout na konec' }).click();
+  await expect(items).toHaveText(['chleba', 'sýr', 'mléko']);
+  await expect(grip('mléko')).toBeFocused();
+  await expect(page.getByText('Uloženo')).toBeVisible();
+
+  await page.reload();
+  await expect(items).toHaveText(['chleba', 'sýr', 'mléko']);
+  await page.getByRole('button', { name: 'Hotové (1)' }).click();
+  await expect(page.locator('.checklist.done label')).toHaveText(['máslo']);
+});

@@ -16,7 +16,7 @@ import {
 import { Router, RouterLink } from '@angular/router';
 import { Category } from '../../core/model/category';
 import { categoryIconPath } from '../../core/model/category-icons';
-import { continueList, hasChecklist, TextEdit, toggleItem, toggleItemPrefix } from '../../core/model/checklist';
+import { continueList, hasChecklist, moveGroup, TextEdit, toggleItem, toggleItemPrefix } from '../../core/model/checklist';
 import { backlinks, extractLinks, linkTargets } from '../../core/model/links';
 import { deriveTitle, Note } from '../../core/model/note';
 import { isNoteColor, NOTE_COLORS, noteColorVar } from '../../core/model/note-colors';
@@ -92,6 +92,7 @@ type EditorAction = 'pin' | 'archive' | 'template' | 'trash' | 'color' | 'catego
         [content]="draft.content()"
         [targets]="targets()"
         (itemToggle)="toggleItem($event)"
+        (itemMove)="moveItem($event)"
         (addItem)="addItem($event)"
       >
         @if (draft.stored(); as note) {
@@ -632,6 +633,10 @@ export class NoteEditor implements OnInit {
 
   protected toggleItem(line: number): void {
     this.draft.update(toggleItem(this.draft.content(), line));
+  }
+
+  protected moveItem({ line, to }: { line: number; to: number }): void {
+    this.draft.update(moveGroup(this.draft.content(), line, to));
   }
 
   // „Přidat položku“: prázdná položka s odsazením bloku na daném řádku a úprava s kurzorem za ní

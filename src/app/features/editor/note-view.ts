@@ -1,14 +1,22 @@
 import { afterNextRender, Component, computed, ElementRef, inject, Injector, input, output, signal } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { NoteSegment, parseSegments } from '../../core/model/checklist';
+import { ChecklistRow, NoteSegment, parseSegments } from '../../core/model/checklist';
 import { linkKey, splitLinks } from '../../core/model/links';
 import { deriveTitle } from '../../core/model/note';
 import { ICONS } from '../../core/icons/icons';
+import { Reorder, ReorderMove } from '../../core/reorder/reorder';
+
+// Cíl nabídky úchytu: seznam bloku, blok a pozice skupiny mezi otevřenými položkami
+interface MenuTarget {
+  list: HTMLElement;
+  block: number;
+  index: number;
+}
 
 @Component({
   selector: 'tn-note-view',
-  imports: [RouterLink, NgTemplateOutlet],
+  imports: [RouterLink, NgTemplateOutlet, Reorder],
   template: `
     <ng-template #rich let-text>
       @for (part of splitLinks(text); track $index) {
@@ -22,6 +30,18 @@ import { ICONS } from '../../core/icons/icons';
           <ng-container>{{ part.text }}</ng-container>
         }
       }
+    </ng-template>
+    <ng-template #item let-row>
+      <label>
+        <input
+          #box
+          type="checkbox"
+          [checked]="row.checked"
+          [attr.aria-label]="row.text ? null : 'Prázdná položka'"
+          (change)="onChange(box, row.line, row.checked)"
+        />
+        <span><ng-container *ngTemplateOutlet="rich; context: { $implicit: row.text }" /></span>
+      </label>
     </ng-template>
     <!-- Název z prvního řádku, pod ním meta řádek z editoru a postup checklistu -->
     @let title = heading();
@@ -39,19 +59,34 @@ import { ICONS } from '../../core/icons/icons';
           <p class="text"><ng-container *ngTemplateOutlet="rich; context: { $implicit: segment.text }" /></p>
         }
       } @else {
-        <ul class="checklist">
-          @for (row of segment.open; track row.line) {
-            <li [style.padding-left.rem]="row.level * 1.5">
-              <label>
-                <input
-                  #box
-                  type="checkbox"
-                  [checked]="row.checked"
-                  [attr.aria-label]="row.text ? null : 'Prázdná položka'"
-                  (change)="onChange(box, row.line, row.checked)"
-                />
-                <span><ng-container *ngTemplateOutlet="rich; context: { $implicit: row.text }" /></span>
-              </label>
+        <!-- Otevřené položky nejvyšší úrovně i s podpoložkami se řadí úchytem (R3), od dvou položek -->
+        @let groups = openGroups()[block];
+        <ul #list class="checklist" [tnReorder]="names()[block]" [tnReorderMenu]="true" (moved)="onMoved(list, block, $event)">
+          @for (group of groups; track group[0].line; let index = $index) {
+            <li class="group">
+              <ng-container *ngTemplateOutlet="item; context: { $implicit: group[0] }" />
+              @if (groups.length > 1) {
+                <button
+                  type="button"
+                  class="grip"
+                  [attr.aria-label]="'Přesunout: ' + names()[block][index]"
+                  aria-describedby="checklist-reorder-hint"
+                  aria-pressed="false"
+                  popovertarget="grip-menu"
+                  (click)="menuFor.set({ list, block, index })"
+                >
+                  <span aria-hidden="true">⠿</span>
+                </button>
+              }
+              @if (group.length > 1) {
+                <ul class="sub">
+                  @for (row of group.slice(1); track row.line) {
+                    <li [style.padding-left.rem]="row.level * 1.5">
+                      <ng-container *ngTemplateOutlet="item; context: { $implicit: row }" />
+                    </li>
+                  }
+                </ul>
+              }
             </li>
           }
         </ul>
@@ -72,16 +107,7 @@ import { ICONS } from '../../core/icons/icons';
             <ul class="checklist done">
               @for (row of segment.done; track row.line) {
                 <li [style.padding-left.rem]="row.level * 1.5">
-                  <label>
-                    <input
-                      #box
-                      type="checkbox"
-                      [checked]="row.checked"
-                      [attr.aria-label]="row.text ? null : 'Prázdná položka'"
-                      (change)="onChange(box, row.line, row.checked)"
-                    />
-                    <span><ng-container *ngTemplateOutlet="rich; context: { $implicit: row.text }" /></span>
-                  </label>
+                  <ng-container *ngTemplateOutlet="item; context: { $implicit: row }" />
                 </li>
               }
             </ul>
@@ -89,6 +115,18 @@ import { ICONS } from '../../core/icons/icons';
         }
       }
     }
+    <!-- Nabídka úchytu jako alternativa tažení (WCAG 2.5.7); nedostupný směr je jen aria-disabled, aby fokus měl kam padnout -->
+    <div #gripMenu id="grip-menu" class="menu grip-menu" popover (toggle)="onMenuToggle($event)">
+      @let target = menuFor();
+      @let last = target ? (openGroups()[target.block]?.length ?? 0) - 1 : 0;
+      <button type="button" [attr.aria-disabled]="target?.index === 0" (click)="moveTo(gripMenu, (target?.index ?? 0) - 1)">Posunout nahoru</button>
+      <button type="button" [attr.aria-disabled]="target?.index === last" (click)="moveTo(gripMenu, (target?.index ?? 0) + 1)">Posunout dolů</button>
+      <button type="button" [attr.aria-disabled]="target?.index === 0" (click)="moveTo(gripMenu, 0)">Posunout na začátek</button>
+      <button type="button" [attr.aria-disabled]="target?.index === last" (click)="moveTo(gripMenu, last)">Posunout na konec</button>
+    </div>
+    <p id="checklist-reorder-hint" hidden>
+      Úchyt se táhne prstem nebo myší. Klepnutí nebo Enter otevře nabídku přesunu. Mezerník řádek uchopí, šipky ho posunou, další stisk ho pustí a Esc přesun zruší.
+    </p>
   `,
   styles: `
     :host {
@@ -157,6 +195,44 @@ import { ICONS } from '../../core/icons/icons';
 
     .checklist li {
       border-bottom: 1px solid var(--outline-variant);
+    }
+
+    /* Skupina: položka s úchytem vpravo, podpoložky pod ní přes celou šířku */
+    .group {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+    }
+
+    .group .grip {
+      margin-right: -10px;
+    }
+
+    .sub {
+      grid-column: 1 / -1;
+      margin: 0;
+      padding: 0;
+      border-top: 1px solid var(--outline-variant);
+      list-style: none;
+    }
+
+    .checklist .sub li:last-child {
+      border-bottom: 0;
+    }
+
+    .grip-menu [aria-disabled='true'] {
+      color: var(--on-surface-variant);
+      cursor: default;
+    }
+
+    /* Nabídka pod úchytem (implicitní kotva z popovertarget), bez podpory uprostřed obrazovky */
+    @supports (position-area: bottom) {
+      .grip-menu {
+        margin: 4px 0;
+        inset: auto;
+        position-area: bottom span-left;
+        position-try-fallbacks: flip-block;
+      }
     }
 
     label {
@@ -246,7 +322,7 @@ import { ICONS } from '../../core/icons/icons';
       height: 20px;
     }
 
-    /* Ve vysokém kontrastu se kroužek a proužek kreslí systémovými barvami (přechod by se zahodil) */
+    /* Ve vysokém kontrastu se kroužek, proužek a nedostupné volby nabídky kreslí systémovými barvami (přechod by se zahodil) */
     @media (forced-colors: active) {
       input {
         --c: CanvasText;
@@ -268,6 +344,10 @@ import { ICONS } from '../../core/icons/icons';
       .progress::-moz-progress-bar {
         background: Highlight;
       }
+
+      .grip-menu [aria-disabled='true'] {
+        color: GrayText;
+      }
     }
   `,
 })
@@ -276,6 +356,8 @@ export class NoteView {
   // Klíč názvu → id poznámky pro odkazy [[Název]]
   readonly targets = input<ReadonlyMap<string, string>>(new Map());
   readonly itemToggle = output<number>();
+  // Řádek přesouvané položky nejvyšší úrovně a nová pozice mezi otevřenými položkami bloku
+  readonly itemMove = output<{ line: number; to: number }>();
   // Řádek, na který se vloží nová položka checklistu, a řádek horní úrovně bloku (odsazení)
   readonly addItem = output<{ line: number; from: number }>();
 
@@ -296,6 +378,18 @@ export class NoteView {
     return { done: rows.filter((row) => row.checked).length, total: rows.length };
   });
   protected readonly expanded = signal(new Set<number>());
+  // Otevřené položky po skupinách (položka nejvyšší úrovně i s podpoložkami) a jejich názvy podle bloku
+  protected readonly openGroups = computed(() =>
+    this.segments().map((segment) => {
+      const groups: ChecklistRow[][] = [];
+      if (segment.kind === 'checklist') {
+        segment.open.forEach((row) => (row.level === 0 ? groups.push([row]) : groups.at(-1)?.push(row)));
+      }
+      return groups;
+    }),
+  );
+  protected readonly names = computed(() => this.openGroups().map((groups) => groups.map(([row]) => row.text || 'Prázdná položka')));
+  protected readonly menuFor = signal<MenuTarget | undefined>(undefined);
 
   private readonly host: HTMLElement = inject(ElementRef).nativeElement;
   private readonly injector = inject(Injector);
@@ -304,6 +398,7 @@ export class NoteView {
   protected onChange(box: HTMLInputElement, line: number, checked: boolean): void {
     box.checked = checked;
     const index = this.checkboxes().indexOf(box);
+    this.closeMenu();
     this.itemToggle.emit(line);
     afterNextRender(() => this.keepFocus(index), { injector: this.injector });
   }
@@ -325,6 +420,45 @@ export class NoteView {
   protected insertLine(segment: Extract<NoteSegment, { kind: 'checklist' }>): { line: number; from: number } {
     const last = segment.open.at(-1);
     return { line: last ? last.line + 1 : segment.done[0].line, from: (segment.open[0] ?? segment.done[0]).line };
+  }
+
+  // Puštění úchytem (tah nebo klávesnice)
+  protected onMoved(list: HTMLElement, block: number, { from, to }: ReorderMove): void {
+    this.closeMenu();
+    this.move({ list, block, index: from }, to);
+  }
+
+  // Nabídka úchytu otevřená u jiné položky by po přeskupení mířila na starou pozici, proto se zavře
+  private closeMenu(): void {
+    if (this.menuFor()) {
+      this.host.querySelector<HTMLElement>('.grip-menu')?.hidePopover?.();
+      this.menuFor.set(undefined);
+    }
+  }
+
+  // Volba v nabídce úchytu; nedostupný směr nic nedělá
+  protected moveTo(menu: HTMLElement, to: number): void {
+    const target = this.menuFor();
+    const groups = this.openGroups()[target?.block ?? -1];
+    if (!target || !groups?.[target.index] || to < 0 || to >= groups.length || to === target.index) {
+      return;
+    }
+    menu.hidePopover?.();
+    this.move(target, to);
+  }
+
+  protected onMenuToggle(event: Event): void {
+    if ('newState' in event && event.newState === 'open') {
+      (event.target as HTMLElement).querySelector<HTMLElement>('button')?.focus();
+    } else {
+      this.menuFor.set(undefined);
+    }
+  }
+
+  // Fokus po přerenderování na úchyt přesunuté položky (stejný seznam, nová pozice)
+  private move({ list, block, index }: MenuTarget, to: number): void {
+    this.itemMove.emit({ line: this.openGroups()[block][index][0].line, to });
+    afterNextRender(() => list.children[to]?.querySelector<HTMLElement>('.grip')?.focus(), { injector: this.injector });
   }
 
   protected toggleExpanded(block: number): void {

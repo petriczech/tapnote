@@ -140,6 +140,88 @@ describe('NoteView', () => {
     expect(doneToggle()).toBeNull();
   });
 
+  describe('reorder', () => {
+    const grips = () => [...root.querySelectorAll<HTMLButtonElement>('.grip')];
+    const menuItem = (name: string) =>
+      [...root.querySelectorAll<HTMLButtonElement>('.grip-menu button')].find((button) => button.textContent?.trim() === name) as HTMLButtonElement;
+
+    it('shows a grip only on open top-level items when a block has two of them', async () => {
+      await render('- [ ] mléko\n  - [ ] polotučné\n- [ ] chleba\n- [x] máslo\n\ntext\n- [ ] sůl');
+
+      expect(grips().map((grip) => grip.getAttribute('aria-label'))).toEqual(['Přesunout: mléko', 'Přesunout: chleba']);
+      // Podpoložka je uvnitř skupiny rodiče, takže se přesouvá s ním
+      expect(root.querySelector('.group .sub label')?.textContent?.trim()).toBe('polotučné');
+      expect(grips()[0].getAttribute('aria-describedby')).toBe('checklist-reorder-hint');
+    });
+
+    it('emits the line and target from the handle menu and skips an unavailable direction', async () => {
+      const moves: { line: number; to: number }[] = [];
+      fixture.componentInstance.itemMove.subscribe((move) => moves.push(move));
+      await render('Nákup\n- [ ] mléko\n  - [ ] polotučné\n- [ ] chleba\n- [ ] sýr');
+
+      grips()[0].click();
+      await fixture.whenStable();
+      expect(menuItem('Posunout nahoru').getAttribute('aria-disabled')).toBe('true');
+      menuItem('Posunout nahoru').click();
+      menuItem('Posunout na konec').click();
+
+      grips()[2].click();
+      await fixture.whenStable();
+      expect(menuItem('Posunout dolů').getAttribute('aria-disabled')).toBe('true');
+      menuItem('Posunout nahoru').click();
+
+      expect(moves).toEqual([
+        { line: 1, to: 2 },
+        { line: 4, to: 1 },
+      ]);
+    });
+
+    it('drops the handle menu target when an item is toggled', async () => {
+      const moves: { line: number; to: number }[] = [];
+      fixture.componentInstance.itemMove.subscribe((move) => moves.push(move));
+      fixture.componentInstance.itemToggle.subscribe(() => render('- [ ] mléko\n- [ ] chleba\n- [x] sýr'));
+      await render('- [ ] mléko\n- [ ] chleba\n- [ ] sýr');
+
+      grips()[2].click();
+      root.querySelectorAll<HTMLInputElement>('input[type=checkbox]')[2].click();
+      await vi.waitFor(() => expect(labels()).toEqual(['mléko', 'chleba']));
+      menuItem('Posunout nahoru').click();
+
+      expect(moves).toEqual([]);
+    });
+
+    it('emits a drop from the keyboard grab', async () => {
+      const moves: { line: number; to: number }[] = [];
+      fixture.componentInstance.itemMove.subscribe((move) => moves.push(move));
+      // jsdom neumí scrollIntoView
+      Object.assign(HTMLElement.prototype, { scrollIntoView: vi.fn() });
+      onTestFinished(() => {
+        Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
+      });
+      await render('- [ ] mléko\n- [ ] chleba');
+      const grip = grips()[1];
+      grip.focus();
+
+      grip.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }));
+      grip.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }));
+      grip.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+
+      expect(moves).toEqual([{ line: 1, to: 0 }]);
+
+      // Cíl nabídky otevřené před přesunem se zahodí
+      grips()[0].click();
+      grip.focus();
+      grip.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }));
+      grip.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }));
+      grip.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }));
+      menuItem('Posunout dolů').click();
+      expect(moves).toEqual([
+        { line: 1, to: 0 },
+        { line: 1, to: 0 },
+      ]);
+    });
+  });
+
   describe('links', () => {
     beforeEach(() => fixture.componentRef.setInput('targets', new Map([['nákup', 'n1']])));
 

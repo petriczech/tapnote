@@ -319,7 +319,7 @@ Rozhodnutí (v závorce návrh):
 19. ✅ **Desktop 5 – úkoly vedle detailu a panel nástrojů:** `tn-split` pro `task/:id`, panel nástrojů editoru ukotvený dole ve sloupci editoru s popisky
 20. ✅ **Desktop 6 – Nastavení S2 a e2e 1440 × 900:** podstránky na střed, projekt e2e 1440 × 900 světlý/tmavý, axe, průchod klávesnicí, změna šířky přes 1200 px
 21. ✅ **D&D 1 – direktiva `tnReorder` + kategorie (pilot):** úchyt ⠿, Pointer Events, autoscroll, klávesové uchopení, live region; ▲▼ u kategorií zůstávají
-22. **D&D 2 – checklist:** `moveGroup` v `checklist.ts`, jen otevřené položky nejvyšší úrovně s podpoložkami, menu úchytu (nahoru / dolů / na začátek / na konec)
+22. ✅ **D&D 2 – checklist:** `moveGroup` v `checklist.ts`, jen otevřené položky nejvyšší úrovně s podpoložkami, menu úchytu (nahoru / dolů / na začátek / na konec)
 23. **D&D 3 – úkoly:** pole `order` (migrace Dexie, záloha a import), ruční pořadí v Můj den, Důležité a Vše, nový úkol nahoru, menu úchytu
 
 24. ✅ **Zkratky na samostatné stránce:** sekce „Klávesové zkratky“ (přepínač „Zapnout klávesové zkratky“ a tabulka) se z rozcestníku Nastavení přesune na `/settings/zkratky` podle vzoru Vzhledu a Kategorií; řádek rozcestníku, zkratka `?`, odkaz „Přehled zkratek“ v panelu a starý odkaz `/settings#shortcuts` vedou na novou stránku s fokusem na nadpisu

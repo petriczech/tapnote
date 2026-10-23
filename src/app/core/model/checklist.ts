@@ -91,7 +91,8 @@ export function parseSegments(content: string): NoteSegment[] {
     for (const [start, end] of groupsOf(lines, block)) {
       const rows = lines.slice(start, end).map((text, i) => {
         const item = parseItem(text) as ParsedItem;
-        const level = Math.floor((item.indent.length - min) / 2);
+        // Úroveň 0 má jen položka nejvyšší úrovně (podle ní náhled skládá skupiny pro řazení), i při lichém odsazení
+        const level = i === 0 ? 0 : Math.max(1, Math.floor((item.indent.length - min) / 2));
         return { line: start + i, level, checked: item.checked, text: item.text };
       });
       if (rows[0].checked) {
@@ -130,6 +131,27 @@ export function toggleItem(content: string, line: number): string {
     : groups.reduce((last, group, i) => (parseItem(group[0])?.checked ? last : i + 1), 0);
   groups.splice(position, 0, moved);
   lines.splice(block[0], block[1] - block[0], ...groups.flat());
+  return lines.join('\n');
+}
+
+// Přesun otevřené položky nejvyšší úrovně (i s podpoložkami) na pozici toIndex mezi otevřenými položkami
+// jejího bloku; hotové se při tom srovnají na konec bloku (jako u toggleItem), jiný řádek obsah nemění
+export function moveGroup(content: string, fromLine: number, toIndex: number): string {
+  const lines = content.split('\n');
+  if (!parseItem(lines[fromLine] ?? '')) {
+    return content;
+  }
+  const block = blockAround(lines, fromLine);
+  const ranges = groupsOf(lines, block).filter(([start]) => !parseItem(lines[start])?.checked);
+  const from = ranges.findIndex(([start]) => start === fromLine);
+  const to = Math.max(0, Math.min(ranges.length - 1, toIndex));
+  if (from === -1 || from === to) {
+    return content;
+  }
+  ranges.splice(to, 0, ...ranges.splice(from, 1));
+  const done = groupsOf(lines, block).filter(([start]) => parseItem(lines[start])?.checked);
+  const ordered = [...ranges, ...done].flatMap(([start, end]) => lines.slice(start, end));
+  lines.splice(block[0], block[1] - block[0], ...ordered);
   return lines.join('\n');
 }
 

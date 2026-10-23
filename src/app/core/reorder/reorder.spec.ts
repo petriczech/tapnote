@@ -5,7 +5,7 @@ import { Reorder, ReorderMove } from './reorder';
 @Component({
   imports: [Reorder],
   template: `
-    <ul [tnReorder]="names()" (moved)="moves.push($event)">
+    <ul [tnReorder]="names()" [tnReorderMenu]="menu()" (moved)="moves.push($event)">
       @for (name of names(); track name) {
         <li>
           {{ name }}
@@ -18,6 +18,7 @@ import { Reorder, ReorderMove } from './reorder';
 })
 class Host {
   readonly names = signal(['Domov', 'Práce', 'Nákup']);
+  readonly menu = signal(false);
   readonly moves: ReorderMove[] = [];
 }
 
@@ -143,6 +144,25 @@ describe('Reorder', () => {
     });
   });
 
+  describe('with a handle menu', () => {
+    beforeEach(async () => {
+      fixture.componentInstance.menu.set(true);
+      await fixture.whenStable();
+    });
+
+    it('leaves Enter to the menu, grabs with Space and drops with Enter', () => {
+      grip(0).focus();
+      expect(key(grip(0), 'Enter').defaultPrevented).toBe(false);
+      expect(grip(0).getAttribute('aria-pressed')).toBe('false');
+
+      key(grip(0), ' ');
+      expect(grip(0).getAttribute('aria-pressed')).toBe('true');
+      key(grip(0), 'ArrowDown');
+      expect(key(grip(0), 'Enter').defaultPrevented).toBe(true);
+      expect(moves()).toEqual([{ from: 0, to: 1 }]);
+    });
+  });
+
   describe('pointer', () => {
     it('drags the row by the handle and emits the drop position', () => {
       pointer(grip(0), 'pointerdown', 120);
@@ -163,7 +183,10 @@ describe('Reorder', () => {
       pointer(grip(1), 'pointerdown', 120);
       pointer(grip(1), 'pointermove', 123);
       pointer(grip(1), 'pointerup', 123);
+      const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+      grip(1).dispatchEvent(click);
 
+      expect(click.defaultPrevented).toBe(false);
       expect(moves()).toEqual([]);
       expect(live()).toBe('');
       expect(grip(1).getAttribute('aria-pressed')).toBe('false');
@@ -189,6 +212,31 @@ describe('Reorder', () => {
       grip(1).focus();
       key(grip(1), ' ');
       expect(grip(1).getAttribute('aria-pressed')).toBe('true');
+    });
+
+    it('cancels the click that follows a drag, but not the next one', () => {
+      pointer(grip(0), 'pointerdown', 120);
+      pointer(grip(0), 'pointermove', 175);
+      pointer(grip(0), 'pointerup', 175);
+      const after = new MouseEvent('click', { bubbles: true, cancelable: true });
+      grip(0).dispatchEvent(after);
+      const next = new MouseEvent('click', { bubbles: true, cancelable: true });
+      grip(0).dispatchEvent(next);
+
+      expect(after.defaultPrevented).toBe(true);
+      expect(next.defaultPrevented).toBe(false);
+    });
+
+    it('drops a drag whose handle was removed by a re-render before the next grab', async () => {
+      pointer(grip(0), 'pointerdown', 120);
+      pointer(grip(0), 'pointermove', 175);
+      fixture.componentInstance.names.set(['Práce', 'Nákup', 'Pošta']);
+      await fixture.whenStable();
+
+      pointer(grip(1), 'pointerdown', 170);
+      pointer(grip(1), 'pointermove', 230);
+      pointer(grip(1), 'pointerup', 230);
+      expect(moves()).toEqual([{ from: 1, to: 2 }]);
     });
 
     it('starts only from the handle', () => {

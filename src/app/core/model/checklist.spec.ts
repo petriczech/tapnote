@@ -1,4 +1,4 @@
-import { continueList, hasChecklist, parseSegments, TextEdit, toggleItem, toggleItemPrefix } from './checklist';
+import { continueList, hasChecklist, moveGroup, parseSegments, TextEdit, toggleItem, toggleItemPrefix } from './checklist';
 
 function apply(value: string, edit: TextEdit): string {
   return value.slice(0, edit.from) + edit.insert + value.slice(edit.to);
@@ -51,6 +51,12 @@ describe('parseSegments', () => {
     });
   });
 
+  it('gives a sub-item with an odd indent level 1', () => {
+    const [segment] = parseSegments('- [ ] a\n\t- [ ] a1\n- [ ] b');
+
+    expect(segment.kind === 'checklist' && segment.open.map((row) => row.level)).toEqual([0, 1, 0]);
+  });
+
   it('accepts an item without text', () => {
     const [segment] = parseSegments('- [ ]');
 
@@ -95,6 +101,41 @@ describe('toggleItem', () => {
   it('ignores a line that is not an item', () => {
     expect(toggleItem('text', 0)).toBe('text');
     expect(toggleItem('text', 5)).toBe('text');
+  });
+});
+
+describe('moveGroup', () => {
+  it('moves an open item to another position', () => {
+    expect(moveGroup('- [ ] a\n- [ ] b\n- [ ] c', 0, 2)).toBe('- [ ] b\n- [ ] c\n- [ ] a');
+    expect(moveGroup('- [ ] a\n- [ ] b\n- [ ] c', 2, 0)).toBe('- [ ] c\n- [ ] a\n- [ ] b');
+  });
+
+  it('moves sub-items with their parent', () => {
+    expect(moveGroup('- [ ] a\n  - [ ] a1\n  - [x] a2\n- [ ] b', 0, 1)).toBe('- [ ] b\n- [ ] a\n  - [ ] a1\n  - [x] a2');
+    expect(moveGroup('- [ ] a\n- [ ] b\n  - [ ] b1', 1, 0)).toBe('- [ ] b\n  - [ ] b1\n- [ ] a');
+  });
+
+  it('counts only open items and keeps done items at the end', () => {
+    expect(moveGroup('- [ ] a\n- [x] d\n- [ ] b\n- [ ] c', 3, 0)).toBe('- [ ] c\n- [ ] a\n- [ ] b\n- [x] d');
+  });
+
+  it('clamps the target to the open items', () => {
+    expect(moveGroup('- [ ] a\n- [ ] b\n- [x] d', 0, 5)).toBe('- [ ] b\n- [ ] a\n- [x] d');
+    expect(moveGroup('- [ ] a\n- [ ] b', 1, -1)).toBe('- [ ] b\n- [ ] a');
+  });
+
+  it('only touches its own block', () => {
+    expect(moveGroup('- [ ] a\n- [ ] b\ntext\n- [ ] c', 0, 1)).toBe('- [ ] b\n- [ ] a\ntext\n- [ ] c');
+    expect(moveGroup('- [ ] a\ntext\n- [ ] b\n- [ ] c', 3, 0)).toBe('- [ ] a\ntext\n- [ ] c\n- [ ] b');
+  });
+
+  it('ignores a done item, a sub-item, a line that is not an item and the same position', () => {
+    const content = '- [ ] a\n  - [ ] a1\n- [ ] b\n- [x] d';
+    expect(moveGroup(content, 3, 0)).toBe(content);
+    expect(moveGroup(content, 1, 1)).toBe(content);
+    expect(moveGroup(content, 0, 0)).toBe(content);
+    expect(moveGroup('text', 0, 1)).toBe('text');
+    expect(moveGroup('text', 5, 1)).toBe('text');
   });
 });
 

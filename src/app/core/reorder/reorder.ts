@@ -33,16 +33,21 @@ interface Drag {
     '(pointerdown)': 'pointerDown($event)',
     '(keydown)': 'keyDown($event)',
     '(focusout)': 'focusOut($event)',
+    '(click)': 'click($event)',
   },
 })
 export class Reorder {
   // Názvy položek v pořadí řádků pro oznámení čtečce
   readonly names = input.required<readonly string[]>({ alias: 'tnReorder' });
+  // Úchyt otevírá menu přesunu (alternativa WCAG 2.5.7): Enter a klepnutí patří menu, uchopuje jen mezerník
+  readonly menu = input(false, { alias: 'tnReorderMenu' });
   readonly moved = output<ReorderMove>();
 
   private readonly host: HTMLElement = inject(ElementRef).nativeElement;
   private readonly live = document.createElement('p');
   private drag?: Drag;
+  // Po tahu ukazatelem se klik na úchytu (puštění tlačítka) nesmí brát jako klepnutí
+  private dragged = false;
 
   constructor() {
     // Oznámení jdou do vlastního live regionu na konci body (jako LiveAnnouncer v CDK); do <ul> nepatří
@@ -58,8 +63,10 @@ export class Reorder {
 
   protected pointerDown(event: PointerEvent): void {
     const handle = this.handleOf(event.target);
-    if (this.drag?.keyboard) {
-      // Klepnutí během klávesového uchopení ho tiše zruší, tah pak začne od původního pořadí
+    this.dragged = false;
+    // Klepnutí během klávesového uchopení ho tiše zruší, tah pak začne od původního pořadí; stejně se zahodí
+    // tah, jehož úchyt mezitím zmizel při přerenderování (pointerup ani lostpointercapture už nepřijde)
+    if (this.drag?.keyboard || (this.drag && !this.drag.handle.isConnected)) {
       this.end(false, true);
     }
     if (!handle || this.drag || !event.isPrimary || event.button !== 0) {
@@ -88,6 +95,7 @@ export class Reorder {
       handle.removeEventListener('pointercancel', stop);
       handle.removeEventListener('lostpointercapture', stop);
       // Přerušený tah (systémové gesto, ztráta zachycení po přesunu řádku v DOM) vrací původní pozici
+      this.dragged = !!drag.started;
       this.end(e.type === 'pointerup' && !!drag.started);
     };
     handle.addEventListener('pointermove', move);
@@ -103,7 +111,8 @@ export class Reorder {
       return;
     }
     const key = event.key;
-    if (key === ' ' || key === 'Enter') {
+    this.dragged = false;
+    if (key === ' ' || (key === 'Enter' && (drag || !this.menu()))) {
       // Držená klávesa ani zkratky s modifikátorem řádek neuchopí a nepustí
       if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) {
         return;
@@ -136,6 +145,13 @@ export class Reorder {
     if (this.drag?.keyboard && event.relatedTarget !== this.drag.handle) {
       this.end(false, true);
     }
+  }
+
+  protected click(event: MouseEvent): void {
+    if (this.dragged && this.handleOf(event.target)) {
+      event.preventDefault();
+    }
+    this.dragged = false;
   }
 
   private grab(handle: HTMLElement, keyboard: boolean): Drag | undefined {
