@@ -77,6 +77,18 @@ describe('TaskDetail', () => {
     expect(stored().title).toBe('Zavolat zítra');
   });
 
+  it('shows Uloženo only when no typed text waits for saving', async () => {
+    await render();
+    await vi.waitFor(() => expect(root.querySelector('.toolbar')?.textContent).toContain('Uloženo'));
+
+    await typeText('.note textarea', 'Kohoutek kape');
+    await fixture.whenStable();
+    expect(root.querySelector('.toolbar')?.textContent).not.toContain('Uloženo');
+
+    await vi.waitFor(() => expect(stored().note).toBe('Kohoutek kape'));
+    await vi.waitFor(() => expect(root.querySelector('.toolbar')?.textContent).toContain('Uloženo'));
+  });
+
   it('saves a typed note when the page is hidden or the detail closes', async () => {
     await render();
     await vi.waitFor(() => expect(root.querySelector('.note textarea')).not.toBeNull());

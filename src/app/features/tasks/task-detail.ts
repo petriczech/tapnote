@@ -22,13 +22,18 @@ const TEXT_DEBOUNCE_MS = 400;
     '[style.--cat]': 'catVar()',
   },
   template: `
+    <!-- Horní lišta jako v editoru: zpět, stav uložení, Smazat -->
     <div class="toolbar">
       <a class="icon-btn" routerLink="/tasks" title="Úkoly">
         <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="iconsRegular.back" /></svg>
         <span class="visually-hidden">Úkoly</span>
       </a>
+      @if (task() && !failed() && !typing()) {
+        <span class="saved"><span class="dot" aria-hidden="true"></span>Uloženo</span>
+      }
+      <p class="status" [class.error]="failed()" aria-live="polite">{{ status() }}</p>
       @if (task()) {
-        <button type="button" class="text-btn danger" (click)="trash()">Smazat</button>
+        <button type="button" class="tool danger" (click)="trash()">Smazat</button>
       }
     </div>
 
@@ -58,8 +63,8 @@ const TEXT_DEBOUNCE_MS = 400;
         </button>
       </div>
 
-      <section class="steps" aria-labelledby="steps-heading">
-        <h2 id="steps-heading">Kroky</h2>
+      <section class="card steps" aria-labelledby="steps-heading">
+        <h2 id="steps-heading" class="label">Kroky</h2>
         @if (task.steps.length > 0) {
           <ul>
             @for (step of task.steps; track step.id) {
@@ -80,7 +85,7 @@ const TEXT_DEBOUNCE_MS = 400;
         </form>
       </section>
 
-      <div class="fields">
+      <div class="card fields">
         <button type="button" class="field" [class.on]="inMyDay()" (click)="toggleMyDay()">
           <svg class="icon" viewBox="0 0 256 256" aria-hidden="true">
             <path [attr.d]="icons.sun" />
@@ -91,12 +96,12 @@ const TEXT_DEBOUNCE_MS = 400;
           <svg class="icon" viewBox="0 0 256 256" aria-hidden="true">
             <path [attr.d]="icons.calendar" />
           </svg>
-          Termín
+          <span class="label">Termín</span>
           <input #due type="date" [value]="task.dueDate ?? ''" (change)="save({ dueDate: due.value || undefined })" />
         </label>
         <label class="field">
           <span class="dot" aria-hidden="true"></span>
-          Kategorie
+          <span class="label">Kategorie</span>
           <select #category (change)="save({ categoryId: category.value || undefined })">
             <option value="">Bez kategorie</option>
             @for (item of categories(); track item.id) {
@@ -104,14 +109,13 @@ const TEXT_DEBOUNCE_MS = 400;
             }
           </select>
         </label>
-        <label class="note">
-          Poznámka
-          <textarea #note rows="4" placeholder="Přidat poznámku" [value]="initialText().note" (input)="queueText('note', note.value)" (blur)="flushText()"></textarea>
-        </label>
       </div>
-    }
 
-    <p class="status" [class.error]="failed()" aria-live="polite">{{ status() }}</p>
+      <label class="card note">
+        <span class="label">Poznámka</span>
+        <textarea #note rows="4" placeholder="Přidat poznámku" [value]="initialText().note" (input)="queueText('note', note.value)" (blur)="flushText()"></textarea>
+      </label>
+    }
   `,
   styleUrl: './task-detail.scss',
 })
@@ -134,6 +138,8 @@ export class TaskDetail implements OnInit {
   protected readonly categories = signal<Category[]>([]);
   protected readonly status = signal('');
   protected readonly failed = signal(false);
+  // Rozepsaný text ještě není uložený, „Uloženo“ se mezitím skryje
+  protected readonly typing = signal(false);
   protected readonly inMyDay = computed(() => this.task()?.myDay === this.today);
   protected readonly catVar = computed(() => {
     const category = this.categories().find((item) => item.id === this.task()?.categoryId);
@@ -181,6 +187,7 @@ export class TaskDetail implements OnInit {
 
   protected queueText(field: 'title' | 'note', value: string): void {
     this.pendingText[field] = value;
+    this.typing.set(true);
     clearTimeout(this.textTimer);
     this.textTimer = setTimeout(() => this.flushText(), TEXT_DEBOUNCE_MS);
   }
@@ -188,6 +195,7 @@ export class TaskDetail implements OnInit {
   // Prázdný název se neuloží
   protected flushText(): Promise<void> {
     clearTimeout(this.textTimer);
+    this.typing.set(false);
     const { title, note } = this.pendingText;
     this.pendingText = {};
     const changes: TaskChanges = {

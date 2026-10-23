@@ -5,57 +5,99 @@
   padding: env(safe-area-inset-top) 0 calc(2rem + env(safe-area-inset-bottom));
 }
 
+// Horní lišta jako v editoru (obrazovka 03 návrhu D): skleněné zpět, „Uloženo“ v Geist Mono, Smazat vpravo
 .toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  min-height: 56px;
-  padding: 0 8px 0 4px;
+  gap: 8px;
+  min-height: 64px;
+  padding: 0 12px;
 }
 
-.text-btn {
-  min-height: 44px;
-  padding: 0 16px;
-  border: 0;
-  border-radius: var(--radius-l);
-  background: none;
-  color: var(--primary);
+.toolbar .icon-btn,
+.tool {
+  box-sizing: border-box;
+  flex: none;
+  height: 44px;
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  background: var(--glass);
+  color: var(--on-surface);
+}
+
+.toolbar .icon-btn {
+  width: 44px;
+}
+
+.tool {
+  margin-left: auto;
+  padding: 0 14px;
   font: inherit;
+  font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
 }
 
-.text-btn.danger {
+.danger {
   color: var(--error);
 }
 
+.saved,
+.status {
+  min-width: 0;
+  margin: 0;
+  color: var(--on-surface-variant);
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+}
+
+.saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 4px;
+  white-space: nowrap;
+}
+
+.saved .dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin: 0;
+  background: var(--c-green);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-green) 25%, transparent);
+}
+
+.status.error {
+  color: var(--error);
+}
+
+// Název ve skleněné kartě jako řádek v Úkolech
 .head {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  margin: 0 16px;
-  padding: 12px 4px 12px 16px;
+  gap: 4px;
+  margin: 4px 16px 0;
+  padding: 8px 4px;
   border: 1px solid var(--card-border);
   border-radius: var(--card-radius);
   background: var(--card-bg);
   box-shadow: var(--card-shadow);
 }
 
-.head .check {
-  margin-top: 6px;
-}
-
 .title {
   flex: 1;
   min-width: 0;
-  padding: 2px 0;
+  padding: 7px 0;
   border: 0;
   resize: none;
   background: none;
   color: var(--on-surface);
   font-family: var(--title-font);
-  font-size: 1.375rem;
+  font-size: 1.5rem;
   font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
   field-sizing: content;
 }
 
@@ -64,30 +106,54 @@
 }
 
 .head:focus-within {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--ring);
 }
 
-// Kroužek hotovo v barvě kategorie jako v seznamu
+// Kroužek hotovo v barvě kategorie (24 px, krok 20 px) uprostřed cíle 44 px jako v Úkolech
 .check {
+  --c: var(--cat, var(--primary));
+  --r: 12px;
+
   flex: none;
-  width: 26px;
-  height: 26px;
+  width: 44px;
+  height: 44px;
   margin: 0;
-  border: 2px solid var(--cat, var(--primary));
   border-radius: 50%;
+  background: radial-gradient(circle, transparent calc(var(--r) - 2.5px), var(--c) calc(var(--r) - 2px) calc(var(--r) - 0.5px), transparent var(--r));
   appearance: none;
   cursor: pointer;
 }
 
 .check.small {
-  width: 22px;
-  height: 22px;
+  --r: 10px;
 }
 
 .check:checked {
-  background: var(--cat, var(--primary))
+  background:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='white' d='M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E")
-    center / 16px no-repeat;
+      center / 16px no-repeat,
+    radial-gradient(circle, var(--c) calc(var(--r) - 0.5px), transparent var(--r));
+}
+
+// Ve vysokém kontrastu se kroužek kreslí systémovou barvou textu
+@media (forced-colors: active) {
+  .check {
+    --c: CanvasText;
+
+    forced-color-adjust: none;
+    outline-color: Highlight;
+  }
+
+  // Bílá fajfka by na světlém CanvasText (tmavý vysoký kontrast) zmizela, hotovo se proto kreslí plnou tečkou v kroužku
+  .check:checked {
+    background: radial-gradient(
+      circle,
+      var(--c) calc(var(--r) - 5px),
+      transparent calc(var(--r) - 4.5px) calc(var(--r) - 2.5px),
+      var(--c) calc(var(--r) - 2px) calc(var(--r) - 0.5px),
+      transparent var(--r)
+    );
+  }
 }
 
 .star {
@@ -101,16 +167,28 @@
   color: var(--pin);
 }
 
-.steps,
-.fields {
-  margin: 16px;
+// Skleněné karty s popisky v Geist Mono (Kroky, Termín, Kategorie, Poznámka)
+.card {
+  display: flex;
+  flex-direction: column;
+  margin: 12px 16px 0;
+  padding: 6px 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  background: var(--glass);
+}
+
+.label {
+  color: var(--on-surface-variant);
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 h2 {
-  margin: 0 0 8px;
-  color: var(--on-surface-variant);
-  font-size: 0.875rem;
-  font-weight: 700;
+  margin: 8px 0 2px;
 }
 
 .steps ul {
@@ -122,9 +200,9 @@ h2 {
 .steps li {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 4px;
   min-height: 48px;
-  padding-left: 4px;
+  margin-left: -10px;
   border-bottom: 1px solid var(--outline-variant);
 }
 
@@ -139,40 +217,50 @@ h2 {
   text-decoration: line-through;
 }
 
-.add-step input {
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 48px;
-  padding: 0 4px;
-  border: 0;
-  border-bottom: 1px solid var(--outline-variant);
-  background: none;
+// Okraj pole přes --outline (kontrast 3 : 1, linka --outline-variant měla jen 1,2 : 1)
+.add-step input,
+.field input,
+.field select,
+.note textarea {
+  border: 1px solid var(--outline);
+  background: var(--surface);
   color: var(--on-surface);
   font: inherit;
 }
 
-.add-step input::placeholder {
+.add-step input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 48px;
+  margin: 8px 0;
+  padding: 0 14px;
+  border-radius: 14px;
+}
+
+.add-step input::placeholder,
+.note textarea::placeholder {
   color: var(--on-surface-variant);
 }
 
 .fields {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  padding-block: 4px;
 }
 
 .field {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 52px;
-  padding: 0 16px;
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius-m);
-  background: var(--card-bg);
+  min-height: 56px;
+  padding: 0;
+  border: 0;
+  background: none;
   color: var(--on-surface);
   font: inherit;
   text-align: left;
+}
+
+.field + .field {
+  border-top: 1px solid var(--outline-variant);
 }
 
 button.field {
@@ -186,16 +274,15 @@ button.field {
 
 .field input,
 .field select {
-  min-height: 40px;
+  min-width: 0;
+  min-height: 44px;
   margin-left: auto;
-  border: 1px solid var(--outline);
+  padding: 0 8px;
   border-radius: var(--radius-s);
-  background: var(--surface);
-  color: var(--on-surface);
-  font: inherit;
 }
 
 .dot {
+  flex: none;
   width: 14px;
   height: 14px;
   margin: 0 5px;
@@ -204,31 +291,13 @@ button.field {
 }
 
 .note {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 8px;
-  color: var(--on-surface-variant);
-  font-size: 0.875rem;
-  font-weight: 700;
+  gap: 8px;
+  margin-bottom: 0;
+  padding-block: 12px 14px;
 }
 
 .note textarea {
   padding: 12px;
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius-m);
-  background: var(--card-bg);
-  color: var(--on-surface);
-  font: inherit;
-  font-size: 1rem;
-  font-weight: 400;
+  border-radius: 14px;
   resize: vertical;
-}
-
-.status {
-  margin: 0 16px;
-}
-
-.status.error {
-  color: var(--error);
 }

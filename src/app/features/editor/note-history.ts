@@ -11,36 +11,39 @@ import { VersionsRepository } from '../../core/storage/versions-repository';
   selector: 'tn-note-history',
   imports: [RouterLink],
   template: `
-    <div class="toolbar">
-      <a class="icon-btn" [routerLink]="['/note', id()]" title="Poznámka">
-        <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.back" /></svg>
-        <span class="visually-hidden">Poznámka</span>
+    <!-- Drobečky „Poznámka ›“ nad velkým nadpisem jako podstránky Nastavení -->
+    <header class="app-bar">
+      <a class="crumbs" [routerLink]="['/note', id()]">
+        Poznámka
+        <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.caretRight" /></svg>
       </a>
-    </div>
-    <h1 tabindex="-1">Historie verzí</h1>
-    @if (note(); as note) {
-      <p class="info">{{ note.title || 'Bez názvu' }}</p>
-    }
+      <h1 tabindex="-1">Historie verzí</h1>
+      @if (note(); as note) {
+        <p class="info">{{ note.title || 'Bez názvu' }}</p>
+      }
+    </header>
 
     @if (loaded() && !failed() && versions().length === 0) {
       <p class="info">Zatím žádné starší verze. Verze se uloží, když se poznámka upravuje po pauze v psaní.</p>
     }
-    <ul class="versions">
-      @for (version of versions(); track version.id) {
-        <li>
-          <div class="head">
-            <span class="time">{{ timeOf(version) }}</span>
-            <button type="button" class="text-btn" [attr.aria-label]="'Obnovit verzi z ' + timeOf(version)" (click)="restore(version)">
-              Obnovit
-            </button>
-          </div>
-          <details>
-            <summary>{{ snippetOf(version) }}</summary>
-            <p class="content">{{ version.content }}</p>
-          </details>
-        </li>
-      }
-    </ul>
+    @if (versions().length > 0) {
+      <ul class="versions">
+        @for (version of versions(); track version.id) {
+          <li>
+            <div class="head">
+              <time class="time" [attr.datetime]="version.createdAt">{{ timeOf(version) }}</time>
+              <button type="button" class="text-btn" [attr.aria-label]="'Obnovit verzi z ' + timeOf(version)" (click)="restore(version)">
+                Obnovit
+              </button>
+            </div>
+            <details>
+              <summary>{{ snippetOf(version) }}</summary>
+              <p class="content">{{ version.content }}</p>
+            </details>
+          </li>
+        }
+      </ul>
+    }
     <p class="status" [class.error]="failed()" aria-live="polite">{{ status() }}</p>
   `,
   styles: `
@@ -51,15 +54,27 @@ import { VersionsRepository } from '../../core/storage/versions-repository';
       padding: env(safe-area-inset-top) 0 calc(2rem + env(safe-area-inset-bottom));
     }
 
-    .toolbar {
-      display: flex;
+    .app-bar {
+      padding: 8px 16px 0;
+    }
+
+    .crumbs {
+      display: inline-flex;
       align-items: center;
-      min-height: 56px;
-      padding: 0 4px;
+      gap: 4px;
+      min-height: 44px;
+      color: var(--on-surface-variant);
+      font-size: 0.875rem;
+      text-decoration: none;
+    }
+
+    .crumbs .icon {
+      width: 16px;
+      height: 16px;
     }
 
     h1 {
-      margin: 0 16px;
+      margin: 0;
       font-family: var(--title-font);
       font-size: var(--title-size);
       font-weight: var(--title-weight);
@@ -71,25 +86,31 @@ import { VersionsRepository } from '../../core/storage/versions-repository';
     }
 
     .info {
-      margin: 4px 16px 12px;
+      margin: 4px 0 0;
       color: var(--on-surface-variant);
+      overflow-wrap: anywhere;
     }
 
+    :host > .info {
+      margin: 16px 20px 0;
+    }
+
+    /* Verze jako jedna skleněná karta s řádky oddělenými linkou, čas v Geist Mono */
     .versions {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin: 0;
-      padding: 0 16px;
+      margin: 16px 16px 0;
+      padding: 4px 14px;
+      border: 1px solid var(--glass-border);
+      border-radius: 22px;
+      background: var(--glass);
       list-style: none;
     }
 
     li {
-      padding: 8px 8px 8px 16px;
-      border: 1px solid var(--card-border);
-      border-radius: var(--card-radius);
-      background: var(--card-bg);
-      box-shadow: var(--card-shadow);
+      padding: 8px 0;
+    }
+
+    li + li {
+      border-top: 1px solid var(--outline-variant);
     }
 
     .head {
@@ -100,14 +121,17 @@ import { VersionsRepository } from '../../core/storage/versions-repository';
     }
 
     .time {
-      font-weight: 700;
+      font-family: var(--mono);
+      font-size: 0.875rem;
+      font-weight: 500;
     }
 
     .text-btn {
+      flex: none;
       min-height: 44px;
-      padding: 0 12px;
-      border: 0;
-      border-radius: var(--radius-l);
+      padding: 0 16px;
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
       background: none;
       color: var(--primary);
       font: inherit;
@@ -115,23 +139,48 @@ import { VersionsRepository } from '../../core/storage/versions-repository';
       cursor: pointer;
     }
 
+    /* Náhled verze rozbalovací; vlastní šipka, display: flex skryje nativní ::marker */
     summary {
-      min-height: 32px;
-      padding: 4px 0;
+      display: flex;
+      align-items: center;
+      min-height: 44px;
       color: var(--on-surface-variant);
       cursor: pointer;
       overflow-wrap: anywhere;
     }
 
+    summary::before {
+      flex: none;
+      width: 0;
+      height: 0;
+      margin-right: 10px;
+      border-block: 5px solid transparent;
+      border-left: 6px solid currentColor;
+      content: '';
+      transition: transform 0.15s;
+    }
+
+    details[open] summary::before {
+      transform: rotate(90deg);
+    }
+
     .content {
-      margin: 8px 0 4px;
+      margin: 4px 0 8px;
+      padding: 12px;
+      border-radius: 14px;
+      background: var(--surface);
       font-family: var(--editor-font);
       white-space: pre-wrap;
       overflow-wrap: anywhere;
     }
 
     .status {
-      margin: 12px 16px 0;
+      margin: 12px 20px 0;
+    }
+
+    /* Prázdná oblast zůstává ve stromu přístupnosti, aby se první hláška ohlásila */
+    .status:empty {
+      margin: 0;
     }
 
     .status.error {

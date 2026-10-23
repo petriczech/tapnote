@@ -263,7 +263,7 @@ Hlavní vzhled je návrh D „Tapnote Noir“ (`.tmp/mockup/soutez/D-dark.png`, 
 8. ✅ **Editor – spodní panel nástrojů:** Checklist, Tag, Barva, ⋯ (Historie se přesune sem z horní lišty)
 9. ✅ **Nastavení jako rozcestník + Vzhled** (podle bodu 6), přesměrování odkazů `?` → zkratky a Zálohovat
 10. ✅ **Kategorie:** vlastní obrazovka, počty položek, úprava ve spodním panelu na `<dialog>` + `showModal()`, „+ Nová“ dole na dosah palce
-11. **Detail úkolu a Historie** dorovnat do stejného jazyka
+11. ✅ **Detail úkolu a Historie** dorovnat do stejného jazyka
 12. **Nové funkce** jen ty schválené v bodu 6
 
 ### Další úkoly po krocích 6–11
@@ -280,6 +280,36 @@ Hlavní vzhled je návrh D „Tapnote Noir“ (`.tmp/mockup/soutez/D-dark.png`, 
     - přetažení mezi pohledy (Můj den, Archiv, Koš).
 
     Pokrýt dotyk, myš i klávesnici. Šipky ▲▼ nebo menu zůstávají jako alternativa kvůli WCAG 2.5.7. Porovná se nativní HTML5 DnD a Angular CDK drag-drop a zhodnotí se dopad na balík a na Android WebView. Výstupem bude návrh ke schválení (navazuje na odložený bod 6 rozhodnutí).
+
+### Desktop – společný směr (čeká na schválení)
+Podklady: `.tmp/mockup/desktop/A/` (UX), `.tmp/mockup/desktop/B/` (grafika), vzájemná hodnocení `A/hodnoceni-B.md` a `B/hodnoceni-A.md`. Oba návrhy dostaly 62 / 80; oba hodnotitelé se shodli na kombinaci: struktura a klávesnice z A, vizuál z B.
+
+Rozhodnutí (v závorce návrh):
+1. Zlomy 900 px (kolejnice 84 px) a 1200 px (panel 256 px + seznam vedle detailu)? (ano)
+2. Seznam vedle detailu přes rodičovskou routu `tn-split` s prázdnou cestou (A), URL beze změny, bez child rout `/notes/:id` z B? (ano; levnější varianta je jen panel a šířky bez detailu vedle seznamu)
+3. FAB od 900 px skrýt, „Nová poznámka“ a „Dnešní poznámka“ do panelu? (ano)
+4. Panel nástrojů editoru zůstává ukotvený dole v panelu editoru, ne nahoře (B by rozešel pořadí Tab a vizuální pořadí)? (dole)
+5. Sklo jen na panelu a horní liště, záře škálovaná podle plochy (B)? (ano)
+6. Kompaktní cíle 36–40 px jen pro `pointer: fine`, dotykový tablet dál 44 px? (ano)
+7. Nadpis „Poznámky“ místo loga, značka Tapnote v panelu? (ano)
+8. Nastavení na desktopu jen CSS (S2), rozcestník vlevo (S1) později? (S2)
+9. Štítky `kbd` u existujících zkratek a „Přehled zkratek“ v panelu (A), „Přeskočit na obsah“, typografie editoru 17 / 1,65, mřížka max. 1240 px (B)? (ano)
+10. Globální zkratky `N`/`D` a počty u odkazů v panelu? (zatím ne, předložit znovu po bodech 1–9)
+
+Pracnost: panel, šířky a štítky 1–1,5 dne; seznam vedle detailu (poznámky + úkoly) 3–5 dní podle B, A odhadoval méně. Riziko: při změně šířky přes 1200 px se seznam odpojí a ztratí posunutí i fokus, nutný e2e test 1440 × 900.
+
+### Drag & drop – návrh (čeká na schválení)
+Podklady: `.tmp/dnd/analyza.md`, `.tmp/dnd/proto.html`. Pořadí: kategorie (pilot), checklist, úkoly; odhad 3,5–5,5 dne.
+
+Rozhodnutí (v závorce návrh):
+- R1 Vlastní Pointer Events s jednou sdílenou direktivou `tnReorder`, nebo Angular CDK (+12–15 kB v úvodním balíku)? (vlastní)
+- R2 Přetahuje se jen za úchyt ⠿, bez dlouhého stisku řádku? (ano)
+- R3 Checklist: řadí se jen položky nejvyšší úrovně i s podpoložkami, hotové zůstávají dole a sbalené; řazení podpoložek později? (ano)
+- R4 Alternativa pro WCAG 2.5.7 u checklistu a úkolů: menu úchytu (nahoru / dolů / na začátek / na konec), nebo ▲▼ v řádku? (menu úchytu)
+- R5 Úkoly dostanou pole `order` (mění formát zálohy), ruční pořadí jen v Můj den, Důležité a Vše, Naplánované dál podle termínu? (ano)
+- R6 Nový úkol nahoru, nebo dolů? (nahoru)
+- R7 Přetažení na kategorii až s desktopem, mezi pohledy vůbec? (ano)
+- R8 Pořadí kroků úkolu taky? (později)
 
 ### Hlídat v každém kroku
 - Kontrast: bílá na oranžovém konci přechodu má 2,5–3,0 : 1 (nepoužívat pro text), světlý přechodový nadpis končit `#c2410c`, okraje polí přes `--outline`; axe za `backdrop-filter` kontrast nespočítá → ruční vzorkování pixelů a druhý průchod bez průhlednosti

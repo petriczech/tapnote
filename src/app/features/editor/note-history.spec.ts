@@ -45,6 +45,8 @@ describe('NoteHistory', () => {
     expect([...root.querySelectorAll('summary')].map((item) => item.textContent?.trim())).toEqual(['Nákup', 'Nákup']);
     expect(root.querySelector('.content')?.textContent).toBe('\nNákup\nmléko, máslo');
     expect(document.activeElement).toBe(root.querySelector('h1'));
+    expect(root.querySelector('a.crumbs')?.textContent?.trim()).toBe('Poznámka');
+    expect(root.querySelector('time')?.getAttribute('datetime')).toBe('2026-10-15T09:00:00.000Z');
 
     [...root.querySelectorAll<HTMLButtonElement>('li .text-btn')][1].click();
 

@@ -337,6 +337,11 @@ li.late::before {
     forced-color-adjust: none;
     outline-color: Highlight;
   }
+
+  // Bílá fajfka by na světlém CanvasText (tmavý vysoký kontrast) zmizela, hotovo se proto kreslí plnou tečkou v kroužku
+  .check:checked {
+    background: radial-gradient(circle, var(--c) 7px, transparent 7.5px 9.5px, var(--c) 10px 11.5px, transparent 12px);
+  }
 }
 
 .body {
