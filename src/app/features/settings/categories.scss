@@ -1,0 +1,388 @@
+// Místo dole pro FAB „Přidat kategorii“ nad spodní lištou
+:host {
+  display: block;
+  padding: env(safe-area-inset-top) 0 calc(172px + env(safe-area-inset-bottom));
+}
+
+// Drobečky „Nastavení ›“ nad velkým nadpisem jako ve Vzhledu
+.app-bar {
+  padding: 8px 16px 0;
+}
+
+.crumbs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  color: var(--on-surface-variant);
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.crumbs .icon {
+  width: 16px;
+  height: 16px;
+}
+
+h1 {
+  margin: 0;
+  font-family: var(--title-font);
+  font-size: var(--title-size);
+  font-weight: var(--title-weight);
+  letter-spacing: var(--title-spacing);
+}
+
+h1:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.section-h,
+legend,
+.name {
+  color: var(--on-surface-variant);
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.section-h {
+  margin: 22px 20px 8px;
+}
+
+.info,
+.status {
+  margin: 16px 20px 0;
+  color: var(--on-surface-variant);
+}
+
+.status:empty {
+  display: none;
+}
+
+.status.error {
+  color: var(--error);
+}
+
+// Seznam jako jedna skleněná karta s řádky oddělenými linkou
+.categories {
+  margin: 0 16px;
+  padding: 6px;
+  border: 1px solid var(--glass-border);
+  border-radius: 22px;
+  background: var(--glass);
+  list-style: none;
+}
+
+.categories li {
+  display: flex;
+  align-items: center;
+}
+
+.categories li + li {
+  border-top: 1px solid var(--outline-variant);
+}
+
+.edit {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  min-height: 60px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 16px;
+  background: none;
+  color: var(--on-surface);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+// Ikona na syté barvě kategorie
+.badge {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  background: var(--cat);
+  color: var(--on-cat);
+}
+
+.badge .icon {
+  width: 22px;
+  height: 22px;
+}
+
+.item-name {
+  flex: 1;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+.count {
+  color: var(--on-surface-variant);
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+}
+
+.move {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+}
+
+.move .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.move[aria-disabled='true'] {
+  opacity: 0.35;
+  cursor: default;
+}
+
+// FAB s přechodem jako „Nová“ v Noiru (globální .fab)
+.add {
+  z-index: 1;
+  border: 0;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+// Spodní panel: v Noiru sklo s rozostřením (pevná vrstva), jinde plná plocha
+.sheet {
+  // Bez výchozího max-width dialogu (100 % − 2em) by se osm barev nevešlo do řádku
+  width: calc(100% - 12px);
+  max-width: 560px;
+  max-height: calc(100dvh - 24px);
+  margin: auto auto calc(6px + env(safe-area-inset-bottom));
+  padding: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: 32px;
+  background: var(--glass-strong);
+  color: var(--on-surface);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: 0 -10px 40px -12px rgb(0 0 0 / 45%);
+}
+
+.sheet[open] {
+  animation: sheet-up 0.24s ease-out;
+}
+
+.sheet::backdrop {
+  background: rgb(0 0 0 / 45%);
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet[open] {
+    animation: none;
+  }
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 10px 16px 16px;
+}
+
+.grab {
+  width: 40px;
+  height: 5px;
+  margin: 0 auto;
+  border-radius: 5px;
+  background: var(--outline);
+}
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sheet-head h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+.name {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.name input {
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--outline);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--on-surface);
+  // Pole bez mono verzálek popisku
+  font: 400 1rem var(--font);
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+legend {
+  margin-bottom: 6px;
+  padding: 0;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: 6px;
+}
+
+.tile {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 44px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 13px;
+  background: var(--surface);
+  color: var(--on-surface-variant);
+  cursor: pointer;
+}
+
+// Zvolená ikona v barvě kategorie s prstencem
+.tile:has(input:checked) {
+  border-color: transparent;
+  background: var(--cat);
+  color: var(--on-cat);
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 4px var(--on-surface);
+}
+
+.tile:has(input:focus-visible) {
+  outline: 2px solid var(--ring);
+  outline-offset: 4px;
+}
+
+// Barvy: terč 44 px, kroužek 36 px, aby se osm vešlo do řádku
+.swatches {
+  grid-template-columns: repeat(auto-fill, 44px);
+  justify-content: space-between;
+  gap: 6px 0;
+}
+
+.swatch {
+  width: 44px;
+  border: 0;
+  background: none;
+}
+
+.swatch::before {
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: var(--cat);
+  content: '';
+}
+
+.swatch:has(input:checked) {
+  background: none;
+  box-shadow: none;
+}
+
+.swatch:has(input:checked)::before {
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 4px var(--on-surface);
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.text-btn,
+.save {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: 14px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.text-btn {
+  border: 1px solid var(--glass-border);
+  background: none;
+  color: var(--primary);
+}
+
+.text-btn .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.danger {
+  color: var(--error);
+}
+
+.save {
+  flex: 1;
+  border: 0;
+  background: var(--grad);
+  color: var(--on-grad);
+}
+
+.save[aria-disabled='true'] {
+  opacity: 0.6;
+}
+
+// Vysoký kontrast: barvy kategorií zůstanou (jsou obsahem volby), zvolená dlaždice v barvě výběru
+@media (forced-colors: active) {
+  .badge,
+  .swatch::before {
+    forced-color-adjust: none;
+  }
+
+  .tile:has(input:checked) {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .swatch:has(input:checked) {
+    outline: 3px solid Highlight;
+  }
+}

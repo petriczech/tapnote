@@ -262,7 +262,7 @@ Hlavní vzhled je návrh D „Tapnote Noir“ (`.tmp/mockup/soutez/D-dark.png`, 
 7. ✅ **Editor – rozvržení:** horní lišta (zpět, Uloženo, Checklist, Hotovo), meta řádek (kategorie, připnuto, upraveno), proužek postupu checklistu, „+ Přidat položku“
 8. ✅ **Editor – spodní panel nástrojů:** Checklist, Tag, Barva, ⋯ (Historie se přesune sem z horní lišty)
 9. ✅ **Nastavení jako rozcestník + Vzhled** (podle bodu 6), přesměrování odkazů `?` → zkratky a Zálohovat
-10. **Kategorie:** vlastní obrazovka, počty položek, úprava ve spodním panelu na `<dialog>` + `showModal()`, „+ Nová“ dole na dosah palce
+10. ✅ **Kategorie:** vlastní obrazovka, počty položek, úprava ve spodním panelu na `<dialog>` + `showModal()`, „+ Nová“ dole na dosah palce
 11. **Detail úkolu a Historie** dorovnat do stejného jazyka
 12. **Nové funkce** jen ty schválené v bodu 6
 

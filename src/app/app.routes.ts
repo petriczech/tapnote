@@ -13,5 +13,6 @@ export const routes: Routes = [
   { path: 'notes', loadComponent: () => import('./features/list/notes-list').then((m) => m.NotesList) },
   { path: 'settings', loadComponent: () => import('./features/settings/settings').then((m) => m.Settings) },
   { path: 'settings/vzhled', loadComponent: () => import('./features/settings/appearance').then((m) => m.Appearance) },
+  { path: 'settings/kategorie', loadComponent: () => import('./features/settings/categories').then((m) => m.Categories) },
   { path: '**', redirectTo: '' },
 ];

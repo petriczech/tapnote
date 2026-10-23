@@ -88,7 +88,7 @@ describe('Settings', () => {
 
     afterEach(() => localStorage.removeItem(THEME_KEY));
 
-    it('lists the sections with Vzhled as a sub-page showing the current theme', async () => {
+    it('lists the sections with Vzhled and Kategorie as sub-pages, Vzhled showing the current theme', async () => {
       localStorage.setItem(THEME_KEY, 'paper');
       await render();
 
@@ -101,9 +101,9 @@ describe('Settings', () => {
         'O aplikaci',
       ]);
       expect(rows()[0].getAttribute('href')).toBe('/settings/vzhled');
+      expect(rows()[1].getAttribute('href')).toBe('/settings/kategorie');
       expect(rows()[0].querySelector('.value')?.textContent?.trim()).toBe('Papír');
-      expect(rows().slice(1).map((row) => row.getAttribute('href'))).toEqual([
-        '/settings#categories',
+      expect(rows().slice(2).map((row) => row.getAttribute('href'))).toEqual([
         '/settings#templates',
         '/settings#backup',
         '/settings#shortcuts',
@@ -126,7 +126,7 @@ describe('Settings', () => {
     it.each([
       ['shortcuts', 'Klávesové zkratky'],
       ['backup', 'Záloha'],
-      ['categories', 'Kategorie'],
+      ['templates', 'Šablony'],
     ])('focuses the heading of #%s', async (fragment, heading) => {
       TestBed.inject(Router).resetConfig([{ path: 'settings', component: Settings }]);
       const harness = await RouterTestingHarness.create();

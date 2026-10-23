@@ -13,14 +13,27 @@ test('denní poznámka přes /today', async ({ page, axe }) => {
   await expect(page).toHaveURL(url);
 });
 
-// Kategorie založená v Nastavení se nabídne u nového úkolu a filtruje seznam úkolů
+// Kategorie založená v Nastavení › Kategorie se nabídne u nového úkolu a filtruje seznam úkolů
 test('kategorie: založit v nastavení a filtrovat úkoly', async ({ page, axe }) => {
   await page.goto('/settings');
-  await page.getByRole('button', { name: 'Přidat kategorii' }).click();
-  const form = page.getByRole('form', { name: 'Nová kategorie' });
-  await form.getByRole('textbox', { name: 'Název' }).fill('Práce');
-  await form.getByRole('button', { name: 'Uložit' }).click();
-  await expect(page.getByRole('button', { name: 'Upravit: Práce' })).toBeVisible();
+  await page.getByRole('link', { name: 'Kategorie', exact: true }).click();
+  await expect(page).toHaveURL(/\/settings\/kategorie$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Kategorie' })).toBeFocused();
+  const add = page.getByRole('button', { name: 'Přidat kategorii' });
+  await add.click();
+  const sheet = page.getByRole('dialog', { name: 'Nová kategorie' });
+  await expect(sheet.getByRole('textbox', { name: 'Název' })).toBeFocused();
+  await axe('kategorie – nová v panelu');
+  await page.keyboard.press('Escape');
+  await expect(sheet).toBeHidden();
+  await expect(add).toBeFocused();
+
+  await add.click();
+  await sheet.getByRole('textbox', { name: 'Název' }).fill('Práce');
+  await sheet.getByRole('button', { name: 'Uložit' }).click();
+  await expect(sheet).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Upravit: Práce' })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Upravit: Práce' })).toHaveAccessibleDescription('Položek: 0');
   await axe('nastavení s kategorií');
 
   await page.getByRole('navigation', { name: 'Pohledy' }).getByRole('link', { name: 'Úkoly' }).click();
@@ -43,4 +56,8 @@ test('kategorie: založit v nastavení a filtrovat úkoly', async ({ page, axe }
 
   await filters.getByRole('link', { name: 'Vše' }).click();
   await expect(open.getByRole('checkbox')).toHaveCount(2);
+
+  // Počet na správě kategorií zahrnuje nový úkol
+  await page.goto('/settings/kategorie');
+  await expect(page.getByRole('button', { name: 'Upravit: Práce' })).toHaveAccessibleDescription('Položek: 1');
 });

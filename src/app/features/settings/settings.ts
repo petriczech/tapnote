@@ -20,27 +20,33 @@ import { VersionsRepository } from '../../core/storage/versions-repository';
 import { ICONS_REGULAR } from '../../core/icons/icons';
 import { readTheme, THEMES } from '../../core/theme/theme';
 import { BottomNav } from '../list/bottom-nav';
-import { CategoriesSection } from './categories-section';
 
 export const MAX_IMPORT_BYTES = 50 * 1024 * 1024;
 const REVOKE_DELAY_MS = 60_000;
 
 @Component({
   selector: 'tn-settings',
-  imports: [BottomNav, CategoriesSection, RouterLink],
+  imports: [BottomNav, RouterLink],
   template: `
     <header class="app-bar">
       <p class="eyebrow">Tapnote</p>
       <h1>Nastavení</h1>
     </header>
 
-    <!-- Rozcestník: Vzhled je podstránka, ostatní řádky skočí na sekci níže (Kategorie dostanou vlastní obrazovku) -->
+    <!-- Rozcestník: Vzhled a Kategorie jsou podstránky, ostatní řádky skočí na sekci níže -->
     <ul class="hub">
       <li>
         <a routerLink="/settings/vzhled">
           <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.palette" /></svg>
           <span class="row-label">Vzhled</span>
           <span class="value">{{ themeLabel }}</span>
+          <svg class="icon chev" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.caretRight" /></svg>
+        </a>
+      </li>
+      <li>
+        <a routerLink="/settings/kategorie">
+          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.tag" /></svg>
+          <span class="row-label">Kategorie</span>
           <svg class="icon chev" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.caretRight" /></svg>
         </a>
       </li>
@@ -54,8 +60,6 @@ const REVOKE_DELAY_MS = 60_000;
         </li>
       }
     </ul>
-
-    <tn-categories-section />
 
     <section aria-labelledby="templates-heading">
       <h2 id="templates-heading" tabindex="-1">Šablony</h2>
@@ -487,7 +491,6 @@ export class Settings implements OnInit {
   protected readonly themeLabel = THEMES.find((item) => item.id === readTheme())?.label;
   // Řádky rozcestníku s nadpisy sekcí; fragment + '-heading' je id nadpisu
   protected readonly rows = [
-    { label: 'Kategorie', fragment: 'categories', icon: 'tag' },
     { label: 'Šablony', fragment: 'templates', icon: 'copy' },
     { label: 'Záloha', fragment: 'backup', icon: 'cloudArrowUp' },
     { label: 'Klávesové zkratky', fragment: 'shortcuts', icon: 'keyboard' },

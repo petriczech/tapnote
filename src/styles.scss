@@ -236,6 +236,11 @@
   --fab-radius: 20px;
   --nav-bg: var(--glass-strong);
   --nav-border: var(--glass-border);
+  // Barvy kategorií Noiru (grafika.md), ostatní zůstávají ze základní palety; bílá ikona na dlaždici má 5,2–7,1 : 1
+  --c-violet: #5a32e0;
+  --c-orange: #c2410c;
+  --c-pink: #be185d;
+  --c-blue: #0369a1;
 }
 
 :root:not([data-theme]) {
@@ -252,6 +257,12 @@
     --card-shadow: 0 1px 0 rgb(255 255 255 / 4%) inset, 0 10px 30px -12px rgb(0 0 0 / 70%);
     // Světlejší přechod drží kontrast 3 : 1 vůči tmavé liště
     --nav-pip: linear-gradient(120deg, var(--ring), var(--c-pink));
+    // Barvy kategorií Noiru, ostatní ze základní palety; tmavá ikona (--on-cat) na dlaždici má 6,9–10,7 : 1
+    --c-green: #3ddc97;
+    --c-violet: #a18bff;
+    --c-orange: #ff9a5a;
+    --c-pink: #ff7ab0;
+    --c-blue: #5cc2ff;
   }
 }
 
@@ -797,4 +808,9 @@ body {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+// Pod otevřeným modálním panelem (Kategorie) se stránka neposouvá; showModal() scroll sám nezamyká
+:root:has(dialog:modal) {
+  overflow: hidden;
 }
