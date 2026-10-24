@@ -240,6 +240,36 @@ Pořadí dalších kroků, každý zvlášť s plným lifecyclem a commitem:
 4. **Android:** sestavit APK (`npm run sync:android`) s novými ikonami a ověřit na telefonu klávesnici u tlačítka „Nový“, konfety a historii
 5. **Nativní doplňky (fáze 2/3):** Quick Settings tile a widget až po ověření APK
 
+## Plán na příště (sepsáno 24. 10. 2026)
+Stav: přepracování Noir (kroky 0–11), desktop (15–20), drag & drop (21–23), stránka zkratek (24), zkratka „Nový úkol“ a test ve WebKitu jsou hotové a commitnuté. Body 4 a 5 z „Plánu na zítra“ výš zůstávají a jsou rozepsané tady.
+
+1. **APK a test na telefonu** (sestavuje se ručně: `npm run build`, `npx cap sync android` nebo `npm run sync:android`, pak Android Studio). Na telefonu ověřit:
+   - dlouhý stisk ikony: „Nový úkol“ (první, fajfka) a „Nová poznámka“; ze studeného startu i z běžící appky; systémové Zpět nemá znovu dát fokus do pole
+   - klávesnice po zkratce, u pole „Nový úkol“ a u tlačítka „Nový“ (známé omezení `focus()` bez gesta)
+   - tah za úchyt ⠿ v Kategoriích, checklistu a Úkolech: tah nescrolluje stránku, tah mimo úchyt scrolluje, dlouhý stisk nevybere text, autoscroll u lišty, gesto zpět během tahu vrátí pozici
+   - TalkBack: jméno a popis úchytu, hlášky „Uchopeno… / Puštěno na pozici…“, menu úchytu
+   - migrace databáze v3 → v4 na skutečných datech (pořadí úkolů zůstane)
+   - export a import zálohy přes sdílení; demo záloha `.tmp/demo/tapnote-demo.json` (nová se vytvoří `node .tmp/demo/gen-demo.mjs`)
+   - spodní lišta při posunu dlouhého seznamu reaguje na klepnutí (oprava `z-index`)
+2. **Opravy z testu na telefonu** – každá zvlášť s lifecyclem.
+3. **Quick Settings tile** (nativní `TileService`): otevře nový úkol (`tapnote://new-task`) nebo poznámku – rozhodnout před startem.
+4. **Widget** (Glance): připnutá poznámka nebo checklist s odškrtáváním a „+“; datový most podle oddílu „Widget (fáze 3) – datový most“.
+
+### Odloženo (předložit znovu, až bude potřeba)
+- globální zkratky N/D a počty u odkazů v panelu (desktop rozhodnutí 10)
+- přetažení na kategorii (R7), řazení kroků úkolu (R8), řazení podpoložek checklistu (R3)
+- Nastavení na desktopu s rozcestníkem vlevo (S1)
+- tučné písmo v náhledu, vkládání obrázků
+- úvodní balík +10 kB po přetahování v checklistu (přijato; varianty A/B/C v reportu kroku 22)
+
+### Drobnosti k rozhodnutí
+- vlastní ikona PWA zkratky „Nový úkol“ (dnes sdílí ikonu aplikace)
+- N vedle detailu úkolu funguje jen s fokusem v seznamu
+- šipka ↓ v desktopové mřížce poznámek jde na kartu vpravo, ne pod
+- detail úkolu nemá Esc; „Ctrl F“ v hledání vypadá jinak než ostatní štítky; řádek „Klávesové zkratky“ v rozcestníku je mezi Zálohou a O aplikaci
+- Safari s výchozím nastavením přeskočí Tabem odkazy (skip link, lišta) – systémové chování, jen zmínit
+- Firefox zatím netestovaný (prohlížeč pro Playwright je stažený); WebKit sada: `npx playwright test -c .tmp/playwright/webkit/playwright.config.ts`
+
 ## Přepracování podle návrhu D Noir
 Hlavní vzhled je návrh D „Tapnote Noir“ (`.tmp/mockup/soutez/D-dark.png`, `D.html`); ostatní obrazovky a vzhledy přebírají jeho rozvržení. Podklady: `.tmp/mockup/redesign-d/ux.md`, `grafika.md`, `testing.md`.
 
