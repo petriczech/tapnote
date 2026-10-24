@@ -226,6 +226,7 @@ Pravidla:
 - Historie verzí: jen v zařízení, do zálohy nejde
 - Spuštění aplikace (`/`) dál otevírá poznámku; nový úkol je první zkratkou ikony a klávesou N na Úkolech (24. 10. 2026)
 - Úkoly: termíny bez připomínek a notifikací (24. 10. 2026)
+- Bílá: tmavá varianta zůstává tmavě šedá, ne černá OLED (24. 10. 2026)
 
 ## Plán na zítra
 Pořadí dalších kroků, každý zvlášť s plným lifecyclem a commitem:
@@ -334,4 +335,3 @@ Rozhodnutí (v závorce návrh):
 - Písma v `/media/*.woff2` (prefetch service workeru) i v APK
 
 ## Otevřené
-- Bílé téma: tmavá varianta jako černá (OLED)? (zatím tmavě šedá)
