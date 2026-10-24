@@ -224,6 +224,8 @@ Pravidla:
 - Úkoly: pohledy Můj den, Důležité, Naplánované, Vše
 - Kategorie: jedna kategorie na položku, tagy zůstávají volné vedle kategorií
 - Historie verzí: jen v zařízení, do zálohy nejde
+- Spuštění aplikace (`/`) dál otevírá poznámku; nový úkol je první zkratkou ikony a klávesou N na Úkolech (24. 10. 2026)
+- Úkoly: termíny bez připomínek a notifikací (24. 10. 2026)
 
 ## Plán na zítra
 Pořadí dalších kroků, každý zvlášť s plným lifecyclem a commitem:
@@ -332,6 +334,4 @@ Rozhodnutí (v závorce návrh):
 - Písma v `/media/*.woff2` (prefetch service workeru) i v APK
 
 ## Otevřené
-- Úkoly: má `/` (jedno tapnutí) otevírat nový úkol, nebo dál novou poznámku? (zatím poznámka)
-- Úkoly: termíny bez notifikací (připomínky jsou mimo scope), nebo připomínky přidat?
 - Bílé téma: tmavá varianta jako černá (OLED)? (zatím tmavě šedá)
