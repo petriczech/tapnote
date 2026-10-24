@@ -97,6 +97,23 @@ test('kategorie: řazení úchytem klávesnicí a myší', async ({ page, seed, 
   await page.mouse.up();
   await expect(names).toHaveText(['Domov', 'Škola', 'Práce']);
 
+  // Pořadí se v seznamu ukáže hned, zápis do IndexedDB doběhne až potom; reload se proto čeká na uložené pořadí
+  const stored = () =>
+    page.evaluate(
+      () =>
+        new Promise<string[]>((resolve, reject) => {
+          const request = indexedDB.open('tapnote');
+          request.onsuccess = () => {
+            const all = request.result.transaction('categories').objectStore('categories').getAll();
+            all.onsuccess = () => {
+              request.result.close();
+              resolve((all.result as { name: string; order: number }[]).sort((a, b) => a.order - b.order).map((item) => item.name));
+            };
+            all.onerror = () => reject(all.error);
+          };
+        }),
+    );
+  await expect.poll(stored).toEqual(['Domov', 'Škola', 'Práce']);
   await page.reload();
   await expect(names).toHaveText(['Domov', 'Škola', 'Práce']);
   await expect(page.getByRole('button', { name: 'Posunout nahoru: Škola' })).toBeVisible();
