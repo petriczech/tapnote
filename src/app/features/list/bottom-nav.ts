@@ -62,11 +62,14 @@ import { readShortcutsEnabled } from '../../core/shortcuts/shortcuts';
   `,
   styles: `
     // Plovoucí lišta jako v návrhu D; nad gesture barem drží odstup safe area
+    // z-index drží lištu nad kartami a řádky seznamu (position: relative, úchyt úkolů z-index 1), které jsou v DOM až za ní
+    // a při posunu by ji jinak překryly i s klepnutím
     nav {
       position: fixed;
       right: 12px;
       bottom: calc(14px + env(safe-area-inset-bottom));
       left: 12px;
+      z-index: 2;
       display: flex;
       gap: 2px;
       box-sizing: border-box;
