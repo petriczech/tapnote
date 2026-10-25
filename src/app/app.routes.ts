@@ -4,6 +4,8 @@ import { NoteEditor } from './features/editor/note-editor';
 import { Split } from './features/list/split';
 
 export const routes: Routes = [
+  // Po spuštění se otevírají úkoly; obnovení naposledy upravené poznámky (data.resume) zůstává připravené níže
+  { path: '', pathMatch: 'full', redirectTo: 'tasks' },
   // Rodič bez segmentu: od 1200 px vedle editoru seznam poznámek, URL beze změny
   {
     path: '',
@@ -29,5 +31,6 @@ export const routes: Routes = [
   { path: 'settings/vzhled', loadComponent: () => import('./features/settings/appearance').then((m) => m.Appearance) },
   { path: 'settings/kategorie', loadComponent: () => import('./features/settings/categories').then((m) => m.Categories) },
   { path: 'settings/zkratky', loadComponent: () => import('./features/settings/shortcuts').then((m) => m.Shortcuts) },
-  { path: '**', redirectTo: '' },
+  // Přesměrování se neřetězí, proto přímo na úkoly, ne přes ''
+  { path: '**', redirectTo: 'tasks' },
 ];

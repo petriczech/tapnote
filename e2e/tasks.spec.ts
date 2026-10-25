@@ -2,6 +2,14 @@ import { expect, NOW, test } from './fixtures';
 
 const NOW_ISO = NOW.toISOString();
 
+// Po spuštění aplikace (prázdná cesta) se otevírají úkoly místo editoru
+test('úkoly: úvodní stránka po spuštění', async ({ page }) => {
+  await page.goto('/');
+  await expect(page).toHaveURL(/\/tasks$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Můj den' })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Nový úkol' })).toBeVisible();
+});
+
 // Úkol se přidá, odškrtnutím se přesune do Hotové a dá se vrátit zpět
 test('úkoly: přidat, dokončit, vrátit', async ({ page, axe }) => {
   await page.goto('/tasks');

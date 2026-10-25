@@ -224,7 +224,7 @@ Pravidla:
 - Úkoly: pohledy Můj den, Důležité, Naplánované, Vše
 - Kategorie: jedna kategorie na položku, tagy zůstávají volné vedle kategorií
 - Historie verzí: jen v zařízení, do zálohy nejde
-- Spuštění aplikace (`/`) dál otevírá poznámku; nový úkol je první zkratkou ikony a klávesou N na Úkolech (24. 10. 2026)
+- ✅ Spuštění aplikace (`/`) i neznámá adresa otevírají Úkoly; obnovení rozepsané poznámky zůstává v kódu nepoužité; nový úkol je i první zkratkou ikony a klávesou N na Úkolech (25. 10. 2026, předtím start na poznámce)
 - Úkoly: termíny bez připomínek a notifikací (24. 10. 2026)
 - Bílá: tmavá varianta zůstává tmavě šedá, ne černá OLED (24. 10. 2026)
 
@@ -251,7 +251,7 @@ Stav: přepracování Noir (kroky 0–11), desktop (15–20), drag & drop (21–
    - migrace databáze v3 → v4 na skutečných datech (pořadí úkolů zůstane)
    - export a import zálohy přes sdílení; demo záloha `.tmp/demo/tapnote-demo.json` (nová se vytvoří `node .tmp/demo/gen-demo.mjs`)
    - spodní lišta při posunu dlouhého seznamu reaguje na klepnutí (oprava `z-index`)
-2. **Opravy z testu na telefonu** – každá zvlášť s lifecyclem.
+2. **Opravy z testu na telefonu** – každá zvlášť s lifecyclem. Test v emulátoru (25. 10. 2026) prošel; jediná změna: start na Úkolech. Na skutečném telefonu zbývá TalkBack a migrace v3 → v4.
 3. ✅ **Quick Settings tile** (nativní `TileService`): otevře nový úkol (`tapnote://new-task`); na telefonu ověřit přidání dlaždice, zavřenou i běžící appku a zamčenou obrazovku (Android < 14)
 4. **Widget** (Glance): připnutá poznámka nebo checklist s odškrtáváním a „+“; datový most podle oddílu „Widget (fáze 3) – datový most“.
 
