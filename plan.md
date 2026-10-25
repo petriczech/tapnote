@@ -252,7 +252,7 @@ Stav: přepracování Noir (kroky 0–11), desktop (15–20), drag & drop (21–
    - export a import zálohy přes sdílení; demo záloha `.tmp/demo/tapnote-demo.json` (nová se vytvoří `node .tmp/demo/gen-demo.mjs`)
    - spodní lišta při posunu dlouhého seznamu reaguje na klepnutí (oprava `z-index`)
 2. **Opravy z testu na telefonu** – každá zvlášť s lifecyclem.
-3. **Quick Settings tile** (nativní `TileService`): otevře nový úkol (`tapnote://new-task`) nebo poznámku – rozhodnout před startem.
+3. ✅ **Quick Settings tile** (nativní `TileService`): otevře nový úkol (`tapnote://new-task`); na telefonu ověřit přidání dlaždice, zavřenou i běžící appku a zamčenou obrazovku (Android < 14)
 4. **Widget** (Glance): připnutá poznámka nebo checklist s odškrtáváním a „+“; datový most podle oddílu „Widget (fáze 3) – datový most“.
 
 ### Odloženo (předložit znovu, až bude potřeba)
