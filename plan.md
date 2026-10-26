@@ -270,7 +270,7 @@ Stav: přepracování Noir (kroky 0–11), desktop (15–20), drag & drop (21–
 - šipka ↓ v desktopové mřížce poznámek jde na kartu vpravo, ne pod
 - detail úkolu nemá Esc; „Ctrl F“ v hledání vypadá jinak než ostatní štítky; řádek „Klávesové zkratky“ v rozcestníku je mezi Zálohou a O aplikaci
 - Safari s výchozím nastavením přeskočí Tabem odkazy (skip link, lišta) – systémové chování, jen zmínit
-- Firefox zatím netestovaný (prohlížeč pro Playwright je stažený); WebKit sada: `npx playwright test -c .tmp/playwright/webkit/playwright.config.ts`
+- ✅ Firefox (26. 10. 2026): celá e2e sada prošla (47/1 skip), `npx playwright test -c .tmp/playwright/firefox/playwright.config.ts`; `position-area` Firefox nemá, menu úchytu má záložní pozici (vzhled neověřen); WebKit sada: `npx playwright test -c .tmp/playwright/webkit/playwright.config.ts`
 
 ## Přepracování podle návrhu D Noir
 Hlavní vzhled je návrh D „Tapnote Noir“ (`.tmp/mockup/soutez/D-dark.png`, `D.html`); ostatní obrazovky a vzhledy přebírají jeho rozvržení. Podklady: `.tmp/mockup/redesign-d/ux.md`, `grafika.md`, `testing.md`.
