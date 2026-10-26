@@ -254,6 +254,8 @@ Stav: přepracování Noir (kroky 0–11), desktop (15–20), drag & drop (21–
 2. **Opravy z testu na telefonu** – každá zvlášť s lifecyclem. Test v emulátoru (25. 10. 2026) prošel; jediná změna: start na Úkolech. Na skutečném telefonu zbývá TalkBack a migrace v3 → v4.
 3. ✅ **Quick Settings tile** (nativní `TileService`): otevře nový úkol (`tapnote://new-task`); na telefonu ověřit přidání dlaždice, zavřenou i běžící appku a zamčenou obrazovku (Android < 14)
 4. **Widget** (Glance): připnutá poznámka nebo checklist s odškrtáváním a „+“; datový most podle oddílu „Widget (fáze 3) – datový most“.
+5. **Další ikony kategorií** (zadáno 26. 10. 2026): pro Unreal Engine, Claude, AI a podobná témata. Sada je Phosphor Bold, ve které značky (UE, Claude) nejsou a jejich loga mají vlastní licenci. Návrh: obecné Phosphor ikony, třeba Sparkle nebo Robot pro AI, GameController nebo Cube pro UE, Terminal nebo Code pro vývoj. Výběr ikon se předloží ke schválení.
+6. **Barvy kategorií** (dotaz 26. 10. 2026): sada má pevných 8 barev a motiv mění jen jejich odstín pro světlý a tmavý režim. Červená a Oranžová v ní jsou. Ověřit, proč v panelu „Upravit kategorii“ chyběly (přehlédnutelné tečky bez popisku? přetékající řada?), a případně doplnit další barvy.
 
 ### Odloženo (předložit znovu, až bude potřeba)
 - globální zkratky N/D a počty u odkazů v panelu (desktop rozhodnutí 10)
