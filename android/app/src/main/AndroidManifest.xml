@@ -41,6 +41,36 @@
             </intent-filter>
         </service>
 
+        <!-- Widget „Můj den“ na ploše -->
+        <receiver
+            android:name=".MyDayWidgetProvider"
+            android:label="@string/widget_title"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <!-- Výjimky ze zákazu implicitních broadcastů (API 26+); půlnoc řeší alarm v MyDayWidgetStore -->
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_my_day_info" />
+        </receiver>
+
+        <service
+            android:name=".MyDayWidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="false" />
+
+        <!-- Neviditelný mezikrok pro klepnutí na řádek widgetu, mimo úlohu aplikace -->
+        <activity
+            android:name=".WidgetActionActivity"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

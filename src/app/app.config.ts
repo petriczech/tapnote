@@ -19,6 +19,7 @@ import { DexieVersionsRepository } from './core/storage/dexie-versions-repositor
 import { NoteActions } from './core/notes/note-actions';
 import { TaskActions } from './core/tasks/task-actions';
 import { listenForAppUrls } from './core/native/app-urls';
+import { WidgetSync } from './core/native/widget-sync';
 import { ParamsRouteReuseStrategy } from './params-route-reuse-strategy';
 
 export const appConfig: ApplicationConfig = {
@@ -35,6 +36,8 @@ export const appConfig: ApplicationConfig = {
     provideAppInitializer(() => void inject(TaskActions).purgeTrash().catch(() => undefined)),
     // Zkratky a odkazy z Androidu
     provideAppInitializer(listenForAppUrls),
+    // Widget „Můj den“ na Androidu (v prohlížeči nic nedělá)
+    provideAppInitializer(() => void inject(WidgetSync).start().catch(() => undefined)),
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),
       registrationStrategy: 'registerWhenStable:30000',

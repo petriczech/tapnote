@@ -8,4 +8,9 @@
     <string name="shortcut_task_long">Nový úkol</string>
     <string name="shortcut_new_short">Nová</string>
     <string name="shortcut_new_long">Nová poznámka</string>
+    <!-- Widget „Můj den“ -->
+    <string name="widget_title">Můj den</string>
+    <string name="widget_description">Otevřené úkoly v Můj den</string>
+    <string name="widget_empty">Na dnešek žádné úkoly</string>
+    <string name="widget_done">Hotovo: %1$s</string>
 </resources>

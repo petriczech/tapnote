@@ -197,7 +197,7 @@ Pravidla:
 
 ## Widget (fáze 3) – datový most
 - Widget nevidí do IndexedDB ve WebView.
-- Aplikace při změně zrcadlí snapshot (připnuté poznámky / checklist) do nativního úložiště (`@capacitor/filesystem` → `Directory.Data`, nebo `@capacitor/preferences`) a zavolá vlastní plugin `WidgetBridge.refresh()`.
+- Aplikace při změně zrcadlí snapshot otevřených úkolů Můj den přes vlastní plugin `WidgetBridge.sync()` do SharedPreferences (hotovo 26. 10. 2026).
 - Odškrtnutí ve widgetu → fronta změn v nativním úložišti → aplikace po otevření načte zpět do Dexie.
 
 ## Rizika
@@ -253,7 +253,7 @@ Stav: přepracování Noir (kroky 0–11), desktop (15–20), drag & drop (21–
    - spodní lišta při posunu dlouhého seznamu reaguje na klepnutí (oprava `z-index`)
 2. **Opravy z testu na telefonu** – každá zvlášť s lifecyclem. Test v emulátoru (25. 10. 2026) prošel; jediná změna: start na Úkolech. Na skutečném telefonu zbývá TalkBack a migrace v3 → v4.
 3. ✅ **Quick Settings tile** (nativní `TileService`): otevře nový úkol (`tapnote://new-task`); na telefonu ověřit přidání dlaždice, zavřenou i běžící appku a zamčenou obrazovku (Android < 14)
-4. **Widget** (Glance): připnutá poznámka nebo checklist s odškrtáváním a „+“; datový most podle oddílu „Widget (fáze 3) – datový most“.
+4. ✅ **Widget „Můj den“** (26. 10. 2026; místo Glance klasický AppWidget v Javě, místo připnuté poznámky otevřené úkoly Můj den): odškrtnutí, otevření detailu (`tapnote://task/<id>`), „+“ nový úkol, záhlaví otevře Úkoly; most `WidgetBridge` (SharedPreferences), odškrtnutí z widgetu se do Dexie zapíše po otevření appky; po půlnoci prázdný seznam do další synchronizace. Ověřit v emulátoru/telefonu: přidání widgetu, odškrtnutí, detail, „+“, světlý/tmavý, TalkBack, stav po půlnoci a po restartu.
 5. ✅ **Další ikony kategorií** (přidáno 8: AI, Bot, Chat, Terminál, Hry, 3D, Vývoj, Projekty; zadáno 26. 10. 2026): pro Unreal Engine, Claude, AI a podobná témata. Sada je Phosphor Bold, ve které značky (UE, Claude) nejsou a jejich loga mají vlastní licenci. Návrh: obecné Phosphor ikony, třeba Sparkle nebo Robot pro AI, GameController nebo Cube pro UE, Terminal nebo Code pro vývoj. Výběr ikon se předloží ke schválení.
 6. ✅ **Barvy kategorií** (příčina: červená a oranžová měly skoro stejný odstín; opraveny tokeny `--c-orange`/`--c-red`; dotaz 26. 10. 2026): sada má pevných 8 barev a motiv mění jen jejich odstín pro světlý a tmavý režim. Červená a Oranžová v ní jsou. Ověřit, proč v panelu „Upravit kategorii“ chyběly (přehlédnutelné tečky bez popisku? přetékající řada?), a případně doplnit další barvy.
 

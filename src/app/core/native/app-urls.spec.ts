@@ -53,6 +53,31 @@ describe('listenForAppUrls', () => {
     expect(replaceState).toHaveBeenCalledWith('/tasks', 'new=1');
   });
 
+  it('starts on a task detail when launched from the widget', async () => {
+    await run('tapnote://task/abc');
+
+    expect(replaceState).toHaveBeenCalledWith('/task/abc');
+  });
+
+  it('opens a task detail from the widget while running', async () => {
+    await run();
+
+    listener({ url: 'tapnote://task/abc' });
+    expect(navigate).toHaveBeenCalledWith('/task/abc');
+
+    listener({ url: 'tapnote://tasks' });
+    expect(navigate).toHaveBeenCalledWith('/tasks');
+  });
+
+  it('keeps a task link inside the task detail', async () => {
+    await run('tapnote://task/../settings');
+
+    expect(replaceState).toHaveBeenCalledWith('/task/..%2Fsettings');
+
+    listener({ url: 'tapnote://task/..%2Fsettings' });
+    expect(navigate).toHaveBeenCalledWith('/task/..%252Fsettings');
+  });
+
   it('keeps the start page for a normal launch', async () => {
     await run();
 

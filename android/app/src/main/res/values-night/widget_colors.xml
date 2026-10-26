@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Barvy widgetu „Můj den“ pro tmavý režim -->
+<resources>
+    <color name="widget_background">#1E1F23</color>
+    <color name="widget_text">#ECEDF0</color>
+    <color name="widget_text_secondary">#A9ADB6</color>
+    <color name="widget_accent">#8AB4F8</color>
+</resources>
