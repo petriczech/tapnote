@@ -9,6 +9,7 @@
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "playwright test",
+    "e2e:emulator": "firebase emulators:exec --only auth --project demo-tapnote \"playwright test -c playwright.emulator.config.ts\"",
     "test:rules": "firebase emulators:exec --only firestore --project demo-tapnote \"vitest run -c vitest.rules.config.mts\"",
     "sync:android": "ng build && cap sync android"
   },

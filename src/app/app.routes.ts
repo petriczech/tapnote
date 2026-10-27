@@ -30,6 +30,7 @@ export const routes: Routes = [
   { path: 'settings', loadComponent: () => import('./features/settings/settings').then((m) => m.Settings) },
   { path: 'settings/vzhled', loadComponent: () => import('./features/settings/appearance').then((m) => m.Appearance) },
   { path: 'settings/kategorie', loadComponent: () => import('./features/settings/categories').then((m) => m.Categories) },
+  { path: 'settings/synchronizace', loadComponent: () => import('./features/settings/sync').then((m) => m.Sync) },
   { path: 'settings/zkratky', loadComponent: () => import('./features/settings/shortcuts').then((m) => m.Shortcuts) },
   // Přesměrování se neřetězí, proto přímo na úkoly, ne přes ''
   { path: '**', redirectTo: 'tasks' },

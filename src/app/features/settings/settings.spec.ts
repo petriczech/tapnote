@@ -1,7 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
+import { Capacitor } from '@capacitor/core';
 import { createExport, LAST_BACKUP_KEY } from '../../core/backup/notes-backup';
+import { AUTH_API_LOADER, AUTH_SESSION_KEY } from '../../core/firebase/auth.service';
+import { FakeAuthApi } from '../../core/firebase/testing/fake-auth-api';
 import { createNote, Note } from '../../core/model/note';
 import { createTask, Task } from '../../core/model/task';
 import { CategoriesRepository } from '../../core/storage/categories-repository';
@@ -20,6 +23,8 @@ function note(id: string, updatedAt: string, content = id): Note {
 }
 
 const backupOf = (notes: Note[], tasks: Task[] = []) => JSON.stringify(createExport({ notes, tasks, categories: [] }, new Date()));
+
+vi.mock('@capacitor/core', () => ({ Capacitor: { isNativePlatform: vi.fn(() => false) } }));
 
 describe('Settings', () => {
   let repository: InMemoryNotesRepository;
@@ -84,15 +89,19 @@ describe('Settings', () => {
   describe('hub', () => {
     const rows = () => [...root.querySelectorAll<HTMLAnchorElement>('.hub a')];
 
-    afterEach(() => localStorage.removeItem(THEME_KEY));
+    afterEach(() => {
+      localStorage.removeItem(THEME_KEY);
+      localStorage.removeItem(AUTH_SESSION_KEY);
+    });
 
-    it('lists the sections with Vzhled, Kategorie and Klávesové zkratky as sub-pages, Vzhled showing the current theme', async () => {
+    it('lists the sections with Vzhled, Kategorie, Synchronizace and Klávesové zkratky as sub-pages, Vzhled showing the current theme', async () => {
       localStorage.setItem(THEME_KEY, 'paper');
       await render();
 
       expect(rows().map((row) => row.querySelector('.row-label')?.textContent?.trim())).toEqual([
         'Vzhled',
         'Kategorie',
+        'Synchronizace',
         'Šablony',
         'Záloha',
         'Klávesové zkratky',
@@ -100,8 +109,11 @@ describe('Settings', () => {
       ]);
       expect(rows()[0].getAttribute('href')).toBe('/settings/vzhled');
       expect(rows()[1].getAttribute('href')).toBe('/settings/kategorie');
+      expect(rows()[2].getAttribute('href')).toBe('/settings/synchronizace');
       expect(rows()[0].querySelector('.value')?.textContent?.trim()).toBe('Papír');
-      expect(rows().slice(2).map((row) => row.getAttribute('href'))).toEqual([
+      // Bez předchozího přihlášení se Firebase nenačítá a synchronizace je vypnutá
+      expect(rows()[2].querySelector('.value')?.textContent?.trim()).toBe('Vypnuto');
+      expect(rows().slice(3).map((row) => row.getAttribute('href'))).toEqual([
         '/settings#templates',
         '/settings#backup',
         '/settings/zkratky',
@@ -109,11 +121,28 @@ describe('Settings', () => {
       ]);
     });
 
+    it('shows the signed-in email on the Synchronizace row after a previous session', async () => {
+      localStorage.setItem(AUTH_SESSION_KEY, '1');
+      const api = new FakeAuthApi({ uid: 'uid-1', email: 'petr@example.com' });
+      TestBed.overrideProvider(AUTH_API_LOADER, { useValue: () => Promise.resolve(api) });
+      await render();
+      await fixture.whenStable();
+
+      expect(rows()[2].querySelector('.value')?.textContent?.trim()).toBe('petr@example.com');
+    });
+
+    it('hides the Synchronizace row in the Android app until native sign-in (S4)', async () => {
+      vi.mocked(Capacitor.isNativePlatform).mockReturnValueOnce(true);
+      await render();
+
+      expect(rows().map((row) => row.querySelector('.row-label')?.textContent?.trim())).not.toContain('Synchronizace');
+    });
+
     it('focuses the section heading when a row is clicked', async () => {
       TestBed.inject(Router).resetConfig([{ path: 'settings', component: Settings }]);
       await render();
 
-      rows()[3].click();
+      rows()[4].click();
 
       expect(document.activeElement).toBe(root.querySelector('#backup-heading'));
     });

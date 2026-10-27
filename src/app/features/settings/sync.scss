@@ -1,0 +1,97 @@
+:host {
+  display: block;
+  padding: env(safe-area-inset-top) 0 calc(7rem + env(safe-area-inset-bottom));
+}
+
+// Od 900 px lišta dole není, stačí běžné odsazení
+@media (min-width: 900px) {
+  :host {
+    padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+  }
+}
+
+// Drobečky „Nastavení ›“ nad velkým nadpisem jako ve Vzhledu
+.app-bar {
+  padding: 8px 16px 0;
+}
+
+.crumbs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  color: var(--on-surface-variant);
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.crumbs .icon {
+  width: 16px;
+  height: 16px;
+}
+
+h1 {
+  margin: 0;
+  font-family: var(--title-font);
+  font-size: var(--title-size);
+  font-weight: var(--title-weight);
+  letter-spacing: var(--title-spacing);
+}
+
+h1:focus:not(:focus-visible) {
+  outline: none;
+}
+
+// Text a tlačítko ve skleněné kartě
+.card {
+  margin: 16px 16px 12px;
+  padding: 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--card-radius);
+  background: var(--glass);
+}
+
+.info {
+  margin: 0 0 12px;
+  color: var(--on-surface-variant);
+  overflow-wrap: anywhere;
+}
+
+// Tlačítka jako v Záloze rozcestníku
+.filled,
+.outlined {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 24px;
+  border-radius: 14px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+// Průhledný okraj se ve vysokém kontrastu vykreslí, přechod se tam zahodí
+.filled {
+  border: 1px solid transparent;
+  background: var(--grad);
+  color: var(--on-grad);
+}
+
+.outlined {
+  border: 1px solid var(--outline);
+  background: none;
+  color: var(--primary);
+}
+
+[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.status {
+  margin: 0 16px;
+}
+
+.status.error {
+  color: var(--error);
+}

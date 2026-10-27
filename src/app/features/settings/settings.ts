@@ -1,5 +1,6 @@
 import { afterNextRender, Component, computed, ElementRef, inject, Injector, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Capacitor } from '@capacitor/core';
 import {
   createExport,
   exportFileName,
@@ -16,6 +17,7 @@ import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { NotesRepository } from '../../core/storage/notes-repository';
 import { TasksRepository } from '../../core/storage/tasks-repository';
 import { VersionsRepository } from '../../core/storage/versions-repository';
+import { AuthService } from '../../core/firebase/auth.service';
 import { ICONS_REGULAR } from '../../core/icons/icons';
 import { readTheme, THEMES } from '../../core/theme/theme';
 import { BottomNav } from '../list/bottom-nav';
@@ -34,7 +36,7 @@ const REVOKE_DELAY_MS = 60_000;
       <h1 id="obsah" tabindex="-1">Nastavení</h1>
     </header>
 
-    <!-- Rozcestník: Vzhled, Kategorie a Klávesové zkratky jsou podstránky, ostatní řádky skočí na sekci níže -->
+    <!-- Rozcestník: Vzhled, Kategorie, Synchronizace a Klávesové zkratky jsou podstránky, ostatní řádky skočí na sekci níže -->
     <ul class="hub">
       <li>
         <a routerLink="/settings/vzhled">
@@ -51,6 +53,17 @@ const REVOKE_DELAY_MS = 60_000;
           <svg class="icon chev" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.caretRight" /></svg>
         </a>
       </li>
+      <!-- V Android aplikaci přihlášení přes web nefunguje, řádek se skrývá až do nativního přihlášení (S4) -->
+      @if (!native) {
+        <li>
+          <a routerLink="/settings/synchronizace">
+            <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.arrowsClockwise" /></svg>
+            <span class="row-label">Synchronizace</span>
+            <span class="value">{{ syncLabel() }}</span>
+            <svg class="icon chev" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.caretRight" /></svg>
+          </a>
+        </li>
+      }
       @for (row of rows; track row.label) {
         <li>
           <a [routerLink]="row.link" [fragment]="row.fragment" (click)="row.fragment && focusSection(row.fragment)">
@@ -446,6 +459,13 @@ export class Settings implements OnInit {
   protected readonly canShare = typeof navigator.canShare === 'function';
   protected readonly icons = ICONS_REGULAR;
   protected readonly themeLabel = THEMES.find((item) => item.id === readTheme())?.label;
+  // Firebase se kvůli řádku nenačítá; s příznakem předchozího přihlášení ho načte AuthService sám
+  private readonly auth = inject(AuthService);
+  protected readonly native = Capacitor.isNativePlatform();
+  protected readonly syncLabel = computed(() => {
+    const state = this.auth.state();
+    return state === 'signedIn' ? this.auth.email() : state === 'loading' ? '' : 'Vypnuto';
+  });
   // Řádky rozcestníku s nadpisy sekcí; fragment + '-heading' je id nadpisu, řádek bez fragmentu vede na podstránku
   protected readonly rows = [
     { label: 'Šablony', link: '/settings', fragment: 'templates', icon: 'copy' },

@@ -6,6 +6,8 @@ const viewport = { width: 412, height: 860 };
 // Smoke testy proti dev serveru; Playwright server spustí a po doběhnutí ukončí
 export default defineConfig({
   testDir: 'e2e',
+  // Testy proti Auth emulátoru běží jen přes `npm run e2e:emulator` (playwright.emulator.config.ts)
+  testIgnore: '**/*.emulator.spec.ts',
   outputDir: '.tmp/e2e-results',
   reporter: 'list',
   fullyParallel: true,
