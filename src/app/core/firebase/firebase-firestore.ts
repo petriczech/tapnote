@@ -16,7 +16,7 @@ import {
   where,
   writeBatch,
 } from 'firebase/firestore';
-import type { SyncedCollection } from '../model/outbox-entry';
+import { SYNCED_COLLECTIONS, SyncedCollection } from '../model/outbox-entry';
 import { emulatorPorts, firebaseConfig } from './firebase.config';
 
 // Jediný modul, který staticky importuje Firestore; SyncService ho načítá přes import() jako samostatný chunk.
@@ -52,6 +52,8 @@ export interface SyncRemote {
   commit(writes: RemoteWrite[]): Promise<void>;
   /** Sleduje dokumenty změněné po `cursor`; vrací odhlášení. */
   listen(collection: SyncedCollection, cursor: string | null, listener: RemoteListener): () => void;
+  /** Smaže všechny dokumenty synchronizovaných kolekcí účtu (dávky po 500). */
+  deleteAll(): Promise<void>;
 }
 
 // Firestore se inicializuje jednou na aplikaci (initializeFirestore nejde volat dvakrát)
@@ -122,6 +124,9 @@ export function createSyncRemote(uid: string): SyncRemote {
       );
       return onSnapshot(
         changed,
+        // Potvrzení ze serveru po snímku z cache mění jen metadata; bez této volby by nepřišlo a dorovnání
+        // příjmu by skončilo časovým limitem ve stavu offline
+        { includeMetadataChanges: true },
         (snapshot) => {
           // Místní ozvěna vlastních zápisů (hasPendingWrites) se přeskočí, data už v Dexie jsou. Odebrání z výsledku
           // nastává jen u ozvěny (dokument s čekajícím serverovým časem z dotazu na chvíli vypadne); smazání
@@ -136,6 +141,16 @@ export function createSyncRemote(uid: string): SyncRemote {
         },
         (error) => listener.error(error),
       );
+    },
+    deleteAll: async () => {
+      for (const name of SYNCED_COLLECTIONS) {
+        const { docs } = await getDocsFromServer(path(name));
+        for (let start = 0; start < docs.length; start += 500) {
+          const batch = writeBatch(db);
+          docs.slice(start, start + 500).forEach((item) => batch.delete(item.ref));
+          await batch.commit();
+        }
+      }
     },
   };
 }

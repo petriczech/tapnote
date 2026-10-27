@@ -317,7 +317,7 @@ S3. ✅ **Přihlášení na webu** (27. 10. 2026; jen popup kvůli F2, v Android
 S4. **Přihlášení na Androidu:** plugin, `google-services.json`, SHA-1, ověření v emulátoru.
 S5. ✅ **Fronta změn** (27. 10. 2026; Dexie DBCore middleware místo zápisu v repozitářích, `OutboxRepository.applyRemote` pro vzdálené zápisy): tabulka `outbox` (Dexie v5), zápis z repozitářů a migrace. Formát zálohy se nemění.
 S6. ✅ **Sync jádro** (27. 10. 2026; náhrobky místo mazání, před prvním odesláním se dotáhnou změny ze serveru, odmítnuté záznamy zůstávají ve frontě; pravidla se nasazují spolu s klientem v S8): odesílání, příjem s kurzorem, pravidlo novější vyhrává, sloučení při prvním přihlášení, mazání. Unit testy a e2e se dvěma kontexty prohlížeče proti emulátoru.
-S7. **UI synchronizace:** stav, chyby, „Synchronizovat teď“, „Smazat data v cloudu“, axe. „Smazat data v cloudu“ vynuluje na tomto zařízení marker a frontu (příští běh = první synchronizace); na ostatních zařízeních stačí odhlásit a znovu přihlásit (odhlášení maže marker).
+S7. ✅ **UI synchronizace** (27. 10. 2026; „Smazat data v cloudu“ maže kolekce, frontu, marker a odhlásí): stav, chyby, „Synchronizovat teď“, „Smazat data v cloudu“, axe. „Smazat data v cloudu“ vynuluje na tomto zařízení marker a frontu (příští běh = první synchronizace); na ostatních zařízeních stačí odhlásit a znovu přihlásit (odhlášení maže marker).
 S8. **Nasazení (spouští uživatel):** build, `firebase deploy --only firestore --project prod` a push pro GitHub Pages. Pak test na telefonu a PC proti produkci.
 
 ### Rizika

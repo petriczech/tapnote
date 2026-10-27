@@ -550,4 +550,85 @@ describe('SyncService', () => {
     expect(marker()).toBeNull();
     expect(localStorage.getItem(SYNC_MARKER_PREFIX + 'other')).not.toBeNull();
   });
+
+  it('syncs now on request and does nothing when signed out', async () => {
+    markInitialized();
+    const sync = await started();
+    await notes.put(note('a', T1));
+    outbox.add({ collection: 'notes', id: 'a', op: 'put', at: T2 });
+
+    sync.syncNow();
+    await vi.waitFor(() => expect(remoteNote('a')).toBeDefined());
+
+    await auth.signOut();
+    TestBed.tick();
+    sync.syncNow();
+    expect(sync.state()).toBe('off');
+  });
+
+  it('deletes the cloud data in order: stop, delete, clear marker and queue, sign out; local data stays', async () => {
+    await notes.put(note('a', T1));
+    const sync = await started();
+    remote.serverWrite('tasks', createTask('t', 'Úkol', T1));
+    outbox.add({ collection: 'notes', id: 'a', op: 'put', at: T2 });
+    const order: string[] = [];
+    const deleteAll = remote.deleteAll.bind(remote);
+    vi.spyOn(remote, 'deleteAll').mockImplementation(() => {
+      order.push(`delete:${sync.state()}:${remote.listeners}:${marker() !== null}`);
+      return deleteAll();
+    });
+    const clear = outbox.clear.bind(outbox);
+    vi.spyOn(outbox, 'clear').mockImplementation(() => {
+      order.push(`clear:${marker() !== null}`);
+      return clear();
+    });
+    const signOut = auth.signOut.bind(auth);
+    vi.spyOn(auth, 'signOut').mockImplementation(() => (order.push('signOut'), signOut()));
+
+    await sync.deleteCloud();
+
+    expect(order).toEqual(['delete:off:0:true', 'clear:false', 'signOut']);
+    expect([...remote.docs.notes.keys(), ...remote.docs.tasks.keys(), ...remote.docs.categories.keys()]).toEqual([]);
+    expect(await outbox.pending()).toEqual([]);
+    expect(marker()).toBeNull();
+    expect(notes.notes.has('a')).toBe(true);
+    expect(sync.state()).toBe('off');
+  });
+
+  it('keeps the queue and the account, forgets the marker and resumes syncing when the cloud delete fails', async () => {
+    markInitialized();
+    const sync = await started();
+    const clear = vi.spyOn(outbox, 'clear');
+    remote.failDeleteWith = { code: 'unavailable' };
+
+    await expect(sync.deleteCloud()).rejects.toEqual({ code: 'unavailable' });
+
+    expect(auth.calls).not.toContain('signOut');
+    expect(clear).not.toHaveBeenCalled();
+    // Bez markeru proběhne obnovená synchronizace jako první sloučení a marker znovu založí
+    await vi.waitFor(() => expect(sync.state()).toBe('idle'));
+    expect(marker()?.initialized).toBe(true);
+    expect(remote.listeners).toBe(3);
+  });
+
+  it('resumes syncing when signing out fails after the cloud delete', async () => {
+    markInitialized();
+    const sync = await started();
+    vi.spyOn(auth, 'signOut').mockRejectedValue(new Error('offline'));
+
+    await expect(sync.deleteCloud()).rejects.toThrow('offline');
+
+    await vi.waitFor(() => expect(sync.state()).toBe('idle'));
+    expect(marker()?.initialized).toBe(true);
+  });
+
+  it('forgets the last sync time when the session stops', async () => {
+    const sync = await started();
+    expect(sync.lastSyncedAt()).not.toBeNull();
+
+    await auth.signOut();
+    TestBed.tick();
+
+    expect(sync.lastSyncedAt()).toBeNull();
+  });
 });

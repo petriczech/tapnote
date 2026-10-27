@@ -104,6 +104,14 @@ function writeMarker(uid: string, marker: SyncMarker): void {
   }
 }
 
+function removeMarker(uid: string): void {
+  try {
+    localStorage.removeItem(SYNC_MARKER_PREFIX + uid);
+  } catch {
+    // Bez úložiště marker ani není
+  }
+}
+
 function errorCode(error: unknown): string {
   return typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : '';
 }
@@ -190,16 +198,49 @@ export class SyncService {
     });
   }
 
+  /** Synchronizace hned (tlačítko „Synchronizovat teď“); bez přihlášení nebo po zamítnutí nic nedělá. */
+  syncNow(): void {
+    if (this.session) {
+      this.request(this.session);
+    }
+  }
+
+  /**
+   * Smazání dat účtu ve Firestore (F7): synchronizace se zastaví, smažou se vzdálené kolekce, marker a fronta
+   * tohoto zařízení a účet se odhlásí. Místní data zůstávají; příští přihlášení proběhne jako první sloučení.
+   */
+  async deleteCloud(): Promise<void> {
+    const session = this.session;
+    if (!session) {
+      throw new Error('signed out');
+    }
+    const { uid } = session;
+    const remote = session.remote ?? this.load().then((create) => create(uid));
+    this.stop('off');
+    // Rozběhnutý zápis se nechá doběhnout, aby nepřistál až po smazání
+    await session.busy;
+    try {
+      await (await remote).deleteAll();
+      removeMarker(uid);
+      await this.outbox.clear();
+      await this.auth.signOut();
+    } catch (error) {
+      // Cloud může zůstat smazaný jen zčásti: bez markeru proběhne další běh jako první sloučení a chybějící
+      // záznamy se znovu nahrají; synchronizace se obnoví, pokud je účet stále přihlášený
+      removeMarker(uid);
+      if (this.auth.user()?.uid === uid) {
+        this.start(uid);
+      }
+      throw error;
+    }
+  }
+
   // Odhlášení smaže marker i s kurzory, aby další přihlášení proběhlo jako první sloučení (S7); fronta zůstává
   private signOut(): void {
     const uid = this.session?.uid;
     this.stop('off');
     if (uid) {
-      try {
-        localStorage.removeItem(SYNC_MARKER_PREFIX + uid);
-      } catch {
-        // Bez úložiště marker ani není
-      }
+      removeMarker(uid);
     }
   }
 
@@ -245,6 +286,8 @@ export class SyncService {
       document.removeEventListener('visibilitychange', this.onVisibility);
     }
     this.rejected.set(0);
+    // Čas poslední synchronizace patří ukončené relaci (jiný účet, smazaný cloud)
+    this.lastSyncedAt.set(null);
     this.state.set(state);
   }
 

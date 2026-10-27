@@ -24,6 +24,8 @@ export class FakeSyncRemote implements SyncRemote {
   failWith: unknown = null;
   /** Chyba jen pro zápisy (čtení projde). */
   failCommitWith: unknown = null;
+  /** Chyba jen pro deleteAll (smazání dat v cloudu). */
+  failDeleteWith: unknown = null;
   /** Kód chyby pro zápis daného záznamu; dávka s takovým záznamem selže celá jako ve Firestore. */
   rejectWrite: ((write: RemoteWrite) => string | null) | null = null;
   /** Dokud je vyplněný, commit čeká na jeho splnění (zápis „na cestě“). */
@@ -85,6 +87,11 @@ export class FakeSyncRemote implements SyncRemote {
     const serverUpdatedAt = this.tick();
     writes.forEach((write) => this.docs[write.collection].set(write.id, { record: write.record, serverUpdatedAt }));
     new Set(writes.map((write) => write.collection)).forEach((collection) => this.notify(collection));
+  }
+
+  async deleteAll(): Promise<void> {
+    this.check(this.failWith ?? this.failDeleteWith);
+    Object.values(this.docs).forEach((docs) => docs.clear());
   }
 
   listen(collection: SyncedCollection, cursor: string | null, listener: RemoteListener): () => void {

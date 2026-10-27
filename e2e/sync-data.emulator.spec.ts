@@ -1,3 +1,4 @@
+import { AxeBuilder } from '@axe-core/playwright';
 import { APIRequestContext, Browser, Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 
@@ -238,5 +239,83 @@ test.describe('synchronizace dat mezi zařízeními', () => {
     await expect(b).toHaveURL(/\/new$/, { timeout: 20_000 });
     await expect(editorB).toHaveValue('');
     await b.screenshot({ path: `${SHOTS}/open-note-trashed-b.png` });
+  });
+});
+
+// Ovládání synchronizace na stránce Synchronizace (S7): stav, „Synchronizovat teď“ a smazání dat v cloudu
+test.describe('stránka synchronizace', () => {
+  let errors: string[];
+  const UI_SHOTS = '.tmp/playwright/s7-ui';
+
+  // Počet dokumentů kolekce účtu ve Firestore emulátoru (REST s oprávněním správce)
+  const remoteCount = async (request: APIRequestContext, collection: string) => {
+    const response = await request.get(`${FIRESTORE}/v1/projects/${PROJECT}/databases/(default)/documents/users/${OWNER.uid}/${collection}`, {
+      headers: { Authorization: 'Bearer owner' },
+    });
+    expect(response.ok()).toBe(true);
+    return ((await response.json()) as { documents?: unknown[] }).documents?.length ?? 0;
+  };
+  const remoteTotal = async (request: APIRequestContext) =>
+    (await Promise.all(['notes', 'tasks', 'categories'].map((collection) => remoteCount(request, collection)))).reduce((sum, count) => sum + count, 0);
+
+  async function axe(page: Page, name: string): Promise<void> {
+    const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+    expect(violations.map((item) => `${item.id}: ${item.nodes.map((node) => node.target.join(' ')).join(', ')}`), `axe: ${name}`).toEqual([]);
+  }
+
+  // Mobil 412 a desktop 1440 ve vzhledu projektu (light, dark)
+  async function shots(page: Page, name: string): Promise<void> {
+    const theme = test.info().project.name;
+    await page.screenshot({ path: `${UI_SHOTS}/${name}-412-${theme}.png`, fullPage: true });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.screenshot({ path: `${UI_SHOTS}/${name}-1440-${theme}.png`, fullPage: true });
+    await page.setViewportSize({ width: 412, height: 860 });
+  }
+
+  test.beforeEach(async ({ request }) => {
+    errors = [];
+    test.setTimeout(120_000);
+    await seedOwner(request);
+    const cleared = await request.delete(`${FIRESTORE}/emulator/v1/projects/${PROJECT}/databases/(default)/documents`);
+    expect(cleared.ok()).toBe(true);
+  });
+
+  test.afterEach(() => expect(errors, 'chyby stránky').toEqual([]));
+
+  test('stav, synchronizace teď a smazání dat v cloudu', async ({ browser, request }) => {
+    const page = await device(browser, errors);
+    await writeNote(page, 'Poznámka pro cloud\nobsah');
+    await signIn(page);
+    await settled(page);
+
+    const state = page.locator('tn-sync .card .state');
+    await expect(state).toHaveText('Synchronizováno');
+    await expect(page.getByText(/^Poslední synchronizace: \S/)).toBeVisible();
+    await expect(page.getByText(/^Čeká na odeslání/)).toBeHidden();
+    expect(await remoteCount(request, 'notes')).toBe(1);
+    await axe(page, 'synchronizace – přihlášeno');
+    await shots(page, 'signed-in');
+
+    await page.getByRole('button', { name: 'Synchronizovat teď' }).click();
+    await expect(state).toHaveText('Synchronizováno');
+
+    page.once('dialog', (dialog) => {
+      expect(dialog.message()).toBe(
+        'Smazat data v cloudu? Smažou se poznámky, úkoly a kategorie uložené v cloudu. Data v tomto zařízení zůstanou a účet se odhlásí.',
+      );
+      void dialog.accept();
+    });
+    await page.getByRole('button', { name: 'Smazat data v cloudu' }).click();
+    await expect(page.locator('tn-sync .status')).toHaveText('Data v cloudu jsou smazaná.');
+    await expect(page.getByRole('button', { name: 'Přihlásit přes Google' })).toBeFocused();
+    await expect(state).toBeHidden();
+    expect(await page.evaluate((key) => localStorage.getItem(key), `tapnote.sync.${OWNER.uid}`)).toBeNull();
+    expect(await readStore(page, 'outbox')).toEqual([]);
+    await expect.poll(() => remoteTotal(request)).toBe(0);
+    await axe(page, 'synchronizace – po smazání cloudu');
+    await shots(page, 'cloud-deleted');
+
+    await page.goto('/notes');
+    await expect(page.getByRole('link', { name: /Poznámka pro cloud/ })).toBeVisible();
   });
 });

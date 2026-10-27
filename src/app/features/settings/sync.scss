@@ -51,7 +51,8 @@ h1:focus:not(:focus-visible) {
   background: var(--glass);
 }
 
-.info {
+.info,
+.state {
   margin: 0 0 12px;
   color: var(--on-surface-variant);
   overflow-wrap: anywhere;
@@ -81,6 +82,17 @@ h1:focus:not(:focus-visible) {
   border: 1px solid var(--outline);
   background: none;
   color: var(--primary);
+}
+
+// Tlačítka v kartě vedle sebe, na úzkém displeji se zalomí
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.state.error {
+  color: var(--error);
 }
 
 [aria-disabled='true'] {
