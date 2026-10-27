@@ -331,7 +331,8 @@ S8. ✅ **Nasazení** (28. 10. 2026: pravidla s uid vlastníka nasazena, web na 
 - Porty emulátorů (`firebase.json`): Auth 9102, Firestore 8092, UI 4009, hub 4409, logging 4509, websocket Firestore 9152. Obsazené jinými projekty: gym-tracker 9099/8088/UI 4000, polyglot 9100/8090/5010, neon-keys 9098/8087, gradus 8089, python-quest 9101/8091.
 - Konfigurace: `src/app/core/firebase/firebase.config.ts` (název podle polyglotu); prod hodnoty z `apps:sdkconfig WEB` doplněny 27. 10. 2026.
 - Rules testy: `npm run test:rules` (`rules-tests/`, `vitest.rules.config.mts`). Emulátor potřebuje JDK ≥ 21 (JBR v Android Studiu je 25), jen v shellu příkazu (Git Bash: `export JAVA_HOME="C:/Program Files/Android/Android Studio/jbr"; export PATH="/c/Program Files/Android/Android Studio/jbr/bin:$PATH"` – v PATH tvar `/c/…`, `C:/…` dvojtečka rozbije).
-- Allowlist uid ve `firestore.rules` obsahuje jen testovací `emulator-owner`; skutečné uid se doplní po prvním přihlášení.
+- Allowlist uid ve `firestore.rules`: testovací `emulator-owner` a uid vlastníka (28. 10. 2026). Kdo nemá uid v seznamu, aplikaci používá jen lokálně; po přihlášení vidí „Tento účet nemá k synchronizaci přístup.“
+- **Povolení dalšího účtu:** dotyčný se jednou přihlásí na webu → uid se přečte `npx firebase auth:export <soubor> --format=json --project prod` (soubor po přečtení smazat) nebo v konzoli Authentication › Users → uid se přidá do seznamu v `allowed()` → `npm run test:rules` → `npx firebase deploy --only firestore:rules --project prod` (spouští uživatel). Data každého účtu jsou oddělená pod `users/<uid>/`.
 
 ## Přepracování podle návrhu D Noir
 Hlavní vzhled je návrh D „Tapnote Noir“ (`.tmp/mockup/soutez/D-dark.png`, `D.html`); ostatní obrazovky a vzhledy přebírají jeho rozvržení. Podklady: `.tmp/mockup/redesign-d/ux.md`, `grafika.md`, `testing.md`.
