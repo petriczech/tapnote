@@ -318,7 +318,7 @@ S4. **Přihlášení na Androidu:** plugin, `google-services.json`, SHA-1, ově�
 S5. ✅ **Fronta změn** (27. 10. 2026; Dexie DBCore middleware místo zápisu v repozitářích, `OutboxRepository.applyRemote` pro vzdálené zápisy): tabulka `outbox` (Dexie v5), zápis z repozitářů a migrace. Formát zálohy se nemění.
 S6. ✅ **Sync jádro** (27. 10. 2026; náhrobky místo mazání, před prvním odesláním se dotáhnou změny ze serveru, odmítnuté záznamy zůstávají ve frontě; pravidla se nasazují spolu s klientem v S8): odesílání, příjem s kurzorem, pravidlo novější vyhrává, sloučení při prvním přihlášení, mazání. Unit testy a e2e se dvěma kontexty prohlížeče proti emulátoru.
 S7. ✅ **UI synchronizace** (27. 10. 2026; „Smazat data v cloudu“ maže kolekce, frontu, marker a odhlásí): stav, chyby, „Synchronizovat teď“, „Smazat data v cloudu“, axe. „Smazat data v cloudu“ vynuluje na tomto zařízení marker a frontu (příští běh = první synchronizace); na ostatních zařízeních stačí odhlásit a znovu přihlásit (odhlášení maže marker).
-S8. **Nasazení (spouští uživatel):** build, `firebase deploy --only firestore --project prod` a push pro GitHub Pages. Pak test na telefonu a PC proti produkci.
+S8. ✅ **Nasazení** (28. 10. 2026: pravidla s uid vlastníka nasazena, web na GitHub Pages hlásí „Synchronizováno“; zbývá S4 Android): build, `firebase deploy --only firestore --project prod` a push pro GitHub Pages. Pak test na telefonu a PC proti produkci.
 
 ### Rizika
 - Hodiny zařízení: pravidlo novější vyhrává se řídí `updatedAt` z klienta. Pokud má jedno zařízení posunutý čas, vyhraje špatná verze. Stačí to pro jednoho uživatele na dvou zařízeních. Případně se to zpřesní pomocí `serverUpdatedAt`.
