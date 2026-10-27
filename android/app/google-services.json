@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "283905492865",
+    "project_id": "tapnote-petr",
+    "storage_bucket": "tapnote-petr.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:283905492865:android:853014ce8c0e5b47374a80",
+        "android_client_info": {
+          "package_name": "cz.petriczech.tapnote"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "283905492865-15sosuhaeeksjblgd0lf7r98b5blg2e0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "cz.petriczech.tapnote",
+            "certificate_hash": "95be9d2c03512a1de9cca9fa2a3c4a3fb446258f"
+          }
+        },
+        {
+          "client_id": "283905492865-s8oqveu81j6c9l03hr8ps5pdao7akfcs.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDgOKjz9G7Ug65dctF6lTcdTK131GQjg5M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "283905492865-s8oqveu81j6c9l03hr8ps5pdao7akfcs.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
