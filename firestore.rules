@@ -2,11 +2,11 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Osobní appka: přístup má jen uid z allowlistu (F11). Stejná pravidla platí pro emulátor
-    // i produkci. 'emulator-owner' je testovací účet emulátoru (rules testy); skutečné uid
-    // se doplní do seznamu po prvním přihlášení (`firebase auth:export`), testovací zůstává.
+    // i produkci. 'emulator-owner' je testovací účet emulátoru (rules testy), druhé uid je
+    // účet vlastníka v produkci (doplněno 28. 10. 2026 z `firebase auth:export`).
     function allowed() {
       return request.auth != null
-        && request.auth.uid in ['emulator-owner'];
+        && request.auth.uid in ['emulator-owner', 'Fg8618qHfdYbIs791CFuWVsVxTu2'];
     }
 
     function isOwner(uid) {
