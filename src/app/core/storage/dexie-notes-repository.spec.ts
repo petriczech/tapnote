@@ -14,6 +14,8 @@ import { TapnoteDb } from './tapnote-db';
 import { TasksRepository } from './tasks-repository';
 import { DexieVersionsRepository } from './dexie-versions-repository';
 import { VersionsRepository } from './versions-repository';
+import { DexieOutboxRepository } from './dexie-outbox-repository';
+import { OutboxRepository } from './outbox-repository';
 
 function createNote(id: string, overrides: Partial<Note> = {}): Note {
   return {
@@ -191,13 +193,15 @@ describe('Dexie tasks and categories', () => {
     const db = TestBed.inject(TapnoteDb);
     const tasks = await db.tasks.toArray();
 
-    expect(db.verno).toBe(4);
+    expect(db.verno).toBe(5);
     expect(tasks.map((task) => [task.id, task.order])).toEqual([
       ['a', 2],
       ['b', 0],
       ['c', 1],
     ]);
     expect(tasks.every((task) => task.updatedAt === task.createdAt)).toBe(true);
+    // Upgrade do fronty nic nezařadí
+    expect(await db.outbox.count()).toBe(0);
   });
 
   it('stores, updates and purges tasks', async () => {
@@ -250,5 +254,163 @@ describe('Dexie versions', () => {
     await repository.deleteForNotes(['a']);
     expect(await repository.getForNote('a')).toEqual([]);
     expect((await repository.getForNote('b')).length).toBe(1);
+  });
+});
+
+describe('Dexie outbox', () => {
+  let db: TapnoteDb;
+  let outbox: OutboxRepository;
+  let notes: NotesRepository;
+  let tasks: TasksRepository;
+  let categories: CategoriesRepository;
+
+  // Fronta jako „kolekce/id:operace“, seřazená
+  const queued = async () => (await outbox.pending()).map((entry) => `${entry.collection}/${entry.id}:${entry.op}`).sort();
+
+  beforeEach(async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: NotesRepository, useClass: DexieNotesRepository },
+        { provide: TasksRepository, useClass: DexieTasksRepository },
+        { provide: CategoriesRepository, useClass: DexieCategoriesRepository },
+        { provide: VersionsRepository, useClass: DexieVersionsRepository },
+        { provide: OutboxRepository, useClass: DexieOutboxRepository },
+      ],
+    });
+    db = TestBed.inject(TapnoteDb);
+    outbox = TestBed.inject(OutboxRepository);
+    notes = TestBed.inject(NotesRepository);
+    tasks = TestBed.inject(TasksRepository);
+    categories = TestBed.inject(CategoriesRepository);
+    await outbox.applyRemote(async () => {
+      await notes.replaceAll([]);
+      await tasks.replaceAll([]);
+      await categories.replaceAll([]);
+    });
+    await outbox.clear();
+  });
+
+  afterEach(() => db.close());
+
+  it('enqueues every note write path', async () => {
+    await notes.put(createNote('a'));
+    await notes.bulkPut([createNote('b'), createNote('c', { deletedAt: '2026-09-01T10:00:00.000Z' })]);
+    expect(await queued()).toEqual(['notes/a:put', 'notes/b:put', 'notes/c:put']);
+
+    await outbox.clear();
+    // Měkké smazání a obnovení jsou update
+    await notes.update('a', { deletedAt: '2026-10-15T10:00:00.000Z' });
+    await notes.update('missing', { pinned: true });
+    await notes.delete('b');
+    await notes.purgeTrash('2026-10-01T00:00:00.000Z');
+    expect(await queued()).toEqual(['notes/a:put', 'notes/b:delete', 'notes/c:delete']);
+
+    await outbox.clear();
+    // Import s nahrazením: odebrané záznamy se smažou, nové se uloží
+    await notes.replaceAll([createNote('d')]);
+    expect(await queued()).toEqual(['notes/a:delete', 'notes/d:put']);
+  });
+
+  it('enqueues task and category writes', async () => {
+    await tasks.replaceAll([createTask('a', 'A', '2026-10-15T10:00:00.000Z'), createTask('b', 'B', '2026-10-15T10:00:00.000Z')]);
+    await categories.replaceAll([category('x', 0)]);
+    await outbox.clear();
+
+    await tasks.update('a', { done: true });
+    await tasks.bulkUpdate([{ id: 'b', changes: { order: 3 } }]);
+    await tasks.put({ ...createTask('c', 'C', '2026-10-15T10:00:00.000Z'), deletedAt: '2026-09-01T10:00:00.000Z' });
+    await tasks.purgeTrash('2026-10-01T00:00:00.000Z');
+    await categories.bulkPut([category('y', 1)]);
+    await categories.delete('x');
+
+    expect(await queued()).toEqual(['categories/x:delete', 'categories/y:put', 'tasks/a:put', 'tasks/b:put', 'tasks/c:delete']);
+  });
+
+  it('keeps one entry per record with the latest operation', async () => {
+    await notes.put(createNote('a'));
+    const [first] = await outbox.pending();
+    await notes.update('a', { pinned: true });
+    await notes.delete('a');
+
+    const entries = await outbox.pending();
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({ collection: 'notes', id: 'a', op: 'delete' });
+    expect(entries[0].at > first.at).toBe(true);
+  });
+
+  it('does not enqueue note history', async () => {
+    await TestBed.inject(VersionsRepository).add({ id: 'v', noteId: 'a', content: '', createdAt: '2026-10-15T10:00:00.000Z' }, 3);
+
+    expect(await outbox.pending()).toEqual([]);
+  });
+
+  it('removes only entries that did not change in the meantime', async () => {
+    await notes.bulkPut([createNote('a'), createNote('b')]);
+    const sent = await outbox.pending();
+    // Novější úprava během odesílání
+    await notes.update('b', { pinned: true });
+
+    await outbox.remove(sent);
+
+    expect(await queued()).toEqual(['notes/b:put']);
+  });
+
+  it('does not enqueue remote changes', async () => {
+    await outbox.applyRemote(async () => {
+      await notes.bulkPut([createNote('a')]);
+      await tasks.put(createTask('t', 'T', '2026-10-15T10:00:00.000Z'));
+      await categories.replaceAll([category('x', 0)]);
+    });
+
+    expect(await outbox.pending()).toEqual([]);
+    expect((await notes.getAll()).map((note) => note.id)).toEqual(['a']);
+    // Další místní zápis se do fronty zařadí
+    await notes.update('a', { pinned: true });
+    expect(await queued()).toEqual(['notes/a:put']);
+  });
+
+  it('rolls back the queue together with a failed write', async () => {
+    await notes.put(createNote('1'));
+    await outbox.clear();
+
+    await expect(notes.replaceAll([createNote('2'), createNote('2')])).rejects.toThrow();
+
+    expect(await outbox.pending()).toEqual([]);
+  });
+
+  it('reports the pending count', async () => {
+    const counts: number[] = [];
+    const subscription = outbox.count().subscribe((count) => counts.push(count));
+    await vi.waitFor(() => expect(counts).toEqual([0]));
+
+    await notes.put(createNote('a'));
+
+    await vi.waitFor(() => expect(counts.at(-1)).toBe(1));
+    subscription.unsubscribe();
+  });
+
+  it('keeps data and starts with an empty queue when the version 4 database is upgraded', async () => {
+    db.close();
+    await Dexie.delete('tapnote');
+    const old = new Dexie('tapnote');
+    old.version(1).stores({ notes: 'id, updatedAt, deletedAt, *tags' });
+    old.version(2).stores({ tasks: 'id, updatedAt, deletedAt, categoryId', categories: 'id, order' });
+    old.version(3).stores({ versions: 'id, noteId, createdAt' });
+    old.version(4).stores({});
+    await old.table('notes').put(createNote('n'));
+    await old.table('tasks').put(createTask('t', 'T', '2026-10-15T10:00:00.000Z'));
+    await old.table('categories').put(category('c', 0));
+    await old.table('versions').put({ id: 'v', noteId: 'n', content: '', createdAt: '2026-10-15T10:00:00.000Z' });
+    old.close();
+
+    const upgraded = new TapnoteDb();
+
+    expect(upgraded.verno).toBe(5);
+    expect((await upgraded.notes.toArray()).map((note) => note.id)).toEqual(['n']);
+    expect((await upgraded.tasks.toArray()).map((task) => task.id)).toEqual(['t']);
+    expect((await upgraded.categories.toArray()).map((item) => item.id)).toEqual(['c']);
+    expect(await upgraded.versions.count()).toBe(1);
+    expect(await upgraded.outbox.count()).toBe(0);
+    upgraded.close();
   });
 });

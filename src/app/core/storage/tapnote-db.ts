@@ -3,7 +3,9 @@ import { Dexie, Table } from 'dexie';
 import { Category } from '../model/category';
 import { Note } from '../model/note';
 import { NoteVersion } from '../model/note-version';
+import { OutboxEntry } from '../model/outbox-entry';
 import { Task } from '../model/task';
+import { outboxMiddleware } from './outbox-middleware';
 
 // Jedna databáze pro všechny repozitáře, aby se verze schématu nehádaly
 @Service()
@@ -12,6 +14,7 @@ export class TapnoteDb extends Dexie {
   tasks!: Table<Task, string>;
   categories!: Table<Category, string>;
   versions!: Table<NoteVersion, string>;
+  outbox!: Table<OutboxEntry, [string, string]>;
 
   constructor() {
     super('tapnote');
@@ -28,5 +31,9 @@ export class TapnoteDb extends Dexie {
         const all = (await tasks.toArray()).sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')));
         await tasks.bulkPut(all.map((task, order) => ({ ...task, order })));
       });
+    // Fronta změn pro synchronizaci; dosavadní data se při upgradu do fronty nezařazují,
+    // první nahrání obstará sloučení při prvním přihlášení (S6)
+    this.version(5).stores({ outbox: '[collection+id]' });
+    this.use(outboxMiddleware);
   }
 }
