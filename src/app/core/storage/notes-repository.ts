@@ -1,7 +1,10 @@
+import { Observable } from 'rxjs';
 import { Note } from '../model/note';
 
 export abstract class NotesRepository {
   abstract get(id: string): Promise<Note | undefined>;
+  // Uložená podoba poznámky po každé změně (i z jiné záložky nebo ze synchronizace)
+  abstract watch(id: string): Observable<Note | undefined>;
   abstract getAll(): Promise<Note[]>;
   // Poslední upravená aktivní poznámka
   abstract getLatest(): Promise<Note | undefined>;

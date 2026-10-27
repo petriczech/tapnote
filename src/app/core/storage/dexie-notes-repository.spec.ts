@@ -10,6 +10,7 @@ import { DexieCategoriesRepository } from './dexie-categories-repository';
 import { DexieNotesRepository } from './dexie-notes-repository';
 import { DexieTasksRepository } from './dexie-tasks-repository';
 import { NotesRepository } from './notes-repository';
+import { FLUSH_EVENT } from './flush-event';
 import { TapnoteDb } from './tapnote-db';
 import { TasksRepository } from './tasks-repository';
 import { DexieVersionsRepository } from './dexie-versions-repository';
@@ -140,6 +141,38 @@ describe('DexieNotesRepository', () => {
     await expect(repository.replaceAll([createNote('2'), createNote('2')])).rejects.toThrow();
 
     expect((await repository.getAll()).map((note) => note.id)).toEqual(['1']);
+  });
+
+  it('watches a stored note', async () => {
+    const seen: (string | undefined)[] = [];
+    const subscription = repository.watch('1').subscribe((note) => seen.push(note?.content));
+    await vi.waitFor(() => expect(seen).toEqual([undefined]));
+
+    await repository.put(createNote('1', { content: 'a' }));
+    await vi.waitFor(() => expect(seen).toEqual([undefined, 'a']));
+    await repository.delete('1');
+    await vi.waitFor(() => expect(seen).toEqual([undefined, 'a', undefined]));
+    subscription.unsubscribe();
+  });
+
+  it('closes the database for another version only after pending saves', async () => {
+    const db = TestBed.inject(TapnoteDb);
+    await repository.put(createNote('1'));
+    // Spojení z dřívějších testů zůstávají otevřená a čekají taky
+    const finishes: (() => void)[] = [];
+    const onFlush = (event: Event) => (event as CustomEvent<Promise<void>[]>).detail.push(new Promise((resolve) => finishes.push(resolve)));
+    addEventListener(FLUSH_EVENT, onFlush);
+
+    // Smazání databáze jinde vyvolá versionchange bez nové verze (bez načtení stránky znovu)
+    const deleting = Dexie.delete('tapnote');
+    await vi.waitFor(() => expect(finishes.length).toBeGreaterThan(0));
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(db.isOpen()).toBe(true);
+    finishes.forEach((finish) => finish());
+    await deleting;
+    removeEventListener(FLUSH_EVENT, onFlush);
+
+    expect(db.isOpen()).toBe(false);
   });
 });
 

@@ -537,4 +537,17 @@ describe('SyncService', () => {
     expect(notes.notes.has('a')).toBe(true);
     expect(await outbox.pending()).toHaveLength(1);
   });
+
+  it('forgets the marker and cursors on sign-out so the next sign-in merges again', async () => {
+    markInitialized();
+    localStorage.setItem(SYNC_MARKER_PREFIX + 'other', JSON.stringify({ initialized: true, cursors: {} }));
+    await started();
+    expect(marker()).not.toBeNull();
+
+    await auth.signOut();
+    TestBed.tick();
+
+    expect(marker()).toBeNull();
+    expect(localStorage.getItem(SYNC_MARKER_PREFIX + 'other')).not.toBeNull();
+  });
 });

@@ -1,8 +1,10 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, inject, signal } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { createNote, deriveTitle, extractTags, Note } from '../../core/model/note';
 import { MAX_VERSIONS, VERSION_PAUSE_MS } from '../../core/model/note-version';
 import { expandTemplate } from '../../core/model/template';
 import { NotesRepository } from '../../core/storage/notes-repository';
+import { FLUSH_EVENT } from '../../core/storage/flush-event';
 import { VersionsRepository } from '../../core/storage/versions-repository';
 
 export const RESUME_WINDOW_MS = 5 * 60 * 1000;
@@ -63,6 +65,8 @@ export class NoteDraft {
   readonly noteId = signal<string | undefined>(undefined);
   // Uložená podoba poznámky pro meta řádek (kategorie, připnutí, poslední úprava)
   readonly stored = signal<Note | undefined>(undefined);
+  // Otevřená poznámka se smazala nebo přesunula do koše jinde (jiné zařízení, jiná záložka)
+  readonly removed = signal(false);
 
   private note: Note | undefined;
   // Poslední úprava textu otevřené poznámky; updatedAt mění i připnutí nebo barva
@@ -71,8 +75,25 @@ export class NoteDraft {
   private prefill = '';
   private createdHere = false;
   private touched = false;
+  // Vrácení z koše při psaní se uloží i se stejným textem
+  private restored = false;
   private timer: ReturnType<typeof setTimeout> | undefined;
   private queue = Promise.resolve();
+  private watching: Subscription | undefined;
+
+  constructor() {
+    // Před zavřením databáze (upgrade z jiné záložky) se uloží rozepsaný text
+    const onFlush = (event: Event) => {
+      if (event instanceof CustomEvent && Array.isArray(event.detail)) {
+        event.detail.push(this.flush());
+      }
+    };
+    addEventListener(FLUSH_EVENT, onFlush);
+    inject(DestroyRef).onDestroy(() => {
+      removeEventListener(FLUSH_EVENT, onFlush);
+      this.watching?.unsubscribe();
+    });
+  }
 
   // false = poznámka podle id neexistuje, je v koši nebo nejde načíst
   async open(id: string | undefined, resume: boolean): Promise<boolean> {
@@ -161,6 +182,57 @@ export class NoteDraft {
     this.noteId.set(note.id);
     this.content.set(note.content);
     this.color.set(note.color);
+    this.watch(note.id);
+  }
+
+  // Uložená poznámka se sleduje, aby další uložení nepřepsalo novější verzi z jiného zařízení
+  private watch(id: string): void {
+    this.watching?.unsubscribe();
+    this.watching = this.repository.watch(id).subscribe({
+      // Ve frontě za ukládáním, aby se vlastní uložení nebo akce nebraly jako cizí změna
+      next: (note) => void (this.queue = this.queue.then(() => this.receive(note)).catch(() => undefined)),
+      error: () => undefined,
+    });
+  }
+
+  // Novější verze se bez neuložených změn načte celá. Při psaní zůstane místní text, ale uloží se nad novější
+  // verzí: její připnutí, kategorie a barva se zachovají a její text se uloží do historie.
+  private receive(note: Note | undefined): void {
+    const current = this.note;
+    if (!current || (note && note.updatedAt <= current.updatedAt)) {
+      return;
+    }
+    if (!this.saved()) {
+      if (note) {
+        const rebased: Note = { ...note };
+        // Přesun do koše jinde je starší než místní psaní (novější vyhrává), proto psaní poznámku z koše vrátí
+        this.restored ||= rebased.deletedAt !== undefined;
+        delete rebased.deletedAt;
+        // Cizí text se při dalším uložení uloží do historie bez ohledu na pauzu v psaní
+        if (rebased.content !== current.content) {
+          this.textEditedAt = undefined;
+        }
+        this.note = rebased;
+        this.stored.set(rebased);
+        this.color.set(rebased.color);
+        this.createdHere = false;
+      }
+      return;
+    }
+    if (note && !note.deletedAt) {
+      this.load(note);
+      this.createdHere = false;
+      return;
+    }
+    // Smazaná nebo vyhozená poznámka se zavře jako při otevření poznámky z koše
+    this.watching?.unsubscribe();
+    this.note = undefined;
+    this.stored.set(undefined);
+    this.noteId.set(undefined);
+    this.content.set('');
+    this.color.set(undefined);
+    this.createdHere = false;
+    this.removed.set(true);
   }
 
   // Úprava po pauze v psaní uloží předchozí znění jako verzi; chyba historie ukládání nezastaví
@@ -188,7 +260,7 @@ export class NoteDraft {
   private async save(): Promise<void> {
     const content = this.content();
     try {
-      if ((this.note?.content ?? this.prefill) !== content) {
+      if (this.restored || (this.note?.content ?? this.prefill) !== content) {
         await this.persist(content);
       }
       this.saveFailed.set(false);
@@ -207,6 +279,7 @@ export class NoteDraft {
           writeLastEdit(undefined);
         }
         await this.versions.deleteForNotes([this.note.id]).catch(() => undefined);
+        this.watching?.unsubscribe();
         this.note = undefined;
         this.stored.set(undefined);
         this.noteId.set(undefined);
@@ -225,11 +298,16 @@ export class NoteDraft {
     };
     await this.repository.put(note);
     writeLastEdit({ id: note.id, editedAt: now });
-    this.createdHere ||= !this.note;
+    const created = !this.note;
+    this.createdHere ||= created;
     this.note = note;
+    if (created) {
+      this.watch(note.id);
+    }
     this.stored.set(note);
     this.textEditedAt = now;
     this.noteId.set(note.id);
     this.prefill = '';
+    this.restored = false;
   }
 }

@@ -110,6 +110,24 @@ describe('NoteEditor', () => {
     await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith(['/new'], { replaceUrl: true }));
   });
 
+  it('shows a newer version saved elsewhere and redirects when the note is moved to the trash', async () => {
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    await repository.put({ ...createNote('1', '2026-10-15T10:00:00.000Z'), content: 'původní' });
+    const fixture = TestBed.createComponent(NoteEditor);
+    fixture.componentRef.setInput('id', '1');
+    const host: HTMLElement = fixture.nativeElement;
+    await vi.waitFor(() => expect(textareaOf(host).value).toBe('původní'));
+
+    repository.notes.set('1', { ...createNote('1', '2026-10-15T10:00:00.000Z'), content: 'odjinud', updatedAt: '2026-10-15T11:00:00.000Z' });
+    repository.changes.next();
+    await vi.waitFor(() => expect(textareaOf(host).value).toBe('odjinud'));
+    expect(navigate).not.toHaveBeenCalled();
+
+    repository.notes.set('1', { ...createNote('1', '2026-10-15T10:00:00.000Z'), deletedAt: '2026-10-15T12:00:00.000Z', updatedAt: '2026-10-15T12:00:00.000Z' });
+    repository.changes.next();
+    await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith(['/new'], { replaceUrl: true }));
+  });
+
   it('does not redirect after the editor is destroyed', async () => {
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     let resolveGet!: (note: undefined) => void;

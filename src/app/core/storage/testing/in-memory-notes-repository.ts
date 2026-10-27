@@ -1,3 +1,4 @@
+import { map, Observable, startWith, Subject } from 'rxjs';
 import { Note } from '../../model/note';
 import { NotesRepository } from '../notes-repository';
 
@@ -6,9 +7,18 @@ export class InMemoryNotesRepository extends NotesRepository {
   readonly notes = new Map<string, Note>();
   failPut = false;
   failDelete = false;
+  // Ohlášení změny pro watch(); testy ho volají po úpravě `notes`
+  readonly changes = new Subject<void>();
 
   async get(id: string): Promise<Note | undefined> {
     return this.notes.get(id);
+  }
+
+  watch(id: string): Observable<Note | undefined> {
+    return this.changes.pipe(
+      startWith(undefined),
+      map(() => this.notes.get(id)),
+    );
   }
 
   async getAll(): Promise<Note[]> {

@@ -210,4 +210,33 @@ test.describe('synchronizace dat mezi zařízeními', () => {
     await expect(reopened.getByRole('button', { name: 'Upravit: Práce' })).toBeHidden();
     await reopened.screenshot({ path: `${SHOTS}/category-deleted-b.png` });
   });
+
+  test('otevřená poznámka ukáže úpravu z jiného zařízení a po smazání jinde se zavře', async ({ browser }) => {
+    const a = await device(browser, errors);
+    const b = await device(browser, errors);
+    await signIn(a);
+    await signIn(b);
+    await settled(a);
+    await settled(b);
+
+    await writeNote(a, 'Porada\nbod 1');
+    await settled(a);
+    await arrived(b, 'notes', (row) => row['title'] === 'Porada');
+    await b.goto('/notes');
+    await b.getByRole('link', { name: /Porada/ }).click();
+    const editorB = b.getByRole('textbox', { name: 'Poznámka' });
+    await expect(editorB).toHaveValue('Porada\nbod 1');
+
+    // Úprava v A se v otevřeném editoru B ukáže bez reloadu
+    await a.getByRole('textbox', { name: 'Poznámka' }).fill('Porada\nbod 1\nbod 2');
+    await expect(editorB).toHaveValue('Porada\nbod 1\nbod 2', { timeout: 20_000 });
+    await b.screenshot({ path: `${SHOTS}/open-note-b.png` });
+
+    // Smazání do koše v A zavře poznámku v B jako neexistující
+    await a.getByRole('button', { name: 'Další akce' }).click();
+    await a.getByRole('button', { name: 'Smazat', exact: true }).click();
+    await expect(b).toHaveURL(/\/new$/, { timeout: 20_000 });
+    await expect(editorB).toHaveValue('');
+    await b.screenshot({ path: `${SHOTS}/open-note-trashed-b.png` });
+  });
 });

@@ -317,12 +317,13 @@ S3. ✅ **Přihlášení na webu** (27. 10. 2026; jen popup kvůli F2, v Android
 S4. **Přihlášení na Androidu:** plugin, `google-services.json`, SHA-1, ověření v emulátoru.
 S5. ✅ **Fronta změn** (27. 10. 2026; Dexie DBCore middleware místo zápisu v repozitářích, `OutboxRepository.applyRemote` pro vzdálené zápisy): tabulka `outbox` (Dexie v5), zápis z repozitářů a migrace. Formát zálohy se nemění.
 S6. ✅ **Sync jádro** (27. 10. 2026; náhrobky místo mazání, před prvním odesláním se dotáhnou změny ze serveru, odmítnuté záznamy zůstávají ve frontě; pravidla se nasazují spolu s klientem v S8): odesílání, příjem s kurzorem, pravidlo novější vyhrává, sloučení při prvním přihlášení, mazání. Unit testy a e2e se dvěma kontexty prohlížeče proti emulátoru.
-S7. **UI synchronizace:** stav, chyby, „Synchronizovat teď“, „Smazat data v cloudu“, axe. „Smazat data v cloudu“ vynuluje na tomto zařízení marker a frontu (příští běh = první synchronizace); ostatní zařízení to nepoznají; řeší se rozhodnutím (odhlášení maže marker, nebo „epocha“ cloudu v samostatném dokumentu).
+S7. **UI synchronizace:** stav, chyby, „Synchronizovat teď“, „Smazat data v cloudu“, axe. „Smazat data v cloudu“ vynuluje na tomto zařízení marker a frontu (příští běh = první synchronizace); na ostatních zařízeních stačí odhlásit a znovu přihlásit (odhlášení maže marker).
 S8. **Nasazení (spouští uživatel):** build, `firebase deploy --only firestore --project prod` a push pro GitHub Pages. Pak test na telefonu a PC proti produkci.
 
 ### Rizika
 - Hodiny zařízení: pravidlo novější vyhrává se řídí `updatedAt` z klienta. Pokud má jedno zařízení posunutý čas, vyhraje špatná verze. Stačí to pro jednoho uživatele na dvou zařízeních. Případně se to zpřesní pomocí `serverUpdatedAt`.
 - Souběžná úprava téže poznámky na dvou zařízeních offline: jedna verze přepíše druhou. Přepsaná verze zůstane v historii verzí na zařízení, kde vznikla.
+- Přihlášení jiným účtem na stejném zařízení nahraje do něj místní data (přijato, synchronizace jen pro jeden účet).
 - Limity tarifu Spark (50 tis. čtení a 20 tis. zápisů denně): psaní poznámky ukládá průběžně, proto se odesílání z fronty slučuje (debounce), aby každý stisk klávesy nebyl jeden zápis.
 
 ### Porty a projekty
@@ -401,7 +402,7 @@ Rozhodnutí (v závorce návrh):
 - R2 Přetahuje se jen za úchyt ⠿, bez dlouhého stisku řádku? (ano)
 - R3 Checklist: řadí se jen položky nejvyšší úrovně i s podpoložkami, hotové zůstávají dole a sbalené; řazení podpoložek později? (ano)
 - R4 Alternativa pro WCAG 2.5.7 u checklistu a úkolů: menu úchytu (nahoru / dolů / na začátek / na konec), nebo ▲▼ v řádku? (menu úchytu)
-- R5 Úkoly dostanou pole `order` (mění formát zálohy), ruční pořadí jen v Můj den, Důležité a Vše, Naplánované dál podle termínu? (ano)
+- R5 Úkoly dostanou pole `order` (mění formát zálohy), ruční pořadí jen v Můj den, Důležité a Vše, Naplánované dál podle termínu? (ano; změna 27. 10. 2026 kvůli synchronizaci: při přesunu dostanou nový `updatedAt` všechny přečíslované úkoly, ne jen přesunutý, aby se pořadí synchronizovalo)
 - R6 Nový úkol nahoru, nebo dolů? (nahoru)
 - R7 Přetažení na kategorii až s desktopem, mezi pohledy vůbec? (ano)
 - R8 Pořadí kroků úkolu taky? (později)

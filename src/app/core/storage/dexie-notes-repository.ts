@@ -1,4 +1,6 @@
 import { inject, Injectable } from '@angular/core';
+import { liveQuery } from 'dexie';
+import { from, Observable } from 'rxjs';
 import { Note } from '../model/note';
 import { NotesRepository } from './notes-repository';
 import { TapnoteDb } from './tapnote-db';
@@ -9,6 +11,10 @@ export class DexieNotesRepository extends NotesRepository {
 
   get(id: string): Promise<Note | undefined> {
     return this.db.notes.get(id);
+  }
+
+  watch(id: string): Observable<Note | undefined> {
+    return from(liveQuery(() => this.db.notes.get(id)));
   }
 
   getAll(): Promise<Note[]> {

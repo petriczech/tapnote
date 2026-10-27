@@ -186,8 +186,21 @@ export class SyncService {
     const uid = computed(() => this.auth.user()?.uid ?? null);
     effect(() => {
       const current = uid();
-      untracked(() => (current ? this.start(current) : this.stop('off')));
+      untracked(() => (current ? this.start(current) : this.signOut()));
     });
+  }
+
+  // Odhlášení smaže marker i s kurzory, aby další přihlášení proběhlo jako první sloučení (S7); fronta zůstává
+  private signOut(): void {
+    const uid = this.session?.uid;
+    this.stop('off');
+    if (uid) {
+      try {
+        localStorage.removeItem(SYNC_MARKER_PREFIX + uid);
+      } catch {
+        // Bez úložiště marker ani není
+      }
+    }
   }
 
   private start(uid: string): void {

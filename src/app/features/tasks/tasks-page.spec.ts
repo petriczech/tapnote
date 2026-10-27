@@ -315,9 +315,9 @@ describe('TasksPage', () => {
       ['ccc', 1],
       ['dddd', 0],
     ]);
-    // updatedAt jen u přesunutého úkolu, přečíslovaní sousedé ho nechají
+    // updatedAt u všech přečíslovaných úkolů, aby se pořadí synchronizovalo
     expect(repository.tasks.get('a')?.updatedAt).not.toBe('2026-10-11T10:00:00.000Z');
-    expect(repository.tasks.get('bb')?.updatedAt).toBe('2026-10-12T10:00:00.000Z');
+    expect(repository.tasks.get('bb')?.updatedAt).toBe(repository.tasks.get('a')?.updatedAt);
   });
 
   it('adds a new task at the top', async () => {

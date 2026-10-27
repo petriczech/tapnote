@@ -553,14 +553,12 @@ export class TasksPage implements OnInit {
   }
 
   // Pořadí z uložených úkolů v jedné transakci; zapíše se jen order, takže se nepřepíše nic, co mezitím uložil
-  // detail otevřený vedle seznamu. updatedAt dostane jen přesunutý úkol: přečíslovaný soused by jinak při
-  // sloučení zálohy přebil skutečnou úpravu z jiného zařízení. Mimo TaskActions, které jsou v úvodním balíku
+  // detail otevřený vedle seznamu. updatedAt dostanou všechny přečíslované úkoly, aby se pořadí synchronizovalo
+  // (souběžná úprava přečíslovaného úkolu na jiném zařízení tím může prohrát). Mimo TaskActions, které jsou v úvodním balíku
   private async saveOrder(id: string, targetId: string, after: boolean): Promise<void> {
     const updatedAt = new Date().toISOString();
     const changes = reorderTasks(await this.repository.getAll(), id, targetId, after);
-    await this.repository.bulkUpdate(
-      changes.map(({ id: changed, order }) => ({ id: changed, changes: changed === id ? { order, updatedAt } : { order } })),
-    );
+    await this.repository.bulkUpdate(changes.map(({ id: changed, order }) => ({ id: changed, changes: { order, updatedAt } })));
   }
 
   private celebrate(x: number, y: number): void {

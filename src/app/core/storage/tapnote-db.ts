@@ -5,6 +5,7 @@ import { Note } from '../model/note';
 import { NoteVersion } from '../model/note-version';
 import { OutboxEntry } from '../model/outbox-entry';
 import { Task } from '../model/task';
+import { FLUSH_EVENT, FLUSH_TIMEOUT_MS } from './flush-event';
 import { outboxMiddleware } from './outbox-middleware';
 
 // Jedna databáze pro všechny repozitáře, aby se verze schématu nehádaly
@@ -36,12 +37,20 @@ export class TapnoteDb extends Dexie {
     this.version(5).stores({ outbox: '[collection+id]' });
     this.use(outboxMiddleware);
     // Upgrade z jiné záložky: stará verze aplikace se nesmí znovu otevřít (Dexie by ji otevřel i nad novějším
-    // schématem a zapisovala by bez fronty), proto se spojení zavře natrvalo a záložka se načte znovu
+    // schématem a zapisovala by bez fronty), proto se spojení zavře natrvalo a záložka se načte znovu.
+    // Rozepsaný text editoru se předtím uloží, po zavření by odložené uložení selhalo.
     this.on('versionchange', (event) => {
-      this.close({ disableAutoOpen: true });
-      if (event.newVersion) {
-        location.reload();
-      }
+      const pending: Promise<void>[] = [];
+      dispatchEvent(new CustomEvent(FLUSH_EVENT, { detail: pending }));
+      // Uložení, které se nedokončí, nesmí zablokovat upgrade v jiné záložce
+      void Promise.race([Promise.all(pending), new Promise((resolve) => setTimeout(resolve, FLUSH_TIMEOUT_MS))])
+        .catch(() => undefined)
+        .then(() => {
+          this.close({ disableAutoOpen: true });
+          if (event.newVersion) {
+            location.reload();
+          }
+        });
       return false;
     });
   }

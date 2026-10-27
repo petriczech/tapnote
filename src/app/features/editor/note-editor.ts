@@ -11,6 +11,7 @@ import {
   input,
   OnInit,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
@@ -560,6 +561,12 @@ export class NoteEditor implements OnInit {
     effect(() => {
       this.split?.openId.set(this.draft.stored()?.id);
       this.split?.saves.update((count) => count + 1);
+    });
+    // Poznámka smazaná nebo vyhozená jinde se zavře jako neexistující poznámka při otevření
+    effect(() => {
+      if (this.draft.removed()) {
+        untracked(() => void this.router.navigate(['/new'], { replaceUrl: true }));
+      }
     });
     this.destroyRef.onDestroy(() => {
       clearTimeout(this.midnightTimer);

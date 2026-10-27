@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { createNote, Note } from '../../core/model/note';
 import { VERSION_PAUSE_MS } from '../../core/model/note-version';
 import { NotesRepository } from '../../core/storage/notes-repository';
+import { FLUSH_EVENT } from '../../core/storage/flush-event';
 import { InMemoryNotesRepository } from '../../core/storage/testing/in-memory-notes-repository';
 import { LAST_EDIT_KEY, NoteDraft, RESUME_WINDOW_MS, SAVE_DEBOUNCE_MS } from './note-draft';
 import { VersionsRepository } from '../../core/storage/versions-repository';
@@ -85,6 +86,17 @@ describe('NoteDraft', () => {
     expect(note.content).toBe('ab');
     expect(note.updatedAt).toBe(new Date(NOW.getTime() + 1000).toISOString());
     expect(note.createdAt).toBe(NOW.toISOString());
+  });
+
+  it('saves typed text before the database closes', async () => {
+    draft.update('rozepsáno');
+    const pending: Promise<void>[] = [];
+
+    dispatchEvent(new CustomEvent(FLUSH_EVENT, { detail: pending }));
+    await Promise.all(pending);
+
+    expect(pending).toHaveLength(1);
+    expect([...repository.notes.values()].map((note) => note.content)).toEqual(['rozepsáno']);
   });
 
   it('creates only one note when flushes overlap', async () => {
@@ -295,6 +307,129 @@ describe('NoteDraft', () => {
       expect(await draft.openTemplate('tpl')).toBeUndefined();
       expect(draft.content()).toBe('rychle');
     });
+  });
+
+  describe('with a newer version saved elsewhere', () => {
+    // Zápis jako ze synchronizace nebo jiné záložky
+    async function saveElsewhere(note: Note | undefined, id = '1'): Promise<void> {
+      if (note) {
+        repository.notes.set(id, note);
+      } else {
+        repository.notes.delete(id);
+      }
+      repository.changes.next();
+      await draft.flush();
+    }
+
+    beforeEach(async () => {
+      await repository.put(existingNote('1', 'původní', ago(60_000)));
+      await draft.open('1', false);
+    });
+
+    it('reloads the open note without unsaved changes', async () => {
+      await saveElsewhere({ ...existingNote('1', 'odjinud', ago(1000)), color: 'blue' });
+
+      expect(draft.content()).toBe('odjinud');
+      expect(draft.color()).toBe('blue');
+      expect(draft.stored()?.content).toBe('odjinud');
+
+      draft.update('odjinud a tady');
+      await draft.flush();
+      expect(repository.notes.get('1')).toMatchObject({ content: 'odjinud a tady', color: 'blue' });
+    });
+
+    it('keeps typed text and saves it over the other version with its metadata and text in history', async () => {
+      vi.setSystemTime(new Date(NOW.getTime() + VERSION_PAUSE_MS));
+      draft.update('rozepsáno');
+      repository.notes.set('1', { ...existingNote('1', 'odjinud', NOW), pinned: true, categoryId: 'work', color: 'blue' });
+      repository.changes.next();
+      await draft.flush();
+
+      expect(draft.content()).toBe('rozepsáno');
+      expect(repository.notes.get('1')).toMatchObject({ content: 'rozepsáno', pinned: true, categoryId: 'work', color: 'blue' });
+      const versions = await TestBed.inject(VersionsRepository).getForNote('1');
+      expect(versions.map((version) => [version.content, version.createdAt])).toEqual([['odjinud', NOW.toISOString()]]);
+    });
+
+    it('restores a note moved to the trash elsewhere while typing', async () => {
+      draft.update('rozepsáno');
+      repository.notes.set('1', { ...existingNote('1', 'původní', ago(1000)), deletedAt: ago(1000).toISOString(), pinned: true });
+      repository.changes.next();
+      await draft.flush();
+
+      const note = repository.notes.get('1');
+      expect(note).toMatchObject({ content: 'rozepsáno', pinned: true });
+      expect(note && 'deletedAt' in note).toBe(false);
+      expect(draft.removed()).toBe(false);
+    });
+
+    it('keeps the text from the other device in history even without a typing pause', async () => {
+      draft.update('rozepsáno');
+      repository.notes.set('1', existingNote('1', 'odjinud', ago(1000)));
+      repository.changes.next();
+      await draft.flush();
+
+      const versions = await TestBed.inject(VersionsRepository).getForNote('1');
+      expect(versions.map((version) => version.content)).toEqual(['odjinud']);
+    });
+
+    it('writes the restore from the trash even when the typed text matches', async () => {
+      draft.update('stejné');
+      repository.notes.set('1', { ...existingNote('1', 'stejné', ago(1000)), deletedAt: ago(1000).toISOString() });
+      repository.changes.next();
+      await draft.flush();
+
+      const note = repository.notes.get('1');
+      expect(note && 'deletedAt' in note).toBe(false);
+      expect(note?.updatedAt).toBe(NOW.toISOString());
+    });
+
+    it('ignores its own save', async () => {
+      draft.update('tady');
+      await draft.flush();
+      repository.changes.next();
+      await draft.flush();
+
+      expect(draft.content()).toBe('tady');
+      expect(draft.removed()).toBe(false);
+    });
+
+    it('ignores an older version', async () => {
+      await saveElsewhere(existingNote('1', 'starší', ago(120_000)));
+
+      expect(draft.content()).toBe('původní');
+    });
+
+    it.each([
+      ['moved to the trash', { ...existingNote('1', 'původní', ago(1000)), deletedAt: ago(1000).toISOString() }],
+      ['deleted', undefined],
+    ])('closes the note %s elsewhere', async (_, note) => {
+      await saveElsewhere(note);
+
+      expect(draft.removed()).toBe(true);
+      expect(draft.noteId()).toBeUndefined();
+      expect(draft.content()).toBe('');
+
+      draft.update('nová');
+      await draft.flush();
+      expect(repository.notes.size).toBe(note ? 2 : 1);
+      expect(repository.notes.get('1')).toEqual(note);
+    });
+  });
+
+  it('keeps a note created here when it is emptied after another version arrived', async () => {
+    draft.update('nová');
+    await draft.flush();
+    const [created] = repository.notes.values();
+    repository.notes.set(created.id, { ...created, content: 'odjinud', updatedAt: new Date(NOW.getTime() + 1000).toISOString() });
+    repository.changes.next();
+    await draft.flush();
+    expect(draft.content()).toBe('odjinud');
+
+    draft.update('');
+    await draft.flush();
+
+    expect(repository.notes.get(created.id)?.content).toBe('');
   });
 
   it('applies an action after saving typed text and keeps it on the next save', async () => {
