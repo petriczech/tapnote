@@ -106,7 +106,7 @@ Vítěz soutěže je návrh B „Konfety“ (`.tmp/mockup/soutez/B.html`, 39,6 b
 - [x] Denní poznámka (jedno tapnutí na dnešní datum)
 
 ### Mimo scope
-Sync, účty, cloud AI, OCR, hlasové poznámky, připomínky, share target, zámek, kolaborace, databáze à la Notion.
+Kolaborace a sdílení mezi uživateli, cloud AI, OCR, hlasové poznámky, připomínky, share target, zámek, kolaborace, databáze à la Notion.
 
 ## Architektura
 
@@ -271,6 +271,59 @@ Stav: přepracování Noir (kroky 0–11), desktop (15–20), drag & drop (21–
 - detail úkolu nemá Esc; „Ctrl F“ v hledání vypadá jinak než ostatní štítky; řádek „Klávesové zkratky“ v rozcestníku je mezi Zálohou a O aplikaci
 - Safari s výchozím nastavením přeskočí Tabem odkazy (skip link, lišta) – systémové chování, jen zmínit
 - ✅ Firefox (26. 10. 2026): celá e2e sada prošla (47/1 skip), `npx playwright test -c .tmp/playwright/firefox/playwright.config.ts`; `position-area` Firefox nemá, menu úchytu má záložní pozici (vzhled neověřen); WebKit sada: `npx playwright test -c .tmp/playwright/webkit/playwright.config.ts`
+
+## Synchronizace přes Firebase (zadáno 27. 10. 2026)
+Cíl: stejné poznámky, úkoly a kategorie na telefonu i PC po přihlášení přes Google. Aplikace dál funguje plně offline i bez přihlášení; sync je volitelná nadstavba. Dexie zůstává hlavním úložištěm, Firestore slouží jako vzdálená kopie.
+
+### Rozhodnutí před startem (návrh v závorce, čeká na schválení)
+- F1 Lokace Firestore: `eur3` (multi-region EU), nebo `europe-west3` (Frankfurt)? Lokaci nejde nikdy změnit. (`eur3`)
+- F2 Hosting webu: zůstává GitHub Pages, nebo přejít na Firebase Hosting (`*.web.app`)? GitHub Pages potřebuje doménu v Authorized domains a přihlášení jen popupem. (zůstat na GitHub Pages)
+- F3 Konflikty: vyhrává záznam s novějším `updatedAt` (celý záznam, ne jednotlivá pole)? (ano)
+- F4 Co se synchronizuje: poznámky, úkoly, kategorie včetně koše a archivu. Historie verzí, motiv, režim a další nastavení zůstávají jen v zařízení? (ano)
+- F5 První přihlášení se sloučí s místními daty (stejná logika jako import zálohy), nic se nemaže? (ano)
+- F6 Odhlášení: místní data zůstávají v zařízení, sync se jen zastaví? (ano)
+- F7 „Smazat data v cloudu“ v Nastavení: smaže kolekce uživatele ve Firestore, místní data nechá? (ano)
+- F8 Firebase SDK se načte až po zapnutí syncu (lazy chunk), takže úvodní balík zůstane malý? (ano)
+- F9 Android: přihlášení přes nativní plugin `@capacitor-firebase/authentication`, protože Google přihlášení ve WebView blokuje. (ano)
+- F10 Konfigurace v commitnutém `src/app/core/firebase/firebase-config.ts`, ne v `environment*.ts`? (ano)
+- F11 Přístup: pravidla „jen vlastník svých dat“ (`users/{uid}/…`), bez allowlistu uid. Kdokoli s Google účtem si tak může založit vlastní prostor, který zůstane prázdný a oddělený. Alternativa: allowlist jen tvého uid. (allowlist, appka je osobní)
+
+### Návrh architektury
+- Struktura: `users/{uid}/notes/{id}`, `users/{uid}/tasks/{id}` a `users/{uid}/categories/{id}`. Dokument nese stejná pole jako záznam v Dexie plus `serverUpdatedAt` (serverový čas).
+- **Odesílání:** repozitáře při zápisu přidají id do fronty `outbox` v Dexie (nová tabulka, migrace v5). Sync službu spustí fronta, start nebo návrat do appky. Po potvrzení zápisu se položka z fronty odebere. Offline se fronta drží a odešle se později.
+- **Příjem:** `onSnapshot` na každou kolekci s `serverUpdatedAt > kurzor`. Příchozí záznam se zapíše do Dexie, jen když má novější `updatedAt` než místní (F3). Kurzor se ukládá v Dexie.
+- **Mazání:** stačí měkké mazání (`deletedAt`). `purgeTrash` po trvalém smazání smaže i dokument ve Firestore (přes frontu).
+- **Offline cache Firestore** je vypnutá (memory cache), protože data drží Dexie. Tím odpadnou problémy s `persistentLocalCache` a s víc taby.
+- **UI:** Nastavení › Synchronizace obsahuje:
+  - „Přihlásit přes Google“,
+  - stav (přihlášený účet, poslední sync, počet čekajících změn, chyba),
+  - „Synchronizovat teď“, „Odhlásit“ a „Smazat data v cloudu“.
+  - Přesná znění textů se předloží ke schválení.
+- **Widget a dlaždice:** beze změny. Widget dostává data z Dexie, takže úkoly ze sync se do něj propíšou samy.
+- **Testy:**
+  - unit testy sync logiky s falešným vzdáleným úložištěm,
+  - rules testy (`@firebase/rules-unit-testing`) a e2e proti emulátorům Auth a Firestore přes `firebase emulators:exec` (vlastní porty, projekt `demo-tapnote`),
+  - test na emulátoru Androidu ručně.
+
+### Kroky (každý s plným lifecyclem a vlastním commitem)
+S0. Schválení rozhodnutí F1–F11.
+S1. **Firebase projekt (dělá uživatel, Claude připraví příkazy):**
+   - projekt `tapnote-<přípona>`, web app a Android app (`cz.petriczech.tapnote`) s otiskem SHA-1 debug klíče,
+   - Firestore v lokaci podle F1,
+   - Authentication › Google s názvem „Tapnote“,
+   - Authorized domain pro GitHub Pages.
+S2. **Kostra:** `firebase.json`, `.firebaserc` (`demo-tapnote` + alias `prod`), `firestore.rules` a rules testy, porty emulátorů, `firebase-config.ts`, závislost `firebase` jako lazy chunk.
+S3. **Přihlášení na webu:** popup, odhlášení, stav účtu v Nastavení, e2e s emulátorem Auth.
+S4. **Přihlášení na Androidu:** plugin, `google-services.json`, SHA-1, ověření v emulátoru.
+S5. **Fronta změn:** tabulka `outbox` (Dexie v5), zápis z repozitářů a migrace. Formát zálohy se nemění.
+S6. **Sync jádro:** odesílání, příjem s kurzorem, pravidlo novější vyhrává, sloučení při prvním přihlášení, mazání. Unit testy a e2e se dvěma kontexty prohlížeče proti emulátoru.
+S7. **UI synchronizace:** stav, chyby, „Synchronizovat teď“, „Smazat data v cloudu“, axe.
+S8. **Nasazení (spouští uživatel):** build, `firebase deploy --only firestore --project prod` a push pro GitHub Pages. Pak test na telefonu a PC proti produkci.
+
+### Rizika
+- Hodiny zařízení: pravidlo novější vyhrává se řídí `updatedAt` z klienta. Pokud má jedno zařízení posunutý čas, vyhraje špatná verze. Stačí to pro jednoho uživatele na dvou zařízeních. Případně se to zpřesní pomocí `serverUpdatedAt`.
+- Souběžná úprava téže poznámky na dvou zařízeních offline: jedna verze přepíše druhou. Přepsaná verze zůstane v historii verzí na zařízení, kde vznikla.
+- Limity tarifu Spark (50 tis. čtení a 20 tis. zápisů denně): psaní poznámky ukládá průběžně, proto se odesílání z fronty slučuje (debounce), aby každý stisk klávesy nebyl jeden zápis.
 
 ## Přepracování podle návrhu D Noir
 Hlavní vzhled je návrh D „Tapnote Noir“ (`.tmp/mockup/soutez/D-dark.png`, `D.html`); ostatní obrazovky a vzhledy přebírají jeho rozvržení. Podklady: `.tmp/mockup/redesign-d/ux.md`, `grafika.md`, `testing.md`.
