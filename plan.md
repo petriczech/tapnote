@@ -257,6 +257,25 @@ Stav: přepracování Noir (kroky 0–11), desktop (15–20), drag & drop (21–
 5. ✅ **Další ikony kategorií** (přidáno 8: AI, Bot, Chat, Terminál, Hry, 3D, Vývoj, Projekty; zadáno 26. 10. 2026): pro Unreal Engine, Claude, AI a podobná témata. Sada je Phosphor Bold, ve které značky (UE, Claude) nejsou a jejich loga mají vlastní licenci. Návrh: obecné Phosphor ikony, třeba Sparkle nebo Robot pro AI, GameController nebo Cube pro UE, Terminal nebo Code pro vývoj. Výběr ikon se předloží ke schválení.
 6. ✅ **Barvy kategorií** (příčina: červená a oranžová měly skoro stejný odstín; opraveny tokeny `--c-orange`/`--c-red`; dotaz 26. 10. 2026): sada má pevných 8 barev a motiv mění jen jejich odstín pro světlý a tmavý režim. Červená a Oranžová v ní jsou. Ověřit, proč v panelu „Upravit kategorii“ chyběly (přehlédnutelné tečky bez popisku? přetékající řada?), a případně doplnit další barvy.
 
+### Hlasování panelu (28. 10. 2026: UX, designér, kodér, mobilní designér)
+- **Ano (pořadí):**
+  1. S4 Android sync (4/4, priorita 1)
+  2. D4 Esc v detailu úkolu, a na Androidu ověřit, že detail zavře i gesto Zpět (4/4)
+  3. D7 + D8 sladit červenou okraje poznámky a `--error` s novou červenou, s auditem kontrastu (4/4)
+  4. O7 kurzor po načtení novější verze (4/4)
+  5. D3 šipka ↓ v mřížce (3/4)
+  6. D5 sjednotit štítek „Ctrl F“ (4/4)
+  7. D1 ikona zkratky „Nový úkol“ (3/4)
+- **Ne:** D2, D6, O3 a O4.
+- **Později:** O1 (nejdřív menu „Přesunout do…“, drag až potom), O2, O5 a O6.
+- **Nové návrhy panelu (čekají na rozhodnutí):**
+  - indikátor stavu synchronizace mimo Nastavení (UX + designér)
+  - audit kontrastu sémantických barev na všech motivech
+  - Undo po odškrtnutí nebo smazání úkolu
+  - gesto Zpět na Androidu zavře detail, dialog nebo menu místo ukončení appky
+  - test synchronizace proti produkci s posunutými hodinami
+  - nabídnout export zálohy před prvním sloučením
+
 ### Odloženo (předložit znovu, až bude potřeba)
 - globální zkratky N/D a počty u odkazů v panelu (desktop rozhodnutí 10)
 - přetažení na kategorii (R7), řazení kroků úkolu (R8), řazení podpoložek checklistu (R3)
