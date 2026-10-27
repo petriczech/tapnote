@@ -2,6 +2,7 @@ import { afterNextRender, Component, computed, ElementRef, inject, signal } from
 import { RouterLink } from '@angular/router';
 import { Capacitor } from '@capacitor/core';
 import { AuthError, AuthService } from '../../core/firebase/auth.service';
+import { SyncService } from '../../core/firebase/sync.service';
 import { ICONS_REGULAR } from '../../core/icons/icons';
 import { BottomNav } from '../list/bottom-nav';
 
@@ -12,7 +13,7 @@ const ERRORS: Record<AuthError, string> = {
   failed: 'Přihlášení se nepovedlo. Zkuste to znovu.',
 };
 
-// Podstránka Nastavení › Synchronizace: přihlášení přes Google (S3); stav syncu přibude v S7
+// Podstránka Nastavení › Synchronizace: přihlášení přes Google (S3), zamítnutý přístup (S6); stav syncu přibude v S7
 @Component({
   selector: 'tn-sync',
   imports: [BottomNav, RouterLink],
@@ -57,6 +58,8 @@ const ERRORS: Record<AuthError, string> = {
 })
 export class Sync {
   protected readonly auth = inject(AuthService);
+  // Po přihlášení na této stránce spustí synchronizaci i bez předchozí relace
+  private readonly sync = inject(SyncService);
   protected readonly icons = ICONS_REGULAR;
   protected readonly native = Capacitor.isNativePlatform();
   private readonly host: HTMLElement = inject(ElementRef).nativeElement;
@@ -65,10 +68,14 @@ export class Sync {
   private readonly error = signal<AuthError | null>(null);
 
   protected readonly busy = computed(() => this.working() || this.auth.state() === 'loading');
-  protected readonly failed = computed(() => (this.error() ?? this.auth.redirectError()) !== null);
+  private readonly denied = computed(() => this.auth.state() === 'signedIn' && this.sync.state() === 'denied');
+  protected readonly failed = computed(() => (this.error() ?? this.auth.redirectError()) !== null || this.denied());
   protected readonly status = computed(() => {
     const error = this.error() ?? this.auth.redirectError();
-    return error ? ERRORS[error] : this.message();
+    if (error) {
+      return ERRORS[error];
+    }
+    return this.denied() ? 'Tento účet nemá k synchronizaci přístup.' : this.message();
   });
 
   constructor() {

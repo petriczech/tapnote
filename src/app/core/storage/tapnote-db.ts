@@ -35,5 +35,14 @@ export class TapnoteDb extends Dexie {
     // první nahrání obstará sloučení při prvním přihlášení (S6)
     this.version(5).stores({ outbox: '[collection+id]' });
     this.use(outboxMiddleware);
+    // Upgrade z jiné záložky: stará verze aplikace se nesmí znovu otevřít (Dexie by ji otevřel i nad novějším
+    // schématem a zapisovala by bez fronty), proto se spojení zavře natrvalo a záložka se načte znovu
+    this.on('versionchange', (event) => {
+      this.close({ disableAutoOpen: true });
+      if (event.newVersion) {
+        location.reload();
+      }
+      return false;
+    });
   }
 }

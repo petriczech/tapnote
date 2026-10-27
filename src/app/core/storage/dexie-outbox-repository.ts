@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { liveQuery } from 'dexie';
+import { Dexie, liveQuery } from 'dexie';
 import { from, Observable } from 'rxjs';
 import { OutboxEntry } from '../model/outbox-entry';
 import { untrackedTransactions } from './outbox-middleware';
@@ -30,7 +30,17 @@ export class DexieOutboxRepository extends OutboxRepository {
     return this.db.outbox.clear();
   }
 
+  async enqueue(entries: OutboxEntry[]): Promise<void> {
+    await this.db.outbox.bulkPut(entries);
+  }
+
+  // Vlastní transakce nejvyšší úrovně: uvnitř vnější transakce by Dexie použil její IDB transakci
+  // a z fronty by vypadly i místní zápisy vnější transakce. Tabulka outbox ve schématu transakce Dexie
+  // není (přidává ji až middleware), proto se v `write` nedá číst ani zapisovat přes `db.outbox`.
   applyRemote(write: () => Promise<void>): Promise<void> {
+    if (Dexie.currentTransaction) {
+      return Promise.reject(new Error('applyRemote nesmí běžet uvnitř jiné transakce'));
+    }
     return this.db.transaction('rw', [this.db.notes, this.db.tasks, this.db.categories], (tx) => {
       untrackedTransactions.add(tx.idbtrans);
       return write();

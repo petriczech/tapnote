@@ -18,10 +18,20 @@ service cloud.firestore {
       return collection in ['notes', 'tasks', 'categories'];
     }
 
-    // Minimální kontrola tvaru: `id` odpovídá id dokumentu a `updatedAt` je řetězec.
+    // Minimální kontrola tvaru: `id` odpovídá id dokumentu, `updatedAt` je řetězec a `serverUpdatedAt`
+    // je serverový čas zápisu (serverTimestamp()), podle kterého ostatní zařízení stahují změny po kurzoru.
     function isValidRecord(id) {
       return request.resource.data.id == id
-        && request.resource.data.updatedAt is string;
+        && request.resource.data.updatedAt is string
+        && request.resource.data.serverUpdatedAt == request.time
+        && (!('deleted' in request.resource.data) || isTombstone());
+    }
+
+    // Náhrobek trvale smazaného záznamu: jen id, příznak smazání, čas smazání a serverový čas, aby se smazání
+    // dozvěděla i zařízení, která zrovna neposlouchají. Úklid starých náhrobků zatím není.
+    function isTombstone() {
+      return request.resource.data.deleted == true
+        && request.resource.data.keys().hasOnly(['id', 'deleted', 'updatedAt', 'serverUpdatedAt']);
     }
 
     match /users/{uid}/{collection}/{id} {

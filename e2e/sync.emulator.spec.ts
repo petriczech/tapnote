@@ -29,6 +29,8 @@ test('synchronizace: přihlášení přes Google a odhlášení', async ({ page,
   await signInWithEmulator(page, email);
   await expect(page.getByText(`Přihlášeno jako ${email}`)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Odhlásit' })).toBeVisible();
+  // Nový účet není v allowlistu firestore.rules, synchronizace se zastaví
+  await expect(page.locator('tn-sync .status')).toHaveText('Tento účet nemá k synchronizaci přístup.');
   await axe('synchronizace – přihlášeno');
 
   // Přihlášení přežije reload a rozcestník ukáže účet

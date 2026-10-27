@@ -316,8 +316,8 @@ S2. ✅ **Kostra:** `firebase.json`, `.firebaserc` (`demo-tapnote` + alias `prod
 S3. ✅ **Přihlášení na webu** (27. 10. 2026; jen popup kvůli F2, v Android aplikaci skryto do S4; `npm run e2e:emulator` potřebuje JDK 21+ a internet): popup, odhlášení, stav účtu v Nastavení, e2e s emulátorem Auth.
 S4. **Přihlášení na Androidu:** plugin, `google-services.json`, SHA-1, ověření v emulátoru.
 S5. ✅ **Fronta změn** (27. 10. 2026; Dexie DBCore middleware místo zápisu v repozitářích, `OutboxRepository.applyRemote` pro vzdálené zápisy): tabulka `outbox` (Dexie v5), zápis z repozitářů a migrace. Formát zálohy se nemění.
-S6. **Sync jádro:** odesílání, příjem s kurzorem, pravidlo novější vyhrává, sloučení při prvním přihlášení, mazání. Unit testy a e2e se dvěma kontexty prohlížeče proti emulátoru.
-S7. **UI synchronizace:** stav, chyby, „Synchronizovat teď“, „Smazat data v cloudu“, axe.
+S6. ✅ **Sync jádro** (27. 10. 2026; náhrobky místo mazání, před prvním odesláním se dotáhnou změny ze serveru, odmítnuté záznamy zůstávají ve frontě; pravidla se nasazují spolu s klientem v S8): odesílání, příjem s kurzorem, pravidlo novější vyhrává, sloučení při prvním přihlášení, mazání. Unit testy a e2e se dvěma kontexty prohlížeče proti emulátoru.
+S7. **UI synchronizace:** stav, chyby, „Synchronizovat teď“, „Smazat data v cloudu“, axe. „Smazat data v cloudu“ vynuluje na tomto zařízení marker a frontu (příští běh = první synchronizace); ostatní zařízení to nepoznají; řeší se rozhodnutím (odhlášení maže marker, nebo „epocha“ cloudu v samostatném dokumentu).
 S8. **Nasazení (spouští uživatel):** build, `firebase deploy --only firestore --project prod` a push pro GitHub Pages. Pak test na telefonu a PC proti produkci.
 
 ### Rizika

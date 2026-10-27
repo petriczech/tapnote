@@ -39,8 +39,24 @@ export const outboxMiddleware: Middleware<DBCore> = {
         const keys: string[] = req.type === 'delete' ? req.keys : (req.keys ?? req.values.map((value) => primaryKey.extractKey?.(value)));
         const op: OutboxEntry['op'] = req.type === 'delete' ? 'delete' : 'put';
         return table.mutate(req).then((result) => {
-          const values = keys.filter((_, index) => !result.failures[index]).map((id): OutboxEntry => ({ collection, id, op, at: nextAt() }));
-          return values.length === 0 ? result : down.table('outbox').mutate({ type: 'put', trans: req.trans, values }).then(() => result);
+          // Jeden čas pro celé volání (bulkPut, clear), ne pro každý klíč zvlášť
+          const at = nextAt();
+          const values = keys.filter((_, index) => !result.failures[index]).map((id): OutboxEntry => ({ collection, id, op, at }));
+          if (values.length === 0) {
+            return result;
+          }
+          // Nezapsaná položka fronty zruší celou transakci i se samotným zápisem, aby změna nezůstala bez
+          // záznamu ve frontě; samotné zamítnutí by implicitní transakci Dexie (put mimo db.transaction) nevrátilo
+          return down
+            .table('outbox')
+            .mutate({ type: 'put', trans: req.trans, values })
+            .then((queued) => {
+              if (queued.numFailures > 0) {
+                (req.trans as IDBTransaction).abort();
+                throw Object.values(queued.failures)[0];
+              }
+              return result;
+            });
         });
       };
       return {

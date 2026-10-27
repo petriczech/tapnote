@@ -9,6 +9,8 @@ export abstract class OutboxRepository {
   // Odeberou se jen položky, které se mezitím nezměnily (novější úprava během odesílání zůstane ve frontě)
   abstract remove(entries: OutboxEntry[]): Promise<void>;
   abstract clear(): Promise<void>;
+  // Ruční zařazení (záznam, který první synchronizace nenahrála a nemá ve frontě položku)
+  abstract enqueue(entries: OutboxEntry[]): Promise<void>;
   // Zápisy uvnitř `write` (příchozí změny ze synchronizace) se do fronty nezařadí
   abstract applyRemote(write: () => Promise<void>): Promise<void>;
 }

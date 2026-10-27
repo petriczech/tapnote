@@ -12,15 +12,20 @@ import {
   doc,
   getDoc,
   getDocs,
+  orderBy,
+  query,
+  serverTimestamp,
   setDoc,
+  Timestamp,
   updateDoc,
+  where,
 } from 'firebase/firestore';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
 const rules = readFileSync('firestore.rules', 'utf8');
 // Testovací uid z allowlistu ve `firestore.rules`.
 const OWNER = 'emulator-owner';
-const record = (id: string) => ({ id, updatedAt: '2026-10-27T10:00:00.000Z' });
+const record = (id: string) => ({ id, updatedAt: '2026-10-27T10:00:00.000Z', serverUpdatedAt: serverTimestamp() });
 
 let env: RulesTestEnvironment;
 
@@ -71,8 +76,8 @@ describe('firestore.rules', () => {
     });
     const db = env.authenticatedContext(OWNER).firestore();
     const ref = doc(db, `users/${OWNER}/notes/a1`);
-    await assertSucceeds(updateDoc(ref, { title: 'x', updatedAt: '2026-10-27T11:00:00.000Z' }));
-    await assertFails(updateDoc(ref, { updatedAt: 2 }));
+    await assertSucceeds(updateDoc(ref, { title: 'x', updatedAt: '2026-10-27T11:00:00.000Z', serverUpdatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(ref, { updatedAt: 2, serverUpdatedAt: serverTimestamp() }));
   });
 
   it('jiný uid nesmaže dokument vlastníka', async () => {
@@ -114,7 +119,37 @@ describe('firestore.rules', () => {
 
   it('updatedAt jiného typu než řetězec je odmítnut', async () => {
     const db = env.authenticatedContext(OWNER).firestore();
-    await assertFails(setDoc(doc(db, `users/${OWNER}/notes/a1`), { id: 'a1', updatedAt: 1 }));
-    await assertFails(setDoc(doc(db, `users/${OWNER}/notes/a1`), { id: 'a1' }));
+    await assertFails(setDoc(doc(db, `users/${OWNER}/notes/a1`), { id: 'a1', updatedAt: 1, serverUpdatedAt: serverTimestamp() }));
+    await assertFails(setDoc(doc(db, `users/${OWNER}/notes/a1`), { id: 'a1', serverUpdatedAt: serverTimestamp() }));
+  });
+
+  it('serverUpdatedAt musí být serverový čas zápisu', async () => {
+    const db = env.authenticatedContext(OWNER).firestore();
+    const ref = doc(db, `users/${OWNER}/notes/a1`);
+    const updatedAt = '2026-10-27T10:00:00.000Z';
+    await assertFails(setDoc(ref, { id: 'a1', updatedAt }));
+    await assertFails(setDoc(ref, { id: 'a1', updatedAt, serverUpdatedAt: Timestamp.fromMillis(Date.now() + 60_000) }));
+    await assertFails(setDoc(ref, { id: 'a1', updatedAt, serverUpdatedAt: null }));
+    await assertSucceeds(setDoc(ref, { id: 'a1', updatedAt, serverUpdatedAt: serverTimestamp() }));
+    // Částečná úprava bez nového serverového času by kurzor ostatních zařízení obešla
+    await assertFails(updateDoc(ref, { title: 'x', updatedAt: '2026-10-27T11:00:00.000Z' }));
+  });
+
+  it('náhrobek smazaného záznamu má jen povolená pole', async () => {
+    const db = env.authenticatedContext(OWNER).firestore();
+    const ref = doc(db, `users/${OWNER}/categories/c1`);
+    const tombstone = { id: 'c1', deleted: true, updatedAt: '2026-10-27T10:00:00.000Z', serverUpdatedAt: serverTimestamp() };
+    await assertSucceeds(setDoc(ref, tombstone));
+    await assertFails(setDoc(ref, { ...tombstone, name: 'Domov' }));
+    await assertFails(setDoc(ref, { ...tombstone, deleted: false }));
+    await assertFails(setDoc(ref, { ...tombstone, deleted: 'ano' }));
+    await assertFails(setDoc(ref, { ...tombstone, id: 'c2' }));
+    await assertFails(setDoc(ref, { id: 'c1', deleted: true, serverUpdatedAt: serverTimestamp() }));
+  });
+
+  it('vlastník stahuje změny po kurzoru seřazené podle serverUpdatedAt', async () => {
+    const db = env.authenticatedContext(OWNER).firestore();
+    const notes = collection(db, `users/${OWNER}/notes`);
+    await assertSucceeds(getDocs(query(notes, where('serverUpdatedAt', '>', Timestamp.fromMillis(0)), orderBy('serverUpdatedAt'))));
   });
 });

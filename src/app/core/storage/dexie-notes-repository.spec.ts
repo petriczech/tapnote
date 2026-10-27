@@ -338,6 +338,40 @@ describe('Dexie outbox', () => {
     expect(entries[0].at > first.at).toBe(true);
   });
 
+  it('uses one change time for all keys of a single write', async () => {
+    await notes.bulkPut([createNote('a'), createNote('b'), createNote('c')]);
+
+    expect(new Set((await outbox.pending()).map((entry) => entry.at)).size).toBe(1);
+  });
+
+  it('rejects and rolls back the write when the queue entry cannot be stored', async () => {
+    db.close();
+    // Middleware pod frontou, které zápis do fronty odmítne
+    db.use({
+      stack: 'dbcore',
+      name: 'FailingOutbox',
+      level: 1,
+      create: (down) => ({
+        ...down,
+        table: (name) =>
+          name === 'outbox'
+            ? { ...down.table(name), mutate: () => Promise.resolve({ numFailures: 1, failures: { 0: new Error('outbox full') }, lastResult: undefined }) }
+            : down.table(name),
+      }),
+    });
+    await db.open();
+
+    await expect(notes.put(createNote('x'))).rejects.toThrow('outbox full');
+
+    expect(await notes.get('x')).toBeUndefined();
+  });
+
+  it('refuses to apply remote changes inside another transaction', async () => {
+    await expect(db.transaction('rw', db.notes, () => outbox.applyRemote(async () => notes.put(createNote('x'))))).rejects.toThrow();
+
+    expect(await notes.get('x')).toBeUndefined();
+  });
+
   it('does not enqueue note history', async () => {
     await TestBed.inject(VersionsRepository).add({ id: 'v', noteId: 'a', content: '', createdAt: '2026-10-15T10:00:00.000Z' }, 3);
 

@@ -31,6 +31,10 @@ export class InMemoryOutboxRepository extends OutboxRepository {
     this.size.next(this.entries.size);
   }
 
+  async enqueue(entries: OutboxEntry[]): Promise<void> {
+    entries.forEach((entry) => this.add(entry));
+  }
+
   async clear(): Promise<void> {
     this.entries.clear();
     this.size.next(0);

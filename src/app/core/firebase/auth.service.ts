@@ -35,7 +35,7 @@ export function isStandalone(): boolean {
   return nav.standalone === true || matchMedia('(display-mode: standalone)').matches;
 }
 
-function hasSession(): boolean {
+export function hasSession(): boolean {
   try {
     return localStorage.getItem(AUTH_SESSION_KEY) !== null;
   } catch {

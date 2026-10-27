@@ -1,6 +1,7 @@
 import {
   ApplicationConfig,
   inject,
+  Injector,
   isDevMode,
   provideAppInitializer,
   provideBrowserGlobalErrorListeners,
@@ -8,6 +9,7 @@ import {
 import { provideRouter, RouteReuseStrategy, withComponentInputBinding } from '@angular/router';
 import { routes } from './app.routes';
 import { provideServiceWorker } from '@angular/service-worker';
+import { Capacitor } from '@capacitor/core';
 import { NotesRepository } from './core/storage/notes-repository';
 import { DexieNotesRepository } from './core/storage/dexie-notes-repository';
 import { TasksRepository } from './core/storage/tasks-repository';
@@ -23,6 +25,7 @@ import { TaskActions } from './core/tasks/task-actions';
 import { listenForAppUrls } from './core/native/app-urls';
 import { WidgetSync } from './core/native/widget-sync';
 import { ParamsRouteReuseStrategy } from './params-route-reuse-strategy';
+import { hasSession } from './core/firebase/auth.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -41,6 +44,14 @@ export const appConfig: ApplicationConfig = {
     provideAppInitializer(listenForAppUrls),
     // Widget „Můj den“ na Androidu (v prohlížeči nic nedělá)
     provideAppInitializer(() => void inject(WidgetSync).start().catch(() => undefined)),
+    // Synchronizace po předchozím přihlášení (jen web, Android až s nativním přihlášením v S4); bez přihlášení
+    // se nenačítá nic, po prvním přihlášení ji spustí stránka Synchronizace
+    provideAppInitializer(() => {
+      if (!Capacitor.isNativePlatform() && hasSession()) {
+        const injector = inject(Injector);
+        void import('./core/firebase/sync.service').then((module) => injector.get(module.SyncService)).catch(() => undefined);
+      }
+    }),
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),
       registrationStrategy: 'registerWhenStable:30000',
