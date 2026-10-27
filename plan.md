@@ -275,7 +275,7 @@ Stav: přepracování Noir (kroky 0–11), desktop (15–20), drag & drop (21–
 ## Synchronizace přes Firebase (zadáno 27. 10. 2026)
 Cíl: stejné poznámky, úkoly a kategorie na telefonu i PC po přihlášení přes Google. Aplikace dál funguje plně offline i bez přihlášení; sync je volitelná nadstavba. Dexie zůstává hlavním úložištěm, Firestore slouží jako vzdálená kopie.
 
-### Rozhodnutí před startem (návrh v závorce, čeká na schválení)
+### Rozhodnutí před startem (schváleno 27. 10. 2026 podle návrhu v závorce)
 - F1 Lokace Firestore: `eur3` (multi-region EU), nebo `europe-west3` (Frankfurt)? Lokaci nejde nikdy změnit. (`eur3`)
 - F2 Hosting webu: zůstává GitHub Pages, nebo přejít na Firebase Hosting (`*.web.app`)? GitHub Pages potřebuje doménu v Authorized domains a přihlášení jen popupem. (zůstat na GitHub Pages)
 - F3 Konflikty: vyhrává záznam s novějším `updatedAt` (celý záznam, ne jednotlivá pole)? (ano)
