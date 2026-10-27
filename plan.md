@@ -101,7 +101,7 @@ Vítěz soutěže je návrh B „Konfety“ (`.tmp/mockup/soutez/B.html`, 39,6 b
 6. **Mikro-detaily:** konfety u „Hotové“ jen bez `prefers-reduced-motion`, drobné animace.
 
 ### Fáze 3 (nativní doplňky)
-- [ ] **Widget** (Glance): připnutá poznámka / checklist s odškrtáváním + tlačítko „+“
+- [x] **Widget** „Můj den“ (Java RemoteViews): připnutá poznámka / checklist s odškrtáváním + tlačítko „+“
 - [x] `[[odkazy]]` + backlinky (seznam „odkazuje sem“, bez grafu)
 - [x] Denní poznámka (jedno tapnutí na dnešní datum)
 
@@ -285,8 +285,8 @@ Cíl: stejné poznámky, úkoly a kategorie na telefonu i PC po přihlášení p
 - F7 „Smazat data v cloudu“ v Nastavení: smaže kolekce uživatele ve Firestore, místní data nechá? (ano)
 - F8 Firebase SDK se načte až po zapnutí syncu (lazy chunk), takže úvodní balík zůstane malý? (ano)
 - F9 Android: přihlášení přes nativní plugin `@capacitor-firebase/authentication`, protože Google přihlášení ve WebView blokuje. (ano)
-- F10 Konfigurace v commitnutém `src/app/core/firebase/firebase-config.ts`, ne v `environment*.ts`? (ano)
-- F11 Přístup: pravidla „jen vlastník svých dat“ (`users/{uid}/…`), bez allowlistu uid. Kdokoli s Google účtem si tak může založit vlastní prostor, který zůstane prázdný a oddělený. Alternativa: allowlist jen tvého uid. (allowlist, appka je osobní)
+- F10 Konfigurace v commitnutém `src/app/core/firebase/firebase.config.ts`, ne v `environment*.ts`? (ano)
+- F11 Přístup: allowlist uid (jen tvé uid) navíc k pravidlu „jen vlastník svých dat“ (`users/{uid}/…`), nebo jen vlastník bez allowlistu? Bez allowlistu si kdokoli s Google účtem může založit vlastní prostor, který zůstane prázdný a oddělený. (allowlist, appka je osobní)
 
 ### Návrh architektury
 - Struktura: `users/{uid}/notes/{id}`, `users/{uid}/tasks/{id}` a `users/{uid}/categories/{id}`. Dokument nese stejná pole jako záznam v Dexie plus `serverUpdatedAt` (serverový čas).
@@ -307,12 +307,12 @@ Cíl: stejné poznámky, úkoly a kategorie na telefonu i PC po přihlášení p
 
 ### Kroky (každý s plným lifecyclem a vlastním commitem)
 S0. Schválení rozhodnutí F1–F11.
-S1. **Firebase projekt (dělá uživatel, Claude připraví příkazy):**
+S1. ✅ **Firebase projekt** (27. 10. 2026 naklikáno v konzoli; Android app se SHA-1 a `google-services.json` až v S4):
    - projekt `tapnote-<přípona>`, web app a Android app (`cz.petriczech.tapnote`) s otiskem SHA-1 debug klíče,
    - Firestore v lokaci podle F1,
    - Authentication › Google s názvem „Tapnote“,
    - Authorized domain pro GitHub Pages.
-S2. **Kostra:** `firebase.json`, `.firebaserc` (`demo-tapnote` + alias `prod`), `firestore.rules` a rules testy, porty emulátorů, `firebase-config.ts`, závislost `firebase` jako lazy chunk.
+S2. ✅ **Kostra:** `firebase.json`, `.firebaserc` (`demo-tapnote` + alias `prod`), `firestore.rules` a rules testy, porty emulátorů, `firebase.config.ts`, závislost `firebase` jako lazy chunk.
 S3. **Přihlášení na webu:** popup, odhlášení, stav účtu v Nastavení, e2e s emulátorem Auth.
 S4. **Přihlášení na Androidu:** plugin, `google-services.json`, SHA-1, ověření v emulátoru.
 S5. **Fronta změn:** tabulka `outbox` (Dexie v5), zápis z repozitářů a migrace. Formát zálohy se nemění.
@@ -324,6 +324,13 @@ S8. **Nasazení (spouští uživatel):** build, `firebase deploy --only firestor
 - Hodiny zařízení: pravidlo novější vyhrává se řídí `updatedAt` z klienta. Pokud má jedno zařízení posunutý čas, vyhraje špatná verze. Stačí to pro jednoho uživatele na dvou zařízeních. Případně se to zpřesní pomocí `serverUpdatedAt`.
 - Souběžná úprava téže poznámky na dvou zařízeních offline: jedna verze přepíše druhou. Přepsaná verze zůstane v historii verzí na zařízení, kde vznikla.
 - Limity tarifu Spark (50 tis. čtení a 20 tis. zápisů denně): psaní poznámky ukládá průběžně, proto se odesílání z fronty slučuje (debounce), aby každý stisk klávesy nebyl jeden zápis.
+
+### Porty a projekty
+- Projekty: `demo-tapnote` (výchozí, emulátory), alias `prod` = `tapnote-petr`.
+- Porty emulátorů (`firebase.json`): Auth 9102, Firestore 8092, UI 4009, hub 4409, logging 4509, websocket Firestore 9152. Obsazené jinými projekty: gym-tracker 9099/8088/UI 4000, polyglot 9100/8090/5010, neon-keys 9098/8087, gradus 8089, python-quest 9101/8091.
+- Konfigurace: `src/app/core/firebase/firebase.config.ts` (název podle polyglotu); prod hodnoty z `apps:sdkconfig WEB` doplněny 27. 10. 2026.
+- Rules testy: `npm run test:rules` (`rules-tests/`, `vitest.rules.config.mts`). Emulátor potřebuje JDK ≥ 21 (JBR v Android Studiu je 25), jen v shellu příkazu (Git Bash: `export JAVA_HOME="C:/Program Files/Android/Android Studio/jbr"; export PATH="/c/Program Files/Android/Android Studio/jbr/bin:$PATH"` – v PATH tvar `/c/…`, `C:/…` dvojtečka rozbije).
+- Allowlist uid ve `firestore.rules` obsahuje jen testovací `emulator-owner`; skutečné uid se doplní po prvním přihlášení.
 
 ## Přepracování podle návrhu D Noir
 Hlavní vzhled je návrh D „Tapnote Noir“ (`.tmp/mockup/soutez/D-dark.png`, `D.html`); ostatní obrazovky a vzhledy přebírají jeho rozvržení. Podklady: `.tmp/mockup/redesign-d/ux.md`, `grafika.md`, `testing.md`.

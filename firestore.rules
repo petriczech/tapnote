@@ -1,0 +1,34 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Osobní appka: přístup má jen uid z allowlistu (F11). Stejná pravidla platí pro emulátor
+    // i produkci. 'emulator-owner' je testovací účet emulátoru (rules testy); skutečné uid
+    // se doplní do seznamu po prvním přihlášení (`firebase auth:export`), testovací zůstává.
+    function allowed() {
+      return request.auth != null
+        && request.auth.uid in ['emulator-owner'];
+    }
+
+    function isOwner(uid) {
+      return allowed() && request.auth.uid == uid;
+    }
+
+    // Synchronizují se jen poznámky, úkoly a kategorie (F4).
+    function isSyncedCollection(collection) {
+      return collection in ['notes', 'tasks', 'categories'];
+    }
+
+    // Minimální kontrola tvaru: `id` odpovídá id dokumentu a `updatedAt` je řetězec.
+    function isValidRecord(id) {
+      return request.resource.data.id == id
+        && request.resource.data.updatedAt is string;
+    }
+
+    match /users/{uid}/{collection}/{id} {
+      allow read, delete: if isOwner(uid) && isSyncedCollection(collection);
+      allow create, update: if isOwner(uid) && isSyncedCollection(collection) && isValidRecord(id);
+    }
+
+    // Vše ostatní je zakázané (výchozí stav bez odpovídajícího matche).
+  }
+}

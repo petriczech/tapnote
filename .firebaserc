@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "default": "demo-tapnote",
+    "prod": "tapnote-petr"
+  }
+}

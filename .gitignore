@@ -45,3 +45,7 @@ Thumbs.db
 
 # Lokální ověření
 /.tmp
+
+# Firebase
+/.firebase
+*-debug.log
