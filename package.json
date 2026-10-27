@@ -23,6 +23,7 @@
     "@angular/platform-browser": "^22.2.0",
     "@angular/router": "^22.2.0",
     "@angular/service-worker": "^22.2.0",
+    "@capacitor-firebase/authentication": "^8.5.2",
     "@capacitor/android": "^8.5.3",
     "@capacitor/app": "^8.1.2",
     "@capacitor/core": "^8.5.3",
@@ -51,5 +52,10 @@
     "typescript": "~6.0.2",
     "typescript-eslint": "8.71.0",
     "vitest": "^5.0.0"
+  },
+  "overrides": {
+    "@capacitor-firebase/authentication": {
+      "firebase": "$firebase"
+    }
   }
 }

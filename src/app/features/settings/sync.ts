@@ -1,6 +1,5 @@
 import { afterNextRender, Component, computed, ElementRef, inject, Injector, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Capacitor } from '@capacitor/core';
 import { AuthError, AuthService } from '../../core/firebase/auth.service';
 import { SyncService, SyncState } from '../../core/firebase/sync.service';
 import { ICONS_REGULAR } from '../../core/icons/icons';
@@ -43,19 +42,17 @@ const CLOUD_DELETE_QUESTION =
         <p class="info">Přihlášeno jako {{ auth.email() }}</p>
         <!-- Stav synchronizace leží mimo živou oblast: při psaní se syncing a idle střídají každých pár sekund
              a čtečka by je hlásila pořád dokola; hlásí se jen výsledky akcí a chyby v .status -->
-        @if (!native) {
-          @if (stateText(); as text) {
-            <p class="state" [class.error]="sync.state() === 'error'">{{ text }}</p>
-          }
-          @if (sync.rejected() > 0) {
-            <p class="state error">Server odmítl některé záznamy ({{ sync.rejected() }}).</p>
-          }
-          @if (lastSyncText(); as text) {
-            <p class="info">Poslední synchronizace: {{ text }}</p>
-          }
-          @if (sync.pending() > 0) {
-            <p class="info">Čeká na odeslání: {{ sync.pending() }}</p>
-          }
+        @if (stateText(); as text) {
+          <p class="state" [class.error]="sync.state() === 'error'">{{ text }}</p>
+        }
+        @if (sync.rejected() > 0) {
+          <p class="state error">Server odmítl některé záznamy ({{ sync.rejected() }}).</p>
+        }
+        @if (lastSyncText(); as text) {
+          <p class="info">Poslední synchronizace: {{ text }}</p>
+        }
+        @if (sync.pending() > 0) {
+          <p class="info">Čeká na odeslání: {{ sync.pending() }}</p>
         }
       } @else {
         <p class="info">
@@ -63,28 +60,25 @@ const CLOUD_DELETE_QUESTION =
           zařízení.
         </p>
       }
-      <!-- Jedno tlačítko pro oba stavy, aby fokus po přihlášení i odhlášení zůstal na místě; v Android aplikaci
-           se přihlášení nenabízí až do nativního přihlášení (S4) -->
-      @if (!native) {
-        <div class="actions">
-          <button
-            type="button"
-            [class.outlined]="auth.state() === 'signedIn'"
-            [class.filled]="auth.state() !== 'signedIn'"
-            [attr.aria-disabled]="busy()"
-            (click)="toggle()"
-          >
-            {{ auth.state() === 'signedIn' ? 'Odhlásit' : 'Přihlásit přes Google' }}
+      <!-- Jedno tlačítko pro oba stavy, aby fokus po přihlášení i odhlášení zůstal na místě -->
+      <div class="actions">
+        <button
+          type="button"
+          [class.outlined]="auth.state() === 'signedIn'"
+          [class.filled]="auth.state() !== 'signedIn'"
+          [attr.aria-disabled]="busy()"
+          (click)="toggle()"
+        >
+          {{ auth.state() === 'signedIn' ? 'Odhlásit' : 'Přihlásit přes Google' }}
+        </button>
+        <!-- Po zamítnutí přístupu a mimo běžící synchronizaci (off) se tlačítka nenabízejí -->
+        @if (auth.state() === 'signedIn' && sync.state() !== 'denied' && sync.state() !== 'off') {
+          <button type="button" class="outlined" [attr.aria-disabled]="busy() || sync.state() === 'syncing'" (click)="syncNow()">
+            Synchronizovat teď
           </button>
-          <!-- Po zamítnutí přístupu a mimo běžící synchronizaci (off) se tlačítka nenabízejí -->
-          @if (auth.state() === 'signedIn' && sync.state() !== 'denied' && sync.state() !== 'off') {
-            <button type="button" class="outlined" [attr.aria-disabled]="busy() || sync.state() === 'syncing'" (click)="syncNow()">
-              Synchronizovat teď
-            </button>
-            <button type="button" class="outlined" [attr.aria-disabled]="busy()" (click)="deleteCloud()">Smazat data v cloudu</button>
-          }
-        </div>
-      }
+          <button type="button" class="outlined" [attr.aria-disabled]="busy()" (click)="deleteCloud()">Smazat data v cloudu</button>
+        }
+      </div>
     </div>
 
     <p class="status" [class.error]="failed()" aria-live="polite">{{ status() }}</p>
@@ -96,7 +90,6 @@ export class Sync {
   // Po přihlášení na této stránce spustí synchronizaci i bez předchozí relace
   protected readonly sync = inject(SyncService);
   protected readonly icons = ICONS_REGULAR;
-  protected readonly native = Capacitor.isNativePlatform();
   private readonly host: HTMLElement = inject(ElementRef).nativeElement;
   private readonly injector = inject(Injector);
   private readonly working = signal(false);
@@ -126,9 +119,7 @@ export class Sync {
   });
 
   constructor() {
-    if (!this.native) {
-      void this.auth.start().catch(() => undefined);
-    }
+    void this.auth.start().catch(() => undefined);
     // Po přechodu z rozcestníku se fokus přesune na nadpis podstránky
     afterNextRender(() => this.host.querySelector<HTMLElement>('h1')?.focus());
   }

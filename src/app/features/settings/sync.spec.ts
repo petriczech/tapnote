@@ -1,9 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { Capacitor } from '@capacitor/core';
-import { AUTH_API_LOADER } from '../../core/firebase/auth.service';
+import { AUTH_API_LOADER, NATIVE_AUTH_LOADER } from '../../core/firebase/auth.service';
 import { SYNC_REMOTE_LOADER, SyncService, SyncState } from '../../core/firebase/sync.service';
-import { FakeAuthApi } from '../../core/firebase/testing/fake-auth-api';
+import { FakeAuthApi, FakeNativeAuthApi } from '../../core/firebase/testing/fake-auth-api';
 import { FakeSyncRemote } from '../../core/firebase/testing/fake-sync-remote';
 import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { NotesRepository } from '../../core/storage/notes-repository';
@@ -19,6 +19,7 @@ vi.mock('@capacitor/core', () => ({ Capacitor: { isNativePlatform: vi.fn(() => f
 
 describe('Sync', () => {
   let api: FakeAuthApi;
+  let native: FakeNativeAuthApi;
   let remote: FakeSyncRemote;
   let loads: number;
   let fixture: ComponentFixture<Sync>;
@@ -47,6 +48,7 @@ describe('Sync', () => {
       providers: [
         provideRouter([]),
         { provide: AUTH_API_LOADER, useValue: () => (loads++, Promise.resolve(api)) },
+        { provide: NATIVE_AUTH_LOADER, useValue: () => Promise.resolve(native) },
         { provide: SYNC_REMOTE_LOADER, useValue: () => Promise.resolve(() => remote) },
         { provide: NotesRepository, useClass: InMemoryNotesRepository },
         { provide: TasksRepository, useClass: InMemoryTasksRepository },
@@ -67,6 +69,7 @@ describe('Sync', () => {
 
   beforeEach(() => {
     api = new FakeAuthApi();
+    native = new FakeNativeAuthApi();
     remote = new FakeSyncRemote();
     loads = 0;
     // jsdom matchMedia nemá; prohlížeč, ne nainstalovaná PWA
@@ -110,13 +113,37 @@ describe('Sync', () => {
     expect(status()?.classList).not.toContain('error');
   });
 
-  it('offers no sign-in and does not load Firebase in the Android app until native sign-in (S4)', async () => {
-    // Ptá se stránka i SyncService
+  it('signs in natively in the Android app, syncs and signs out of both', async () => {
     vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true);
     await render();
+    expect(loads).toBe(1);
 
-    expect(root.querySelector('.card button')).toBeNull();
-    expect(loads).toBe(0);
+    await click();
+    const sync = TestBed.inject(SyncService);
+    await vi.waitFor(() => expect(sync.state()).toBe('idle'));
+    await fixture.whenStable();
+    expect(native.calls).toEqual(['signIn']);
+    expect(api.calls).toEqual(['idToken:google-id-token']);
+    expect(info()).toBe('Přihlášeno jako petr@example.com');
+    expect(texts('.card .state')).toEqual(['Synchronizováno']);
+    expect(texts('.card button')).toEqual(['Odhlásit', 'Synchronizovat teď', 'Smazat data v cloudu']);
+
+    await click();
+    expect(native.calls).toEqual(['signIn', 'signOut']);
+    expect(api.calls).toEqual(['idToken:google-id-token', 'signOut']);
+    expect(status()?.textContent?.trim()).toBe('Odhlášeno. Data v tomto zařízení zůstávají.');
+  });
+
+  it('announces a cancelled native sign-in in the Android app', async () => {
+    vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true);
+    native.failWith = new Error('activity is cancelled by the user.');
+    await render();
+
+    await click();
+
+    expect(status()?.textContent?.trim()).toBe('Přihlášení se zrušilo.');
+    expect(status()?.classList).toContain('error');
+    expect(button().textContent?.trim()).toBe('Přihlásit přes Google');
   });
 
   it('announces that the signed-in account has no access to sync', async () => {

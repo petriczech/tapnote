@@ -1,4 +1,5 @@
 import type { AuthApi, AuthUser } from '../firebase-auth';
+import type { NativeAuthApi } from '../native-auth';
 
 // Falešné Firebase Auth pro unit testy: bez sítě, přihlášení a odhlášení se řídí z testu
 export class FakeAuthApi implements AuthApi {
@@ -25,6 +26,10 @@ export class FakeAuthApi implements AuthApi {
     return this.signIn('popup');
   }
 
+  signInWithIdToken(idToken: string): Promise<unknown> {
+    return this.signIn(`idToken:${idToken}`);
+  }
+
   async signInRedirect(): Promise<void> {
     await this.signIn('redirect');
   }
@@ -41,5 +46,25 @@ export class FakeAuthApi implements AuthApi {
     }
     this.listener(this.account);
     return this.account;
+  }
+}
+
+// Falešný nativní plugin přihlášení (Android): vrací idToken, nebo chybu jako plugin při zrušení
+export class FakeNativeAuthApi implements NativeAuthApi {
+  idToken = 'google-id-token';
+  /** Chyba, kterou vyhodí příští přihlášení (např. new Error('activity is cancelled by the user.')). */
+  failWith: unknown = null;
+  readonly calls: string[] = [];
+
+  async signIn(): Promise<string> {
+    this.calls.push('signIn');
+    if (this.failWith) {
+      throw this.failWith;
+    }
+    return this.idToken;
+  }
+
+  async signOut(): Promise<void> {
+    this.calls.push('signOut');
   }
 }

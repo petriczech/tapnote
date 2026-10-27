@@ -73,6 +73,7 @@ describe('Settings', () => {
 
   afterEach(() => {
     localStorage.removeItem(LAST_BACKUP_KEY);
+    vi.mocked(Capacitor.isNativePlatform).mockReturnValue(false);
     vi.restoreAllMocks();
     URL.createObjectURL = createObjectURL;
     URL.revokeObjectURL = revokeObjectURL;
@@ -131,11 +132,12 @@ describe('Settings', () => {
       expect(rows()[2].querySelector('.value')?.textContent?.trim()).toBe('petr@example.com');
     });
 
-    it('hides the Synchronizace row in the Android app until native sign-in (S4)', async () => {
-      vi.mocked(Capacitor.isNativePlatform).mockReturnValueOnce(true);
+    it('shows the Synchronizace row in the Android app too (native sign-in)', async () => {
+      vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true);
       await render();
 
-      expect(rows().map((row) => row.querySelector('.row-label')?.textContent?.trim())).not.toContain('Synchronizace');
+      expect(rows()[2].querySelector('.row-label')?.textContent?.trim()).toBe('Synchronizace');
+      expect(rows()[2].querySelector('.value')?.textContent?.trim()).toBe('Vypnuto');
     });
 
     it('focuses the section heading when a row is clicked', async () => {

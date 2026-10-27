@@ -1,6 +1,5 @@
 import { afterNextRender, Component, computed, ElementRef, inject, Injector, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Capacitor } from '@capacitor/core';
 import {
   createExport,
   exportFileName,
@@ -53,17 +52,14 @@ const REVOKE_DELAY_MS = 60_000;
           <svg class="icon chev" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.caretRight" /></svg>
         </a>
       </li>
-      <!-- V Android aplikaci přihlášení přes web nefunguje, řádek se skrývá až do nativního přihlášení (S4) -->
-      @if (!native) {
-        <li>
-          <a routerLink="/settings/synchronizace">
-            <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.arrowsClockwise" /></svg>
-            <span class="row-label">Synchronizace</span>
-            <span class="value">{{ syncLabel() }}</span>
-            <svg class="icon chev" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.caretRight" /></svg>
-          </a>
-        </li>
-      }
+      <li>
+        <a routerLink="/settings/synchronizace">
+          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.arrowsClockwise" /></svg>
+          <span class="row-label">Synchronizace</span>
+          <span class="value">{{ syncLabel() }}</span>
+          <svg class="icon chev" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="icons.caretRight" /></svg>
+        </a>
+      </li>
       @for (row of rows; track row.label) {
         <li>
           <a [routerLink]="row.link" [fragment]="row.fragment" (click)="row.fragment && focusSection(row.fragment)">
@@ -461,7 +457,6 @@ export class Settings implements OnInit {
   protected readonly themeLabel = THEMES.find((item) => item.id === readTheme())?.label;
   // Firebase se kvůli řádku nenačítá; s příznakem předchozího přihlášení ho načte AuthService sám
   private readonly auth = inject(AuthService);
-  protected readonly native = Capacitor.isNativePlatform();
   protected readonly syncLabel = computed(() => {
     const state = this.auth.state();
     return state === 'signedIn' ? this.auth.email() : state === 'loading' ? '' : 'Vypnuto';

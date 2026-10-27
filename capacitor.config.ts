@@ -10,6 +10,11 @@ const config: CapacitorConfig = {
       launchAutoHide: true,
       launchShowDuration: 0,
     },
+    // Nativní Google přihlášení jen vydá idToken, do Firebase se přihlašuje webové SDK ve WebView (Firestore)
+    FirebaseAuthentication: {
+      skipNativeAuth: true,
+      providers: ['google.com'],
+    },
   },
 };
 

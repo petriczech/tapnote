@@ -1,5 +1,4 @@
 import { computed, DestroyRef, effect, inject, InjectionToken, Service, signal, untracked } from '@angular/core';
-import { Capacitor } from '@capacitor/core';
 import { Subscription } from 'rxjs';
 import { isCategory } from '../model/category';
 import { isNote } from '../model/note';
@@ -186,10 +185,6 @@ export class SyncService {
   private readonly onVisibility = () => document.visibilityState === 'hidden' && this.session && this.request(this.session);
 
   constructor() {
-    // Android se přihlašuje nativně až v S4, do té doby synchronizace na něm neběží
-    if (Capacitor.isNativePlatform()) {
-      return;
-    }
     inject(DestroyRef).onDestroy(() => this.stop('off'));
     const uid = computed(() => this.auth.user()?.uid ?? null);
     effect(() => {

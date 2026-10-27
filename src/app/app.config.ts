@@ -9,7 +9,6 @@ import {
 import { provideRouter, RouteReuseStrategy, withComponentInputBinding } from '@angular/router';
 import { routes } from './app.routes';
 import { provideServiceWorker } from '@angular/service-worker';
-import { Capacitor } from '@capacitor/core';
 import { NotesRepository } from './core/storage/notes-repository';
 import { DexieNotesRepository } from './core/storage/dexie-notes-repository';
 import { TasksRepository } from './core/storage/tasks-repository';
@@ -44,10 +43,10 @@ export const appConfig: ApplicationConfig = {
     provideAppInitializer(listenForAppUrls),
     // Widget „Můj den“ na Androidu (v prohlížeči nic nedělá)
     provideAppInitializer(() => void inject(WidgetSync).start().catch(() => undefined)),
-    // Synchronizace po předchozím přihlášení (jen web, Android až s nativním přihlášením v S4); bez přihlášení
-    // se nenačítá nic, po prvním přihlášení ji spustí stránka Synchronizace
+    // Synchronizace po předchozím přihlášení (web i Android); bez přihlášení se nenačítá nic,
+    // po prvním přihlášení ji spustí stránka Synchronizace
     provideAppInitializer(() => {
-      if (!Capacitor.isNativePlatform() && hasSession()) {
+      if (hasSession()) {
         const injector = inject(Injector);
         void import('./core/firebase/sync.service').then((module) => injector.get(module.SyncService)).catch(() => undefined);
       }
