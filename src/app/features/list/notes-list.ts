@@ -129,7 +129,7 @@ function dateLabel(iso: string, today: string): string {
         />
         @if (shortcuts) {
           <kbd class="key-hint" aria-hidden="true">/</kbd>
-          <kbd aria-hidden="true">Ctrl F</kbd>
+          <kbd class="key-hint" aria-hidden="true">Ctrl + F</kbd>
         }
       </div>
       @if (!pane() && categories().length > 0) {
@@ -914,7 +914,7 @@ export class NotesList implements OnInit {
     const count = this.items().length;
     return `${count} ${count === 1 ? 'poznámka' : count >= 2 && count <= 4 ? 'poznámky' : 'poznámek'}`;
   });
-  // Nápověda / a Ctrl F v hledání jen se zapnutými zkratkami
+  // Nápověda / a Ctrl + F v hledání jen se zapnutými zkratkami
   protected readonly shortcuts = readShortcutsEnabled();
   // Připnuté zvlášť, jen v poznámkách bez hledání (výsledky drží pořadí podle relevance)
   protected readonly groups = computed(() => {
