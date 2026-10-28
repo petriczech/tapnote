@@ -1,13 +1,7 @@
 import { afterNextRender, Component, computed, ElementRef, inject, Injector, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import {
-  createExport,
-  exportFileName,
-  mergeNewer,
-  parseExport,
-  readLastBackup,
-  writeLastBackup,
-} from '../../core/backup/notes-backup';
+import { BackupExport } from '../../core/backup/backup-export';
+import { mergeNewer, parseExport, readLastBackup, writeLastBackup } from '../../core/backup/notes-backup';
 import { loadBuildStamp } from '../../core/build-info';
 import { Note } from '../../core/model/note';
 import { templatesOf } from '../../core/model/note-query';
@@ -22,7 +16,6 @@ import { readTheme, THEMES } from '../../core/theme/theme';
 import { BottomNav } from '../list/bottom-nav';
 
 export const MAX_IMPORT_BYTES = 50 * 1024 * 1024;
-const REVOKE_DELAY_MS = 60_000;
 
 @Component({
   selector: 'tn-settings',
@@ -388,6 +381,7 @@ export class Settings implements OnInit {
   private readonly categories = inject(CategoriesRepository);
   private readonly versions = inject(VersionsRepository);
   private readonly actions = inject(NoteActions);
+  private readonly backup = inject(BackupExport);
   private readonly host: HTMLElement = inject(ElementRef).nativeElement;
   private readonly injector = inject(Injector);
   private readonly route = inject(ActivatedRoute);
@@ -481,14 +475,8 @@ export class Settings implements OnInit {
   protected async exportNotes(target: 'download' | 'share'): Promise<void> {
     await this.run(async () => {
       const now = new Date();
-      const data = {
-        notes: await this.repository.getAll(),
-        tasks: await this.tasks.getAll(),
-        categories: await this.categories.getAll(),
-      };
-      const json = JSON.stringify(createExport(data, now), null, 2);
-      const file = new File([json], exportFileName(now), { type: 'application/json' });
       if (target === 'share') {
+        const file = await this.backup.createFile(now);
         if (!navigator.canShare({ files: [file] })) {
           return 'Sdílení souboru tady není dostupné, záloha se dá stáhnout.';
         }
@@ -501,10 +489,10 @@ export class Settings implements OnInit {
           }
           throw error;
         }
+        writeLastBackup(now);
       } else {
-        this.download(file);
+        await this.backup.download(now);
       }
-      writeLastBackup(now);
       this.lastBackup.set(now.toISOString());
       return 'Záloha je připravená.';
     }, 'Zálohu se nepodařilo vytvořit.');
@@ -591,15 +579,5 @@ export class Settings implements OnInit {
     } catch {
       // Seznam šablon zůstane, chyba akce se hlásí ve stavu
     }
-  }
-
-  private download(file: File): void {
-    const url = URL.createObjectURL(file);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = file.name;
-    link.click();
-    // Safari a WebView čtou soubor až po kliknutí, proto se URL uvolní později
-    setTimeout(() => URL.revokeObjectURL(url), REVOKE_DELAY_MS);
   }
 }

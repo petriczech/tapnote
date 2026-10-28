@@ -84,6 +84,11 @@ h1:focus:not(:focus-visible) {
   color: var(--primary);
 }
 
+// Nabídka zálohy před prvním přihlášením je oddělená od tlačítka přihlášení
+.backup {
+  margin-bottom: 12px;
+}
+
 // Tlačítka v kartě vedle sebe, na úzkém displeji se zalomí
 .actions {
   display: flex;

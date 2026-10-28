@@ -1,10 +1,13 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { Capacitor } from '@capacitor/core';
+import { BackupExport } from '../../core/backup/backup-export';
 import { AUTH_API_LOADER, NATIVE_AUTH_LOADER } from '../../core/firebase/auth.service';
 import { SYNC_REMOTE_LOADER, SyncService, SyncState } from '../../core/firebase/sync.service';
 import { FakeAuthApi, FakeNativeAuthApi } from '../../core/firebase/testing/fake-auth-api';
 import { FakeSyncRemote } from '../../core/firebase/testing/fake-sync-remote';
+import { createNote } from '../../core/model/note';
+import { createTask } from '../../core/model/task';
 import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { NotesRepository } from '../../core/storage/notes-repository';
 import { OutboxRepository } from '../../core/storage/outbox-repository';
@@ -42,7 +45,8 @@ describe('Sync', () => {
     return sync;
   }
 
-  async function render(): Promise<void> {
+  // `seed` naplní místní úložiště před vytvořením stránky
+  async function render(seed?: () => Promise<void>): Promise<void> {
     TestBed.configureTestingModule({
       imports: [Sync],
       providers: [
@@ -56,6 +60,7 @@ describe('Sync', () => {
         { provide: OutboxRepository, useClass: InMemoryOutboxRepository },
       ],
     });
+    await seed?.();
     fixture = TestBed.createComponent(Sync);
     root = fixture.nativeElement;
     document.body.append(root);
@@ -95,6 +100,128 @@ describe('Sync', () => {
     );
     expect(button().textContent?.trim()).toBe('Přihlásit přes Google');
     expect(status()?.textContent?.trim()).toBe('');
+  });
+
+  describe('backup before the first merge', () => {
+    const hint = () => root.querySelector('.backup');
+    const withNote = () => TestBed.inject(NotesRepository).put(createNote('n1', '2026-10-27T10:00:00.000Z'));
+
+    it('offers a backup above the sign-in button when this device never synced and has data', async () => {
+      await render(withNote);
+      await vi.waitFor(async () => {
+        await fixture.whenStable();
+        expect(hint()).not.toBeNull();
+      });
+
+      expect(hint()?.querySelector('.info')?.textContent?.replace(/\s+/g, ' ').trim()).toBe(
+        'Při prvním přihlášení se data v tomto zařízení sloučí s daty v cloudu. Před přihlášením se doporučuje stáhnout zálohu.',
+      );
+      expect(texts('.card button')).toEqual(['Stáhnout zálohu', 'Přihlásit přes Google']);
+      expect(byText('Stáhnout zálohu').classList).toContain('outlined');
+    });
+
+    it('downloads the same backup as Settings and announces it', async () => {
+      await render(withNote);
+      await vi.waitFor(async () => {
+        await fixture.whenStable();
+        expect(hint()).not.toBeNull();
+      });
+      const download = vi.spyOn(TestBed.inject(BackupExport), 'download').mockResolvedValue();
+
+      byText('Stáhnout zálohu').click();
+      await vi.waitFor(async () => {
+        await fixture.whenStable();
+        expect(status()?.textContent?.trim()).toBe('Záloha je připravená.');
+      });
+
+      expect(download).toHaveBeenCalledTimes(1);
+      expect(status()?.classList).not.toContain('error');
+      expect(api.calls).toEqual([]);
+    });
+
+    it('announces a failed backup as an error', async () => {
+      await render(withNote);
+      await vi.waitFor(async () => {
+        await fixture.whenStable();
+        expect(hint()).not.toBeNull();
+      });
+      vi.spyOn(TestBed.inject(BackupExport), 'download').mockRejectedValue(new Error('quota'));
+
+      byText('Stáhnout zálohu').click();
+      await vi.waitFor(async () => {
+        await fixture.whenStable();
+        expect(status()?.textContent?.trim()).toBe('Zálohu se nepodařilo vytvořit.');
+      });
+
+      expect(status()?.classList).toContain('error');
+    });
+
+    it('counts a task or a category as local data too', async () => {
+      await render(() => TestBed.inject(TasksRepository).put(createTask('t1', 'Nakoupit', '2026-10-27T10:00:00.000Z')));
+      await vi.waitFor(async () => {
+        await fixture.whenStable();
+        expect(hint()).not.toBeNull();
+      });
+    });
+
+    it('offers no backup when this device has no data', async () => {
+      await render();
+      await fixture.whenStable();
+
+      expect(hint()).toBeNull();
+      expect(texts('.card button')).toEqual(['Přihlásit přes Google']);
+    });
+
+    it('keeps the page and sign-in working without the offer when local data cannot be read', async () => {
+      await render(async () => {
+        await withNote();
+        vi.spyOn(TestBed.inject(TasksRepository), 'getAll').mockRejectedValue(new Error('blocked'));
+      });
+      await vi.waitFor(async () => {
+        await fixture.whenStable();
+        expect(texts('.card button')).toEqual(['Přihlásit přes Google']);
+      });
+      await TestBed.inject(NotesRepository).getAll();
+      await fixture.whenStable();
+
+      expect(hint()).toBeNull();
+      await click();
+      expect(info()).toBe('Přihlášeno jako petr@example.com');
+    });
+
+    it('offers no backup when this device already synced', async () => {
+      localStorage.setItem('tapnote.sync.other-uid', JSON.stringify({ initialized: true, cursors: {} }));
+      await render(withNote);
+      await fixture.whenStable();
+      await TestBed.inject(NotesRepository).getAll();
+      await fixture.whenStable();
+
+      expect(hint()).toBeNull();
+    });
+
+    it('hides the offer while signed in and offers it again after sign-out removes the marker', async () => {
+      await render(withNote);
+      await vi.waitFor(async () => {
+        await fixture.whenStable();
+        expect(hint()).not.toBeNull();
+      });
+
+      byText('Přihlásit přes Google').click();
+      const sync = TestBed.inject(SyncService);
+      await vi.waitFor(async () => {
+        await fixture.whenStable();
+        expect(sync.state()).toBe('idle');
+      });
+      expect(hint()).toBeNull();
+      expect(Object.keys(localStorage).some((key) => key.startsWith('tapnote.sync.'))).toBe(true);
+
+      byText('Odhlásit').click();
+      await vi.waitFor(async () => {
+        await fixture.whenStable();
+        expect(hint()).not.toBeNull();
+      });
+      expect(texts('.card button')).toEqual(['Stáhnout zálohu', 'Přihlásit přes Google']);
+    });
   });
 
   it('signs in and out on the same button and announces the sign-out', async () => {

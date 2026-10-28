@@ -1,8 +1,12 @@
-import { afterNextRender, Component, computed, ElementRef, inject, Injector, signal } from '@angular/core';
+import { afterNextRender, Component, computed, ElementRef, inject, Injector, resource, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { BackupExport } from '../../core/backup/backup-export';
 import { AuthError, AuthService } from '../../core/firebase/auth.service';
-import { SyncService, SyncState } from '../../core/firebase/sync.service';
+import { SYNC_MARKER_PREFIX, SyncService, SyncState } from '../../core/firebase/sync.service';
 import { ICONS_REGULAR } from '../../core/icons/icons';
+import { CategoriesRepository } from '../../core/storage/categories-repository';
+import { NotesRepository } from '../../core/storage/notes-repository';
+import { TasksRepository } from '../../core/storage/tasks-repository';
 import { BottomNav } from '../list/bottom-nav';
 
 const ERRORS: Record<AuthError, string> = {
@@ -21,6 +25,17 @@ const STATES: Partial<Record<SyncState, string>> = {
 
 const CLOUD_DELETE_QUESTION =
   'Smazat data v cloudu? Smažou se poznámky, úkoly a kategorie uložené v cloudu. Data v tomto zařízení zůstanou a účet se odhlásí.';
+
+// Zařízení se zatím nesynchronizovalo s žádným účtem (odhlášení marker maže, další přihlášení je zase první sloučení)
+function neverSynced(): boolean {
+  try {
+    return !Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index)).some((key) =>
+      key?.startsWith(SYNC_MARKER_PREFIX),
+    );
+  } catch {
+    return true;
+  }
+}
 
 // Podstránka Nastavení › Synchronizace: přihlášení přes Google (S3), zamítnutý přístup (S6), stav a ovládání syncu (S7)
 @Component({
@@ -59,6 +74,15 @@ const CLOUD_DELETE_QUESTION =
           Po přihlášení se poznámky, úkoly a kategorie synchronizují mezi zařízeními. Bez přihlášení vše zůstává jen v tomto
           zařízení.
         </p>
+        <!-- Před prvním sloučením s cloudem se nabízí záloha dat z tohoto zařízení; přihlášení zůstává dostupné i bez ní -->
+        @if (offerBackup()) {
+          <div class="backup">
+            <p class="info">
+              Při prvním přihlášení se data v tomto zařízení sloučí s daty v cloudu. Před přihlášením se doporučuje stáhnout zálohu.
+            </p>
+            <button type="button" class="outlined" [attr.aria-disabled]="busy()" (click)="downloadBackup()">Stáhnout zálohu</button>
+          </div>
+        }
       }
       <!-- Jedno tlačítko pro oba stavy, aby fokus po přihlášení i odhlášení zůstal na místě -->
       <div class="actions">
@@ -97,10 +121,25 @@ export class Sync {
   private readonly error = signal<AuthError | null>(null);
   // Smazání dat v cloudu selhalo (obecná chybová hláška synchronizace)
   private readonly cloudFailed = signal(false);
+  private readonly backupFailed = signal(false);
+  private readonly backup = inject(BackupExport);
+  private readonly notes = inject(NotesRepository);
+  private readonly tasks = inject(TasksRepository);
+  private readonly categories = inject(CategoriesRepository);
+  // Místní data se zjišťují při každém odhlášení znovu, mezitím mohla přibýt synchronizací;
+  // nečitelné úložiště nabídku jen skryje (value() by v chybovém stavu vyhodilo výjimku)
+  private readonly localData = resource({
+    params: () => (this.auth.state() === 'signedOut' ? true : undefined),
+    loader: async () =>
+      (await Promise.all([this.notes.getAll(), this.tasks.getAll(), this.categories.getAll()])).some((items) => items.length > 0),
+  });
+  protected readonly offerBackup = computed(() => this.auth.state() === 'signedOut' && this.localData.hasValue() && this.localData.value() && neverSynced());
 
   protected readonly busy = computed(() => this.working() || this.auth.state() === 'loading');
   private readonly denied = computed(() => this.auth.state() === 'signedIn' && this.sync.state() === 'denied');
-  protected readonly failed = computed(() => (this.error() ?? this.auth.redirectError()) !== null || this.denied() || this.cloudFailed());
+  protected readonly failed = computed(
+    () => (this.error() ?? this.auth.redirectError()) !== null || this.denied() || this.cloudFailed() || this.backupFailed(),
+  );
   protected readonly status = computed(() => {
     const error = this.error() ?? this.auth.redirectError();
     if (error) {
@@ -132,6 +171,7 @@ export class Sync {
     this.message.set('');
     this.error.set(null);
     this.cloudFailed.set(false);
+    this.backupFailed.set(false);
     this.auth.redirectError.set(null);
     try {
       if (this.auth.state() === 'signedIn') {
@@ -142,6 +182,27 @@ export class Sync {
       }
     } catch {
       this.error.set('failed');
+    } finally {
+      this.working.set(false);
+    }
+  }
+
+  // Stejný export jako Stáhnout zálohu v Nastavení › Záloha
+  protected async downloadBackup(): Promise<void> {
+    if (this.busy()) {
+      return;
+    }
+    this.working.set(true);
+    this.message.set('');
+    this.error.set(null);
+    this.backupFailed.set(false);
+    this.auth.redirectError.set(null);
+    try {
+      await this.backup.download(new Date());
+      this.message.set('Záloha je připravená.');
+    } catch {
+      this.backupFailed.set(true);
+      this.message.set('Zálohu se nepodařilo vytvořit.');
     } finally {
       this.working.set(false);
     }
@@ -167,7 +228,7 @@ export class Sync {
       await this.sync.deleteCloud();
       this.message.set('Data v cloudu jsou smazaná.');
       // Tlačítko zmizí s odhlášením, fokus přejde na tlačítko přihlášení na stejném místě karty
-      afterNextRender(() => this.host.querySelector<HTMLElement>('.card button')?.focus(), { injector: this.injector });
+      afterNextRender(() => this.host.querySelector<HTMLElement>('.actions button')?.focus(), { injector: this.injector });
     } catch {
       this.cloudFailed.set(true);
     } finally {
