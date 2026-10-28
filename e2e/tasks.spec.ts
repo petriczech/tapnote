@@ -138,3 +138,49 @@ test('úkoly: zkratka Nový úkol a klávesa N', async ({ page, axe }) => {
   await page.keyboard.press('n');
   await expect(input).not.toBeFocused();
 });
+
+// Esc v detailu úkolu vrátí na seznam jako odkaz Úkoly; s otevřenou nabídkou v seznamu vedle zavře jen nabídku
+test('úkoly: Esc zavře detail úkolu', async ({ page, seed, axe }) => {
+  await seed({ tasks: [{ id: 'a', title: 'Mléko', order: 0 }, { id: 'b', title: 'Sýr', order: 1 }] });
+  await page.goto('/tasks?view=all');
+  await page.getByRole('link', { name: 'Mléko' }).click();
+  const title = page.getByRole('textbox', { name: 'Název úkolu' });
+  await expect(title).toHaveValue('Mléko');
+  await axe('detail úkolu');
+  await title.click();
+  await page.keyboard.press('Escape');
+  await expect(page).toHaveURL(/\/tasks\?view=all$/);
+  await expect(page.locator('tn-task-detail')).toHaveCount(0);
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/task/a?view=all');
+  await expect(title).toHaveValue('Mléko');
+  await page.getByRole('button', { name: 'Termín' }).click();
+  const today = page.getByRole('button', { name: 'Dnes' });
+  await expect(today).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(today).toBeHidden();
+  await expect(page).toHaveURL(/\/task\/a\?view=all$/);
+  await expect(title).toBeVisible();
+
+  // Esc v poli Nový úkol v seznamu vedle detail nezavře a text zůstane
+  const draft = page.getByRole('textbox', { name: 'Nový úkol' });
+  await draft.fill('Chleba');
+  await page.keyboard.press('Escape');
+  await expect(page).toHaveURL(/\/task\/a\?view=all$/);
+  await expect(draft).toHaveValue('Chleba');
+
+  // Esc během tahu myší za úchyt detail nezavře
+  const grip = (await page.getByRole('button', { name: 'Přesunout: Sýr' }).boundingBox())!;
+  await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(grip.x + grip.width / 2, grip.y - 30, { steps: 5 });
+  await page.keyboard.press('Escape');
+  await page.mouse.up();
+  await expect(page).toHaveURL(/\/task\/a\?view=all$/);
+
+  await title.click();
+  await page.keyboard.press('Escape');
+  await expect(page).toHaveURL(/\/tasks\?view=all$/);
+  await expect(page.getByRole('link', { name: 'Mléko' })).toBeFocused();
+});

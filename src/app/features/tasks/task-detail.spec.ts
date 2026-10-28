@@ -187,6 +187,30 @@ describe('TaskDetail', () => {
     expect(navigate).toHaveBeenCalledWith(['/tasks'], { queryParamsHandling: 'preserve' });
   });
 
+  it('returns to the list on Escape unless a modifier, open dialog, drag or a field outside the detail takes it', async () => {
+    await render();
+    await vi.waitFor(() => expect(root.querySelector('.title')).not.toBeNull());
+    const press = (init: KeyboardEventInit = {}) =>
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true, ...init }));
+
+    press({ shiftKey: true });
+    const dialog = document.body.appendChild(document.createElement('dialog'));
+    dialog.setAttribute('open', '');
+    press();
+    dialog.remove();
+    const row = document.body.appendChild(document.createElement('li'));
+    row.className = 'reorder-dragging';
+    press();
+    row.remove();
+    const field = document.body.appendChild(document.createElement('input'));
+    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    field.remove();
+    expect(navigate).not.toHaveBeenCalled();
+
+    (root.querySelector('.title') as HTMLTextAreaElement).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    expect(navigate).toHaveBeenCalledWith(['/tasks'], { queryParamsHandling: 'preserve', state: undefined });
+  });
+
   it('returns to the list for an unknown or trashed task', async () => {
     await render('missing');
 

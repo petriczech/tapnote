@@ -3,6 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { Category } from '../../core/model/category';
 import { Task, TaskStep } from '../../core/model/task';
 import { localDate } from '../../core/model/task-query';
+import { readShortcutsEnabled } from '../../core/shortcuts/shortcuts';
 import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { TasksRepository } from '../../core/storage/tasks-repository';
 import { TaskActions } from '../../core/tasks/task-actions';
@@ -20,6 +21,7 @@ const TEXT_DEBOUNCE_MS = 400;
   host: {
     '(document:visibilitychange)': 'onVisibilityChange()',
     '(window:pagehide)': 'flushText()',
+    '(document:keydown)': 'onKey($event)',
     '[style.--cat]': 'catVar()',
   },
   template: `
@@ -257,6 +259,27 @@ export class TaskDetail implements OnInit {
       this.failed.set(true);
       this.status.set('Úkol se nepodařilo smazat.');
     }
+  }
+
+  // Esc zpět na seznam jako odkaz Úkoly v liště (vedle seznamu i s fokusem na řádek úkolu)
+  protected onKey(event: KeyboardEvent): void {
+    if (event.key !== 'Escape' || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
+      return;
+    }
+    if (!readShortcutsEnabled() || event.isComposing || event.defaultPrevented) {
+      return;
+    }
+    // Otevřený dialog nebo nabídka se zavře sama a detail zůstane, během tahu myší v seznamu se detail nezavře; bez podpory popoveru selektor neplatí
+    if (document.querySelector('dialog[open], .reorder-dragging') || ('popover' in HTMLElement.prototype && document.querySelector(':popover-open'))) {
+      return;
+    }
+    // Esc v poli seznamu vedle detailu (Nový úkol) detail nezavře, rozepsaný text by se ztratil
+    const target = event.target;
+    if (target instanceof HTMLElement && !this.host.contains(target) && target.matches('input:not([type=checkbox], [type=radio]), textarea, select')) {
+      return;
+    }
+    event.preventDefault();
+    void this.router.navigate(['/tasks'], { queryParamsHandling: 'preserve', state: this.back() });
   }
 
   protected onVisibilityChange(): void {
