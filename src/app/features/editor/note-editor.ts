@@ -562,6 +562,26 @@ export class NoteEditor implements OnInit {
       this.split?.openId.set(this.draft.stored()?.id);
       this.split?.saves.update((count) => count + 1);
     });
+    // Novější verze otevřené poznámky (jiné zařízení, jiná záložka) nepřesune kurzor ani posun: pozice se drží za
+    // stejným textem před kurzorem, jinak před stejným textem za kurzorem, jinak se zkrátí na délku textu.
+    // Text se zapíše před vykreslením šablony, takže ho vazba [value] už nezmění; prázdné pole (načtení) se nechá být.
+    effect(() => {
+      const content = this.draft.content();
+      const textarea = untracked(this.textarea)?.nativeElement;
+      if (!textarea?.value || textarea.value === content) {
+        return;
+      }
+      const { value, selectionStart, selectionEnd, scrollTop } = textarea;
+      const keep = (offset: number) =>
+        content.startsWith(value.slice(0, offset))
+          ? offset
+          : content.endsWith(value.slice(offset))
+            ? content.length - (value.length - offset)
+            : Math.min(offset, content.length);
+      textarea.value = content;
+      textarea.setSelectionRange(keep(selectionStart), keep(selectionEnd));
+      textarea.scrollTop = scrollTop;
+    });
     // Poznámka smazaná nebo vyhozená jinde se zavře jako neexistující poznámka při otevření
     effect(() => {
       if (this.draft.removed()) {

@@ -128,6 +128,29 @@ describe('NoteEditor', () => {
     await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith(['/new'], { replaceUrl: true }));
   });
 
+  it.each([
+    ['text appended after the cursor', 'jedna dva tři konec', [6, 9], [6, 9]],
+    ['text inserted before the cursor', 'nula jedna dva tři', [6, 9], [11, 14]],
+    ['text changed around the cursor', 'jiné', [6, 9], [4, 4]],
+  ])('keeps the selection and scroll when a newer version arrives with %s', async (_, content, [start, end], expected) => {
+    await repository.put({ ...createNote('1', '2026-10-15T10:00:00.000Z'), content: 'jedna dva tři' });
+    const fixture = TestBed.createComponent(NoteEditor);
+    fixture.componentRef.setInput('id', '1');
+    const host: HTMLElement = fixture.nativeElement;
+    await vi.waitFor(() => expect(textareaOf(host).value).toBe('jedna dva tři'));
+    const textarea = textareaOf(host);
+    textarea.setSelectionRange(start, end);
+    const scrollTop = vi.spyOn(textarea, 'scrollTop', 'set');
+
+    repository.notes.set('1', { ...createNote('1', '2026-10-15T10:00:00.000Z'), content, updatedAt: '2026-10-15T11:00:00.000Z' });
+    repository.changes.next();
+    await vi.waitFor(() => expect(textarea.value).toBe(content));
+    await fixture.whenStable();
+
+    expect([textarea.selectionStart, textarea.selectionEnd]).toEqual(expected);
+    expect(scrollTop).toHaveBeenCalled();
+  });
+
   it('does not redirect after the editor is destroyed', async () => {
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     let resolveGet!: (note: undefined) => void;

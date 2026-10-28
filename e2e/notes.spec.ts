@@ -1,4 +1,4 @@
-import { expect, test } from './fixtures';
+import { expect, NOW, test } from './fixtures';
 
 // Poznámka napsaná v editoru se uloží, objeví se v seznamu a najde ji hledání
 test('poznámky: napsat, najít v seznamu a hledáním', async ({ page, axe }) => {
@@ -74,4 +74,36 @@ test('poznámky: řazení checklistu úchytem a menu úchytu', async ({ page, se
   await expect(items).toHaveText(['chleba', 'sýr', 'mléko']);
   await page.getByRole('button', { name: 'Hotové (1)' }).click();
   await expect(page.locator('.checklist.done label')).toHaveText(['máslo']);
+});
+
+// Novější verze otevřené poznámky z jiné záložky nepřesune kurzor ani posun textového pole
+test('poznámky: kurzor zůstane po změně v jiné záložce', async ({ page, seed, context }) => {
+  const content = `Dlouhá\n${Array.from({ length: 80 }, (_, i) => `řádek ${i + 1}`).join('\n')}`;
+  await seed({ notes: [{ id: 'dlouha', title: 'Dlouhá', content, updatedAt: '2026-10-20T09:00:00.000Z' }] });
+  await page.goto('/note/dlouha');
+  const editor = page.getByRole('textbox', { name: 'Poznámka' });
+  await expect(editor).toHaveValue(content);
+  const caret = content.indexOf('řádek 40');
+  await editor.evaluate((textarea: HTMLTextAreaElement, caret) => {
+    textarea.focus();
+    textarea.setSelectionRange(caret, caret);
+    textarea.scrollTop = 600;
+  }, caret);
+  const state = () => editor.evaluate((textarea: HTMLTextAreaElement) => [textarea.selectionStart, textarea.selectionEnd, textarea.scrollTop]);
+
+  const other = await context.newPage();
+  await other.goto('/note/dlouha');
+  const otherEditor = other.getByRole('textbox', { name: 'Poznámka' });
+  await expect(otherEditor).toHaveValue(content);
+  await otherEditor.press('Control+End');
+  await otherEditor.pressSequentially('\nkonec');
+  await expect(editor).toHaveValue(`${content}\nkonec`);
+  expect(await state()).toEqual([caret, caret, 600]);
+
+  // Text před kurzorem se změnil: kurzor zůstane před stejným textem za ním
+  await page.clock.setFixedTime(new Date(NOW.getTime() + 60_000));
+  await otherEditor.press('Control+Home');
+  await otherEditor.pressSequentially('Nahoře\n');
+  await expect(editor).toHaveValue(`Nahoře\n${content}\nkonec`);
+  expect(await state()).toEqual([caret + 7, caret + 7, 600]);
 });
