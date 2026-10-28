@@ -1075,7 +1075,19 @@ export class NotesList implements OnInit {
   private moveFocus(item: HTMLElement | undefined, step: number): void {
     const items = [...this.host.querySelectorAll<HTMLElement>('li[data-id]')];
     const index = item ? items.indexOf(item) + step : step > 0 ? 0 : items.length - 1;
-    items[Math.max(0, Math.min(index, items.length - 1))]?.querySelector<HTMLElement>('a.body, .actions')?.focus();
+    let target = items[Math.max(0, Math.min(index, items.length - 1))];
+    // V mřížce na šířku se jde do nejbližší řady pod/nad na kartu se středem nejblíž; za poslední řadou fokus zůstává
+    if (item?.parentElement && getComputedStyle(item.parentElement).display === 'grid') {
+      const from = item.getBoundingClientRect();
+      const offset = (rect: DOMRect) => Math.abs(rect.left + rect.width / 2 - (from.left + from.width / 2));
+      const rows = items.map((el) => ({ el, rect: el.getBoundingClientRect() })).filter(({ rect }) => (rect.top - from.top) * step > 1);
+      const top = Math.min(...rows.map(({ rect }) => Math.abs(rect.top - from.top)));
+      target =
+        rows
+          .filter(({ rect }) => Math.abs(rect.top - from.top) - top < 1)
+          .sort((a, b) => offset(a.rect) - offset(b.rect))[0]?.el ?? item;
+    }
+    target?.querySelector<HTMLElement>('a.body, .actions')?.focus();
   }
 
   protected categoryOf(note: Note): Category | undefined {

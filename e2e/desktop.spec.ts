@@ -105,6 +105,42 @@ test('desktop: zkratky / , šipky, Enter a Esc na seznamu', async ({ page, seed 
   await expect(page.getByRole('textbox', { name: 'Poznámka' })).toHaveValue('Nákup\nmléko');
 });
 
+// V mřížce na šířku vede ↓/↑ na kartu pod/nad; v úzkém okně dál na další kartu v pořadí
+test('desktop: šipky v mřížce chodí po sloupci', async ({ page, seed, axe }) => {
+  await seed({
+    notes: ['A', 'B', 'C', 'D', 'E', 'F', 'G'].map((title, index) => ({
+      id: `n${index}`,
+      title: `Karta ${title}`,
+      content: `Karta ${title}\ntext`,
+      updatedAt: `2026-10-21T0${9 - index}:00:00.000Z`,
+    })),
+  });
+  await page.goto('/notes');
+  await page.getByRole('button', { name: 'Mřížka' }).click();
+  const cards = page.locator('li[data-id] a.body');
+  await expect(cards).toHaveCount(7);
+  const boxes = await cards.evaluateAll((links) => links.map((link) => link.closest('li')!.getBoundingClientRect().toJSON()));
+  const columns = boxes.filter((box) => box.top === boxes[0].top).length;
+  expect(columns).toBeGreaterThanOrEqual(2);
+
+  await cards.nth(0).focus();
+  await page.keyboard.press('ArrowDown');
+  await expect(cards.nth(columns)).toBeFocused();
+  await page.keyboard.press('ArrowUp');
+  await expect(cards.nth(0)).toBeFocused();
+  await page.keyboard.press('ArrowUp');
+  await expect(cards.nth(0)).toBeFocused();
+  await cards.nth(6).focus();
+  await page.keyboard.press('ArrowDown');
+  await expect(cards.nth(6)).toBeFocused();
+  await axe('šipky v mřížce na desktopu');
+
+  await page.setViewportSize({ width: 412, height: 860 });
+  await cards.nth(0).focus();
+  await page.keyboard.press('ArrowDown');
+  await expect(cards.nth(1)).toBeFocused();
+});
+
 // Přechod přes 1200 px (panel ↔ kolejnice) nepřekreslí stránku Poznámek a fokus na kartě zůstane
 test('desktop: změna šířky přes 1200 px drží fokus na Poznámkách', async ({ page, seed }) => {
   await seed({ notes: [{ id: 'n1', title: 'Nákup', content: 'Nákup\nmléko' }] });
