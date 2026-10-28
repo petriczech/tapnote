@@ -260,12 +260,12 @@ Stav: přepracování Noir (kroky 0–11), desktop (15–20), drag & drop (21–
 ### Hlasování panelu (28. 10. 2026: UX, designér, kodér, mobilní designér)
 - **Ano (pořadí):**
   1. S4 Android sync (4/4, priorita 1)
-  2. D4 Esc v detailu úkolu, a na Androidu ověřit, že detail zavře i gesto Zpět (4/4)
-  3. D7 + D8 sladit červenou okraje poznámky a `--error` s novou červenou, s auditem kontrastu (4/4)
-  4. O7 kurzor po načtení novější verze (4/4)
-  5. D3 šipka ↓ v mřížce (3/4)
-  6. D5 sjednotit štítek „Ctrl F“ (4/4)
-  7. D1 ikona zkratky „Nový úkol“ (3/4)
+  2. ✅ D4 Esc v detailu úkolu (28. 10. 2026; otevřené menu nebo dialog se zavře první, Esc v poli „Nový úkol“ vedle detailu a během tahu myší detail nezavře), a na Androidu ověřit, že detail zavře i gesto Zpět (detail je route, Zpět jde v historii; po otevření z widgetu při studeném startu appku ukončí) (4/4)
+  3. ✅ D7 + D8 sladit červenou okraje poznámky a `--error` s novou červenou, s auditem kontrastu (28. 10. 2026; 5 motivů × světlý/tmavý bez selhání, `.tmp/playwright/d7-d8-red/contrast.md`; pozadí červené poznámky `--note-red` zůstává v některých motivech narůžovělé) (4/4)
+  4. ✅ O7 kurzor po načtení novější verze (28. 10. 2026; zachová se výběr i posun, pravidlo: stejný text před kurzorem → stejná pozice, stejný za ním → stejná vzdálenost od konce, jinak oříznutí) (4/4)
+  5. ✅ D3 šipka ↓ v mřížce (28. 10. 2026; jen desktopová mřížka, ↓/↑ na kartu pod/nad) (3/4)
+  6. ✅ D5 sjednotit štítek „Ctrl F“ (28. 10. 2026; „Ctrl + F“ s `key-hint`, pravidlo `kbd:not(.key-hint)` je teď nepoužité a zůstává) (4/4)
+  7. ✅ D1 ikona zkratky „Nový úkol“ (28. 10. 2026; PWA ikona s fajfkou, Android už vlastní `ic_shortcut_task` měl) (3/4)
 - **Ne:** D2, D6, O3 a O4.
 - **Později:** O1 (nejdřív menu „Přesunout do…“, drag až potom), O2, O5 a O6.
 - **Nové návrhy panelu (čekají na rozhodnutí):**
