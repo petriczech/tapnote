@@ -276,6 +276,18 @@ Stav: přepracování Noir (kroky 0–11), desktop (15–20), drag & drop (21–
   - test synchronizace proti produkci s posunutými hodinami
   - nabídnout export zálohy před prvním sloučením
 
+### Hlasování panelu 2 (28. 10. 2026: UX, designér, kodér, mobilní designér; čeká na schválení)
+- **Ano (pořadí podle bodů):**
+  1. N3 gesto Zpět na Androidu zavře menu/dialog, jinak historie, bez historie Úkoly místo ukončení (i studený start z widgetu) (4/4)
+  2. N5 nabídnout export zálohy před prvním sloučením (4/4)
+  3. N2 „Zpět“ v toastu po odškrtnutí nebo smazání úkolu; vrátí i widget (4/4)
+  4. N1 ikona stavu synchronizace v liště (hlavně offline/chyba) (4/4)
+  5. N4 ruční test s posunutými hodinami proti produkci, pak varování při `updatedAt` v budoucnosti (3/4)
+  - R2 Esc v přehledu zkratek přibalit k libovolnému kroku (4/4)
+- **Ne:** R3 smazat `kbd:not(.key-hint)` (4/4).
+- **Později:** R1 pozadí červené poznámky (3/4; návrh designéra: Noir `#ffe1de`/`#3a1a1a`, Bílá `#ffe0dd`/`#451d1d`), O1 „Přesunout do…“ (3/4), zkratky N/D, přetažení na kategorii, řazení kroků a podpoložek, tučné písmo, obrázky.
+- O2, O5 a O6 nemají v plánu popis, nešlo hlasovat.
+
 ### Odloženo (předložit znovu, až bude potřeba)
 - globální zkratky N/D a počty u odkazů v panelu (desktop rozhodnutí 10)
 - přetažení na kategorii (R7), řazení kroků úkolu (R8), řazení podpoložek checklistu (R3)
