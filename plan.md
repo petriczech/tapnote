@@ -279,7 +279,7 @@ Stav: přepracování Noir (kroky 0–11), desktop (15–20), drag & drop (21–
 ### Hlasování panelu 2 (28. 10. 2026: UX, designér, kodér, mobilní designér; čeká na schválení)
 - **Ano (pořadí podle bodů):**
   1. ✅ N3 gesto Zpět na Androidu zavře menu/dialog, jinak historie, bez historie Úkoly místo ukončení (i studený start z widgetu) (28. 10. 2026; `core/native/back-button.ts`, z Úkolů `minimizeApp`; netestováno na zařízení, postup v reportu: menu, Kategorie, detail, widget za studena, zkratka Nová poznámka, klávesnice, gesto na Androidu 13+; známé: po zkratce „Nový úkol“ nad otevřenými Úkoly je první Zpět naprázdno) (4/4)
-  2. ✅ N5 nabídnout export zálohy před prvním sloučením (28. 10. 2026; na webu hotové; **Android:** „Stáhnout zálohu“ tam nic neuloží – WebView ignoruje `<a download>` s blob URL a nemá `navigator.share` s soubory; platí i pro Nastavení › Záloha; čeká na rozhodnutí: nativní uložení/sdílení přes plugin, nebo nabídku na Androidu skrýt) (4/4)
+  2. ✅ N5 nabídnout export zálohy před prvním sloučením (28. 10. 2026; na webu hotové; **Android:** „Stáhnout zálohu“ v Nastavení i Synchronizaci zapíše soubor přes `@capacitor/filesystem` do cache a otevře systémové sdílení `@capacitor/share`; zavření nabídky = bez hlášky a bez „Poslední záloha“; cíl otevřený jako dialog nad appkou se může tvářit jako zavření; ověřit na telefonu) (4/4)
   3. N2 „Zpět“ v toastu po odškrtnutí nebo smazání úkolu; vrátí i widget (4/4)
   4. N1 ikona stavu synchronizace v liště (hlavně offline/chyba) (4/4)
   5. N4 ruční test s posunutými hodinami proti produkci, pak varování při `updatedAt` v budoucnosti (3/4)
