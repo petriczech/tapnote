@@ -490,8 +490,8 @@ export class Settings implements OnInit {
           throw error;
         }
         writeLastBackup(now);
-      } else {
-        await this.backup.download(now);
+      } else if (!(await this.backup.download(now))) {
+        return '';
       }
       this.lastBackup.set(now.toISOString());
       return 'Záloha je připravená.';

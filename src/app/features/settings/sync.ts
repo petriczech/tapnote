@@ -198,8 +198,9 @@ export class Sync {
     this.backupFailed.set(false);
     this.auth.redirectError.set(null);
     try {
-      await this.backup.download(new Date());
-      this.message.set('Záloha je připravená.');
+      if (await this.backup.download(new Date())) {
+        this.message.set('Záloha je připravená.');
+      }
     } catch {
       this.backupFailed.set(true);
       this.message.set('Zálohu se nepodařilo vytvořit.');

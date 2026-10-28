@@ -126,7 +126,7 @@ describe('Sync', () => {
         await fixture.whenStable();
         expect(hint()).not.toBeNull();
       });
-      const download = vi.spyOn(TestBed.inject(BackupExport), 'download').mockResolvedValue();
+      const download = vi.spyOn(TestBed.inject(BackupExport), 'download').mockResolvedValue(true);
 
       byText('Stáhnout zálohu').click();
       await vi.waitFor(async () => {
