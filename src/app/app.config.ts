@@ -22,6 +22,7 @@ import { DexieOutboxRepository } from './core/storage/dexie-outbox-repository';
 import { NoteActions } from './core/notes/note-actions';
 import { TaskActions } from './core/tasks/task-actions';
 import { listenForAppUrls } from './core/native/app-urls';
+import { listenForBackButton } from './core/native/back-button';
 import { WidgetSync } from './core/native/widget-sync';
 import { ParamsRouteReuseStrategy } from './params-route-reuse-strategy';
 import { hasSession } from './core/firebase/auth.service';
@@ -41,6 +42,8 @@ export const appConfig: ApplicationConfig = {
     provideAppInitializer(() => void inject(TaskActions).purgeTrash().catch(() => undefined)),
     // Zkratky a odkazy z Androidu
     provideAppInitializer(listenForAppUrls),
+    // Zpět na Androidu zavírá nabídky a dialogy a bez historie vede na seznam
+    provideAppInitializer(listenForBackButton),
     // Widget „Můj den“ na Androidu (v prohlížeči nic nedělá)
     provideAppInitializer(() => void inject(WidgetSync).start().catch(() => undefined)),
     // Synchronizace po předchozím přihlášení (web i Android); bez přihlášení se nenačítá nic,
