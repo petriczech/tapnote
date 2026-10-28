@@ -14,6 +14,7 @@ import {
   untracked,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { Category } from '../../core/model/category';
 import { categoryIconPath } from '../../core/model/category-icons';
@@ -24,6 +25,7 @@ import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { TasksRepository } from '../../core/storage/tasks-repository';
 import { isPlainKey, readShortcutsEnabled } from '../../core/shortcuts/shortcuts';
 import { NewTaskFields, TaskActions } from '../../core/tasks/task-actions';
+import { Undo } from '../../core/undo/undo';
 import { BottomNav } from '../list/bottom-nav';
 import { Confetti } from './confetti';
 import { ICONS, ICONS_FILL } from '../../core/icons/icons';
@@ -296,6 +298,7 @@ export class TasksPage implements OnInit {
   private readonly repository = inject(TasksRepository);
   private readonly categoriesRepository = inject(CategoriesRepository);
   private readonly actions = inject(TaskActions);
+  private readonly undo = inject(Undo);
   private readonly host: HTMLElement = inject(ElementRef).nativeElement;
   private readonly injector = inject(Injector);
   private readonly router = inject(Router);
@@ -322,6 +325,14 @@ export class TasksPage implements OnInit {
     effect(() => {
       if (this.saves() > 0) {
         untracked(() => void this.load());
+      }
+    });
+    // Po vrácení z lišty Zpět se seznam načte znovu a fokus přejde z odstraněného tlačítka na vrácený úkol;
+    // úkol otevřený v detailu vedle dostane fokus tam
+    this.undo.undone.pipe(takeUntilDestroyed()).subscribe(async (id) => {
+      await this.load();
+      if (id !== this.openId()) {
+        this.focusTask(id, '.check', this.list().open.findIndex((task) => task.id === id));
       }
     });
     // Parametr zkratky se po fokusu z adresy odstraní (replaceUrl), aby návrat zpět nebo vpřed znovu nefokusoval
@@ -522,6 +533,10 @@ export class TasksPage implements OnInit {
       this.announcement.set(task.done ? `Úkol ${task.title} znovu otevřen` : `Úkol ${task.title} hotov`);
       if (!task.done && rect) {
         this.celebrate(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      }
+      // Zpět jen po dokončení; vrátí původní stav a čas dokončení (bez konfet, ty patří jen k zaškrtnutí)
+      if (!task.done) {
+        this.undo.show('Úkol je hotový.', task.id, () => this.actions.update(task, { done: task.done, completedAt: task.completedAt }));
       }
     } else if (event?.target instanceof HTMLInputElement) {
       // Při chybě uložení se zaškrtnutí vrátí podle uloženého stavu

@@ -8,6 +8,7 @@ import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { TasksRepository } from '../../core/storage/tasks-repository';
 import { InMemoryCategoriesRepository } from '../../core/storage/testing/in-memory-categories-repository';
 import { InMemoryTasksRepository } from '../../core/storage/testing/in-memory-tasks-repository';
+import { Undo } from '../../core/undo/undo';
 import { TasksPage } from './tasks-page';
 
 const TODAY = localDate(new Date());
@@ -264,6 +265,52 @@ describe('TasksPage', () => {
     await fixture.whenStable();
 
     expect(root.querySelector('tn-confetti')).toBeNull();
+  });
+
+  it('offers Zpět after completing a task and restores it without confetti', async () => {
+    const undo = TestBed.inject(Undo);
+    await render();
+
+    root.querySelector<HTMLInputElement>('li[data-id="a"] .check')?.click();
+    await vi.waitFor(() => expect(undo.message()?.text).toBe('Úkol je hotový.'));
+    const updatedAt = repository.tasks.get('a')?.updatedAt as string;
+    await vi.waitFor(() => expect(root.querySelector('tn-confetti')).toBeNull());
+
+    await undo.undo();
+    await fixture.whenStable();
+
+    const restored = repository.tasks.get('a') as Task;
+    expect(restored.done).toBe(false);
+    expect('completedAt' in restored).toBe(false);
+    expect(restored.updatedAt >= updatedAt).toBe(true);
+    await vi.waitFor(() => expect(titles()).toEqual(['Úkol a']));
+    expect(root.querySelector('tn-confetti')).toBeNull();
+    // Fokus z odstraněného tlačítka Zpět na vrácený úkol
+    await vi.waitFor(() => expect(document.activeElement).toBe(root.querySelector('li[data-id="a"] .check')));
+  });
+
+  it('reloads and focuses a task restored from the trash by Zpět', async () => {
+    await repository.update('a', { deletedAt: '2026-10-20T10:00:00.000Z' });
+    await render();
+    expect(titles()).toEqual([]);
+
+    const undo = TestBed.inject(Undo);
+    undo.show('Úkol je smazaný.', 'a', () => repository.update('a', { deletedAt: undefined }));
+    await undo.undo();
+
+    await vi.waitFor(() => expect(titles()).toEqual(['Úkol a']));
+    await vi.waitFor(() => expect(document.activeElement).toBe(root.querySelector('li[data-id="a"] .check')));
+  });
+
+  it('offers no Zpět after reopening a done task', async () => {
+    const undo = TestBed.inject(Undo);
+    await render();
+    root.querySelector('details')?.setAttribute('open', '');
+
+    root.querySelector<HTMLInputElement>('li[data-id="ccc"] .check')?.click();
+    await vi.waitFor(() => expect(repository.tasks.get('ccc')?.done).toBe(false));
+
+    expect(undo.message()).toBeUndefined();
   });
 
   it('shows grips only for open tasks outside the planned view', async () => {

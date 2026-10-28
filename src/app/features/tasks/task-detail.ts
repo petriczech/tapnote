@@ -1,4 +1,5 @@
 import { afterNextRender, Component, computed, DestroyRef, effect, ElementRef, inject, Injector, input, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { Category } from '../../core/model/category';
 import { Task, TaskStep } from '../../core/model/task';
@@ -7,6 +8,7 @@ import { readShortcutsEnabled } from '../../core/shortcuts/shortcuts';
 import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { TasksRepository } from '../../core/storage/tasks-repository';
 import { TaskActions } from '../../core/tasks/task-actions';
+import { Undo } from '../../core/undo/undo';
 import { Split } from '../list/split';
 import { ICONS, ICONS_FILL, ICONS_REGULAR } from '../../core/icons/icons';
 
@@ -131,6 +133,7 @@ export class TaskDetail implements OnInit {
   private readonly repository = inject(TasksRepository);
   private readonly categoriesRepository = inject(CategoriesRepository);
   private readonly actions = inject(TaskActions);
+  private readonly undo = inject(Undo);
   private readonly router = inject(Router);
   // Vedle seznamu (od 1200 px) si návrat na seznam nese id úkolu pro fokus na jeho řádek
   private readonly split = inject(Split, { optional: true });
@@ -166,6 +169,13 @@ export class TaskDetail implements OnInit {
       this.split?.openId.set(this.task()?.id);
       this.split?.saves.update((count) => count + 1);
     });
+    // Po vrácení dokončení z lišty Zpět se úkol načte znovu a fokus přejde z odstraněného tlačítka na zaškrtávátko
+    this.undo.undone.pipe(takeUntilDestroyed()).subscribe(async (id) => {
+      await this.load();
+      if (id === this.id()) {
+        afterNextRender(() => this.host.querySelector<HTMLElement>('.head .check')?.focus(), { injector: this.injector });
+      }
+    });
     inject(DestroyRef).onDestroy(() => void this.flushText().then(() => this.split?.saves.update((count) => count + 1)));
   }
 
@@ -181,10 +191,14 @@ export class TaskDetail implements OnInit {
   }
 
   protected async toggleDone(event: Event): Promise<void> {
+    const before = this.task();
     await this.save((task) => ({ done: !task.done, completedAt: task.done ? undefined : new Date().toISOString() }));
     // Při chybě uložení se zaškrtnutí vrátí podle uloženého úkolu
     if (this.failed() && event.target instanceof HTMLInputElement) {
       event.target.checked = this.task()?.done ?? false;
+    } else if (before && !before.done) {
+      // Zpět jen po dokončení; vrátí původní stav a čas dokončení
+      this.undo.show('Úkol je hotový.', before.id, () => this.actions.update(before, { done: before.done, completedAt: before.completedAt }));
     }
   }
 
@@ -255,6 +269,8 @@ export class TaskDetail implements OnInit {
     try {
       await this.actions.trash(task);
       await this.router.navigate(['/tasks'], { queryParamsHandling: 'preserve' });
+      // Lišta je v kostře aplikace, Zpět na seznamu úkol obnoví a seznam se načte znovu
+      this.undo.show('Úkol je smazaný.', task.id, () => this.actions.restore(task));
     } catch {
       this.failed.set(true);
       this.status.set('Úkol se nepodařilo smazat.');

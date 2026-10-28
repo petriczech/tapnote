@@ -36,6 +36,35 @@ test('úkoly: přidat, dokončit, vrátit', async ({ page, axe }) => {
   await expect(page.getByText(/^Hotové \(/)).toHaveCount(0);
 });
 
+// Po dokončení a po smazání v detailu nabídne lišta Zpět vrácení; úkol se vrátí do seznamu
+test('úkoly: Zpět po dokončení a smazání', async ({ page, seed, axe }) => {
+  await seed({ tasks: [{ id: 'a', title: 'Mléko', order: 0 }, { id: 'b', title: 'Sýr', order: 1 }] });
+  await page.goto('/tasks?view=all');
+  const open = page.getByRole('list', { name: 'Úkoly', exact: true });
+  const bar = page.getByRole('status').filter({ hasText: /Úkol je/ });
+  const back = bar.getByRole('button', { name: 'Zpět' });
+
+  await open.getByRole('checkbox', { name: 'Hotovo: Mléko' }).click();
+  await expect(bar).toHaveText(/Úkol je hotový\./);
+  await expect(open.getByRole('checkbox', { name: 'Hotovo: Mléko' })).toHaveCount(0);
+  await axe('úkoly s lištou Zpět');
+  await back.click();
+  await expect(open.getByRole('checkbox', { name: 'Hotovo: Mléko' })).not.toBeChecked();
+  await expect(back).toHaveCount(0);
+  await expect(page.getByText(/^Hotové \(/)).toHaveCount(0);
+
+  await page.getByRole('link', { name: 'Sýr' }).click();
+  await page.getByRole('button', { name: 'Smazat' }).click();
+  await expect(page).toHaveURL(/\/tasks\?view=all$/);
+  await expect(bar).toHaveText(/Úkol je smazaný\./);
+  await expect(open.getByRole('link', { name: 'Sýr' })).toHaveCount(0);
+  await back.click();
+  await expect(open.locator('.title')).toHaveText(['Mléko', 'Sýr']);
+
+  await page.reload();
+  await expect(open.locator('.title')).toHaveText(['Mléko', 'Sýr']);
+});
+
 // Ruční pořadí v Můj den, Důležité a Vše: tah myší za úchyt ⠿, nabídka úchytu, mezerník a šipky; Naplánované bez úchytu
 test('úkoly: řazení úchytem a nabídkou úchytu', async ({ page, seed, axe }) => {
   const today = '2026-10-21';

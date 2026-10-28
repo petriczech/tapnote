@@ -7,6 +7,7 @@ import { CategoriesRepository } from '../../core/storage/categories-repository';
 import { TasksRepository } from '../../core/storage/tasks-repository';
 import { InMemoryCategoriesRepository } from '../../core/storage/testing/in-memory-categories-repository';
 import { InMemoryTasksRepository } from '../../core/storage/testing/in-memory-tasks-repository';
+import { Undo } from '../../core/undo/undo';
 import { TaskDetail } from './task-detail';
 
 const home: Category = {
@@ -185,6 +186,48 @@ describe('TaskDetail', () => {
 
     await vi.waitFor(() => expect(stored().deletedAt).toBeDefined());
     expect(navigate).toHaveBeenCalledWith(['/tasks'], { queryParamsHandling: 'preserve' });
+  });
+
+  it('offers Zpět after deleting and restores the task', async () => {
+    const undo = TestBed.inject(Undo);
+    await render();
+    await vi.waitFor(() => expect(root.querySelector('.danger')).not.toBeNull());
+
+    (root.querySelector('.danger') as HTMLButtonElement).click();
+    await vi.waitFor(() => expect(undo.message()?.text).toBe('Úkol je smazaný.'));
+    expect(navigate).toHaveBeenCalled();
+
+    await undo.undo();
+
+    expect('deletedAt' in stored()).toBe(false);
+    expect(stored().title).toBe('Zavolat instalatérovi');
+  });
+
+  it('offers Zpět after completing and shows the task open again', async () => {
+    const undo = TestBed.inject(Undo);
+    await render();
+    await vi.waitFor(() => expect(root.querySelector('input[aria-label="Hotovo"]')).not.toBeNull());
+    const check = root.querySelector<HTMLInputElement>('input[aria-label="Hotovo"]') as HTMLInputElement;
+
+    check.click();
+    await vi.waitFor(() => expect(undo.message()?.text).toBe('Úkol je hotový.'));
+    expect(stored().done).toBe(true);
+
+    await undo.undo();
+    await fixture.whenStable();
+
+    expect(stored().done).toBe(false);
+    expect('completedAt' in stored()).toBe(false);
+    await vi.waitFor(() => expect(check.checked).toBe(false));
+    await vi.waitFor(() => expect(document.activeElement).toBe(check));
+
+    // Odškrtnutí lištu Zpět nenabídne
+    check.click();
+    await vi.waitFor(() => expect(stored().done).toBe(true));
+    undo.message.set(undefined);
+    check.click();
+    await vi.waitFor(() => expect(stored().done).toBe(false));
+    expect(undo.message()).toBeUndefined();
   });
 
   it('returns to the list on Escape unless a modifier, open dialog, drag or a field outside the detail takes it', async () => {
