@@ -11,7 +11,7 @@ import { readShortcutsEnabled } from '../../core/shortcuts/shortcuts';
   imports: [NgOptimizedImage, RouterLink],
   template: `
     <a class="skip" href="#obsah" (click)="skip($event)">Přeskočit na obsah</a>
-    <p class="brand"><img ngSrc="icons/icon-96x96.png" width="32" height="32" alt="" /><span>Tapnote</span></p>
+    <a class="brand" routerLink="/tasks" aria-label="Tapnote" (click)="leave.emit()"><img ngSrc="icons/icon-96x96.png" width="32" height="32" alt="" /><span>Tapnote</span></a>
     <a class="action new" routerLink="/new" (click)="leave.emit()">
       <span class="tile"><svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path [attr.d]="bold.plus" /></svg></span>
       Nová poznámka
@@ -218,11 +218,15 @@ import { readShortcutsEnabled } from '../../core/shortcuts/shortcuts';
         display: none;
       }
 
+      // Značka vede na úvodní Úkoly; barvu a směr bere jako dřív odstavec, ne jako odkazy kolejnice
       .brand {
         display: flex;
+        flex: none;
+        flex-direction: row;
         align-items: center;
         justify-content: center;
         gap: 10px;
+        color: inherit;
         height: 44px;
         margin: 0 0 8px;
         font-size: 1.125rem;
