@@ -328,6 +328,13 @@ type EditorAction = 'pin' | 'archive' | 'template' | 'trash' | 'color' | 'catego
       color: var(--on-surface);
     }
 
+    /* S myší se tlačítko panelu zvýrazní stejně jako položky jeho nabídek */
+    @media (hover: hover) {
+      .format .icon-btn:hover {
+        background: color-mix(in srgb, var(--on-surface) 8%, transparent);
+      }
+    }
+
     /* Nabídky panelu vpravo nad ním, na dosah palce */
     .format-menu {
       inset: auto 12px calc(88px + env(safe-area-inset-bottom)) auto;
