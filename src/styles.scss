@@ -981,6 +981,11 @@ tn-tasks-page li :disabled {
   .menu button:not(.swatch, [aria-pressed='true']):hover {
     background: color-mix(in srgb, var(--on-surface) 8%, transparent);
   }
+
+  // Barva si plochu nechá, zvýrazní se obrys (vybraná má vlastní silnější)
+  .menu .swatch:not([aria-pressed='true']):hover {
+    border: 2px solid var(--on-surface);
+  }
 }
 
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
